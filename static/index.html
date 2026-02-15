@@ -870,14 +870,24 @@
             plantEl.className = 'search-suggestion';
             plantEl.dataset.type = plant.type_plante || 'Plante';
             
+            // Stocker les données dans un attribut data au lieu du onclick
+            plantEl.dataset.plantData = JSON.stringify(plant);
+            
             plantEl.innerHTML = `
                 <div class="suggestion-icon">${plant.icon || '🌿'}</div>
                 <div class="suggestion-info">
                     <div class="suggestion-name">${plant.nom_francais}</div>
                     <div class="suggestion-latin">${plant.nom_latin}</div>
                 </div>
-                <button class="add-btn" onclick="addToLibrary(event, ${escapeQuotes(JSON.stringify(plant))})">Ajouter</button>
+                <button class="add-btn">Ajouter</button>
             `;
+            
+            // Ajouter l'événement click proprement
+            const button = plantEl.querySelector('.add-btn');
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addToLibrary(e, plant);
+            });
             
             return plantEl;
         }
@@ -1005,11 +1015,6 @@
                 emptyDiv.querySelector('.info-text').textContent = 
                     'Erreur lors du chargement. Vérifiez que le serveur backend est démarré.';
             }
-        }
-
-        // Utilitaires
-        function escapeQuotes(str) {
-            return str.replace(/'/g, "\\'");
         }
     </script>
 </body>
