@@ -4,6 +4,9 @@ from dataclasses import dataclass, asdict
 from typing import List, Dict
 import json
 import os
+import requests
+from bs4 import BeautifulSoup
+import re
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -17,9 +20,190 @@ class PlantInfo:
     prix: str = ""
     description: str = ""
     icon: str = "🌿"
+    url: str = ""
+
+class PromesseDeFleursScraper:
+    """Scraper réel pour Promesse de Fleurs"""
+    
+    def __init__(self):
+        self.base_url = "https://www.promessedefleurs.com"
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        }
+        
+        # Icônes par type de plante
+        self.icons = {
+            'rosier': '🌹',
+            'rose': '🌹',
+            'lavande': '🌿',
+            'hortensia': '🌺',
+            'olivier': '🌳',
+            'arbre': '🌳',
+            'arbuste': '🌳',
+            'vivace': '🌸',
+            'graminée': '🌾',
+            'tomate': '🍅',
+            'basilic': '🌿',
+            'plante': '🌿'
+        }
+    
+    def get_icon(self, name: str, type_plante: str = "") -> str:
+        """Détermine l'icône selon le nom ou type"""
+        search_text = (name + " " + type_plante).lower()
+        
+        for key, icon in self.icons.items():
+            if key in search_text:
+                return icon
+        
+        return '🌿'
+    
+    def clean_text(self, text: str) -> str:
+        """Nettoie le texte HTML"""
+        if not text:
+            return ""
+        return re.sub(r'\s+', ' ', text).strip()
+    
+    def extract_price(self, price_text: str) -> str:
+        """Extrait et formate le prix"""
+        if not price_text:
+            return "Prix non disponible"
+        
+        # Chercher le pattern de prix
+        match = re.search(r'(\d+[,.]?\d*)\s*€', price_text)
+        if match:
+            return f"{match.group(1)} €"
+        
+        return price_text.strip()
+    
+    def search_plants(self, query: str, max_results: int = 10) -> List[PlantInfo]:
+        """Recherche réelle sur Promesse de Fleurs"""
+        
+        print(f"🔍 Recherche sur Promesse de Fleurs: '{query}'")
+        
+        try:
+            # Construire l'URL de recherche
+            search_url = f"{self.base_url}/catalogsearch/result/?q={query.replace(' ', '+')}"
+            
+            # Faire la requête
+            response = requests.get(search_url, headers=self.headers, timeout=15)
+            response.raise_for_status()
+            
+            print(f"✅ Réponse reçue: {response.status_code}")
+            
+            # Parser le HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            results = []
+            
+            # Chercher les produits (essayer plusieurs sélecteurs)
+            products = (
+                soup.find_all('li', class_='item product product-item') or
+                soup.find_all('div', class_='product-item-info') or
+                soup.find_all('div', class_='product-item')
+            )
+            
+            print(f"📦 {len(products)} produits trouvés")
+            
+            for product in products[:max_results]:
+                try:
+                    plant = self.extract_plant_info(product)
+                    if plant and plant.nom_francais:
+                        results.append(plant)
+                        print(f"   ✓ {plant.nom_francais} - {plant.prix}")
+                except Exception as e:
+                    print(f"   ⚠ Erreur extraction produit: {e}")
+                    continue
+            
+            print(f"✅ Total extrait: {len(results)} plantes")
+            return results
+            
+        except requests.RequestException as e:
+            print(f"❌ Erreur requête: {e}")
+            return []
+        except Exception as e:
+            print(f"❌ Erreur générale: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def extract_plant_info(self, product_element) -> PlantInfo:
+        """Extrait les informations d'un produit"""
+        
+        # Nom du produit
+        name_tag = (
+            product_element.find('a', class_='product-item-link') or
+            product_element.find('h2', class_='product-name') or
+            product_element.find('a', class_='product name product-item-name')
+        )
+        
+        nom_francais = self.clean_text(name_tag.get_text()) if name_tag else ""
+        
+        # URL du produit
+        url = name_tag.get('href', '') if name_tag else ''
+        
+        # Prix
+        price_tag = (
+            product_element.find('span', class_='price') or
+            product_element.find('span', class_='price-wrapper')
+        )
+        prix = self.extract_price(price_tag.get_text()) if price_tag else "Prix non disponible"
+        
+        # Description courte
+        desc_tag = product_element.find('div', class_='product-item-description')
+        description = self.clean_text(desc_tag.get_text()) if desc_tag else ""
+        
+        # Essayer d'extraire le nom latin (souvent entre parenthèses)
+        nom_latin = ""
+        latin_match = re.search(r'\(([\w\s]+)\)', nom_francais)
+        if latin_match:
+            nom_latin = latin_match.group(1)
+            nom_francais = nom_francais.replace(f"({nom_latin})", "").strip()
+        
+        # Déterminer le type de plante depuis le nom ou la description
+        type_plante = self.guess_plant_type(nom_francais, description)
+        
+        # Icône
+        icon = self.get_icon(nom_francais, type_plante)
+        
+        return PlantInfo(
+            nom_francais=nom_francais,
+            nom_latin=nom_latin,
+            exposition="",  # Nécessiterait d'aller sur la page détail
+            type_plante=type_plante,
+            prix=prix,
+            description=description[:200] if description else "",
+            icon=icon,
+            url=url
+        )
+    
+    def guess_plant_type(self, name: str, description: str = "") -> str:
+        """Devine le type de plante depuis le nom"""
+        text = (name + " " + description).lower()
+        
+        if any(word in text for word in ['rosier', 'rose ']):
+            return "Rosier"
+        elif any(word in text for word in ['arbre', 'érable', 'olivier', 'cerisier']):
+            return "Arbre"
+        elif any(word in text for word in ['arbuste', 'hortensia', 'buddleia']):
+            return "Arbuste"
+        elif any(word in text for word in ['vivace', 'lavande', 'hémérocalle']):
+            return "Vivace"
+        elif any(word in text for word in ['graminée', 'miscanthus', 'stipa']):
+            return "Graminée"
+        elif any(word in text for word in ['annuelle', 'tomate', 'basilic']):
+            return "Annuelle"
+        elif any(word in text for word in ['grimpant', 'clématite', 'glycine']):
+            return "Grimpante"
+        else:
+            return "Plante"
 
 class MockScraper:
-    """Version simulée pour tester la logique sans requêtes réseau"""
+    """Scraper de secours avec données simulées"""
     
     def __init__(self):
         self.mock_data = {
@@ -30,17 +214,9 @@ class MockScraper:
                     "exposition": "Plein soleil",
                     "type_plante": "Vivace",
                     "prix": "8,90 €",
-                    "description": "Lavande officinale aux fleurs parfumées, résistante à la sécheresse",
-                    "icon": "🌿"
-                },
-                {
-                    "nom_francais": "Lavande papillon",
-                    "nom_latin": "Lavandula stoechas",
-                    "exposition": "Plein soleil",
-                    "type_plante": "Vivace",
-                    "prix": "9,50 €",
-                    "description": "Lavande ornementale aux bractées colorées",
-                    "icon": "🌿"
+                    "description": "Lavande officinale aux fleurs parfumées",
+                    "icon": "🌿",
+                    "url": ""
                 }
             ],
             "rosier": [
@@ -51,125 +227,29 @@ class MockScraper:
                     "type_plante": "Rosier",
                     "prix": "24,90 €",
                     "description": "Rosier anglais aux fleurs parfumées",
-                    "icon": "🌹"
-                },
-                {
-                    "nom_francais": "Rose de Damas",
-                    "nom_latin": "Rosa damascena",
-                    "exposition": "Soleil",
-                    "type_plante": "Rosier",
-                    "prix": "22,90 €",
-                    "description": "Rose ancienne très parfumée",
-                    "icon": "🌹"
-                }
-            ],
-            "hortensia": [
-                {
-                    "nom_francais": "Hortensia macrophylla",
-                    "nom_latin": "Hydrangea macrophylla",
-                    "exposition": "Mi-ombre",
-                    "type_plante": "Arbuste",
-                    "prix": "18,90 €",
-                    "description": "Arbuste à fleurs changeant de couleur selon le pH",
-                    "icon": "🌺"
-                }
-            ],
-            "olivier": [
-                {
-                    "nom_francais": "Olivier européen",
-                    "nom_latin": "Olea europaea",
-                    "exposition": "Plein soleil",
-                    "type_plante": "Arbre",
-                    "prix": "45,90 €",
-                    "description": "Arbre méditerranéen produisant des olives",
-                    "icon": "🌳"
-                }
-            ],
-            "érable": [
-                {
-                    "nom_francais": "Érable japonais",
-                    "nom_latin": "Acer palmatum",
-                    "exposition": "Mi-ombre",
-                    "type_plante": "Arbre",
-                    "prix": "39,90 €",
-                    "description": "Petit arbre ornemental au feuillage décoratif",
-                    "icon": "🌳"
-                }
-            ],
-            "cerisier": [
-                {
-                    "nom_francais": "Cerisier du Japon",
-                    "nom_latin": "Prunus serrulata",
-                    "exposition": "Soleil",
-                    "type_plante": "Arbre",
-                    "prix": "42,90 €",
-                    "description": "Arbre à floraison printanière spectaculaire",
-                    "icon": "🌸"
-                }
-            ],
-            "graminée": [
-                {
-                    "nom_francais": "Graminée ornementale",
-                    "nom_latin": "Miscanthus sinensis",
-                    "exposition": "Soleil",
-                    "type_plante": "Vivace",
-                    "prix": "12,90 €",
-                    "description": "Graminée décorative aux inflorescences plumeuses",
-                    "icon": "🌾"
-                }
-            ],
-            "tomate": [
-                {
-                    "nom_francais": "Tomate coeur de boeuf",
-                    "nom_latin": "Solanum lycopersicum",
-                    "exposition": "Plein soleil",
-                    "type_plante": "Annuelle",
-                    "prix": "3,50 €",
-                    "description": "Tomate charnue et savoureuse",
-                    "icon": "🍅"
-                }
-            ],
-            "basilic": [
-                {
-                    "nom_francais": "Basilic grand vert",
-                    "nom_latin": "Ocimum basilicum",
-                    "exposition": "Soleil",
-                    "type_plante": "Annuelle",
-                    "prix": "2,90 €",
-                    "description": "Plante aromatique incontournable",
-                    "icon": "🌿"
+                    "icon": "🌹",
+                    "url": ""
                 }
             ]
         }
     
     def search_plants(self, query: str, max_results: int = 10) -> List[PlantInfo]:
-        """Simulation de recherche avec données mock"""
+        """Recherche dans les données mock"""
+        print(f"⚠️ Utilisation du scraper de secours (mock) pour: '{query}'")
+        
         results = []
         query_lower = query.lower()
         
         for key, plants_data in self.mock_data.items():
-            if key in query_lower or any(word in key for word in query_lower.split()):
+            if key in query_lower:
                 for plant_data in plants_data[:max_results]:
                     plant = PlantInfo(**plant_data)
                     results.append(plant)
         
-        if not results:
-            for plants_data in self.mock_data.values():
-                for plant_data in plants_data:
-                    if any(word in plant_data["nom_francais"].lower() 
-                          or word in plant_data["nom_latin"].lower()
-                          for word in query_lower.split() if len(word) > 2):
-                        plant = PlantInfo(**plant_data)
-                        results.append(plant)
-                        if len(results) >= max_results:
-                            break
-                if len(results) >= max_results:
-                    break
-        
-        return results[:max_results]
+        return results
 
 class SimpleDatabase:
-    """Base de données simulée en mémoire"""
+    """Base de données en mémoire"""
     
     def __init__(self):
         self.plants = []
@@ -188,8 +268,8 @@ class SimpleDatabase:
     
     def save_plant(self, plant: PlantInfo) -> int:
         for i, existing in enumerate(self.plants):
-            if (existing.nom_latin == plant.nom_latin and 
-                existing.nom_francais == plant.nom_francais):
+            if (existing.nom_francais == plant.nom_francais and 
+                (not plant.nom_latin or existing.nom_latin == plant.nom_latin)):
                 return i
         
         self.plants.append(plant)
@@ -233,7 +313,8 @@ class SimpleDatabase:
 
 # Instances globales
 db = SimpleDatabase()
-scraper = MockScraper()
+real_scraper = PromesseDeFleursScraper()
+mock_scraper = MockScraper()
 
 # Route pour servir le frontend
 @app.route('/')
@@ -252,17 +333,33 @@ def search():
     results = {
         'local': [],
         'web': [],
-        'total_found': 0
+        'total_found': 0,
+        'source': 'unknown'
     }
     
+    # Recherche locale d'abord
     if not force_web:
         local_results = db.search_local(query)
         results['local'] = [asdict(p) for p in local_results]
         results['total_found'] = len(local_results)
+        results['source'] = 'local'
     
-    if len(results['local']) < 5:
-        web_results = scraper.search_plants(query, max_results=10)
+    # Recherche web si pas assez de résultats
+    if len(results['local']) < 3:
+        print(f"\n🌐 Recherche web pour: {query}")
         
+        # Essayer le vrai scraper
+        web_results = real_scraper.search_plants(query, max_results=10)
+        
+        # Si échec, utiliser le mock
+        if not web_results:
+            print("⚠️ Scraper réel échoué, utilisation du mock")
+            web_results = mock_scraper.search_plants(query, max_results=5)
+            results['source'] = 'mock'
+        else:
+            results['source'] = 'promesse_de_fleurs'
+        
+        # Sauvegarder dans la BDD locale
         for plant in web_results:
             db.save_plant(plant)
         
@@ -314,20 +411,41 @@ def get_stats():
 
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
-    suggestions = [
-        scraper.search_plants("rose", max_results=1)[0] if scraper.search_plants("rose", max_results=1) else None,
-        scraper.search_plants("lavande", max_results=1)[0] if scraper.search_plants("lavande", max_results=1) else None,
-        scraper.search_plants("olivier", max_results=1)[0] if scraper.search_plants("olivier", max_results=1) else None,
-        scraper.search_plants("hortensia", max_results=1)[0] if scraper.search_plants("hortensia", max_results=1) else None,
-    ]
+    # Utiliser le vrai scraper pour les suggestions
+    suggestions_queries = ["rose", "lavande", "olivier", "hortensia"]
+    suggestions = []
     
-    suggestions = [asdict(s) for s in suggestions if s]
+    for query in suggestions_queries:
+        results = real_scraper.search_plants(query, max_results=1)
+        if results:
+            suggestions.append(asdict(results[0]))
+        else:
+            # Fallback sur mock
+            mock_results = mock_scraper.search_plants(query, max_results=1)
+            if mock_results:
+                suggestions.append(asdict(mock_results[0]))
+    
     return jsonify(suggestions)
+
+@app.route('/api/test-scraper', methods=['GET'])
+def test_scraper():
+    """Route de test pour vérifier le scraper"""
+    query = request.args.get('q', 'lavande')
+    
+    results = real_scraper.search_plants(query, max_results=3)
+    
+    return jsonify({
+        'query': query,
+        'count': len(results),
+        'results': [asdict(p) for p in results],
+        'success': len(results) > 0
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print("🌿 SERVEUR DÉMARRÉ")
-    print("=" * 50)
-    print(f"API disponible sur le port: {port}")
-    print("=" * 50)
+    print("🌿 SERVEUR DÉMARRÉ - Botanus v2.0 avec Scraper Réel")
+    print("=" * 60)
+    print(f"Port: {port}")
+    print(f"Scraper: Promesse de Fleurs (avec fallback mock)")
+    print("=" * 60)
     app.run(host='0.0.0.0', port=port, debug=False)
