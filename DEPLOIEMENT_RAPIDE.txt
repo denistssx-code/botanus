@@ -1,0 +1,57 @@
+🌿 BIBLIOTHÈQUE VÉGÉTALE - DÉPLOIEMENT RAILWAY
+===============================================
+
+✅ FICHIERS PRÊTS POUR RAILWAY !
+
+📁 STRUCTURE :
+.
+├── main.py              ← Serveur Flask
+├── static/
+│   └── index.html       ← Interface web
+├── requirements.txt     ← Dépendances
+├── Procfile            ← Config Railway
+├── runtime.txt         ← Version Python
+└── README_RAILWAY.md   ← Guide complet
+
+🚀 DÉPLOIEMENT RAPIDE (3 ÉTAPES) :
+
+1️⃣  Créer un compte sur https://railway.app
+
+2️⃣  Nouveau projet :
+   - Clique "New Project"
+   - Choisis "Deploy from GitHub repo" OU "Empty Project"
+   
+3️⃣  Upload les fichiers :
+   - Glisse-dépose ce dossier entier
+   - Ou connecte ton repo GitHub
+   - Railway détecte automatiquement Python !
+
+⏱️  Temps de déploiement : ~2 minutes
+
+🌐 TU OBTIENDRAS UNE URL :
+https://ton-app.up.railway.app
+
+✨ L'APPLICATION SERA LIVE :
+✅ Recherche de plantes fonctionnelle
+✅ Ajout à la bibliothèque
+✅ Statistiques en temps réel
+✅ Interface responsive
+
+💡 ALTERNATIVE : Railway CLI
+
+$ npm i -g @railway/cli
+$ railway login
+$ railway init
+$ railway up
+
+📚 GUIDE COMPLET : Voir README_RAILWAY.md
+
+🆓 PLAN GRATUIT RAILWAY :
+✅ 500h/mois
+✅ 1GB RAM
+✅ Parfait pour ce projet !
+
+⚠️  NOTE : Les données sont en mémoire
+Pour persister les données → Ajouter PostgreSQL depuis Railway
+
+🎉 C'EST TOUT ! Ton app sera en ligne !
