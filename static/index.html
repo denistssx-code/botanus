@@ -1329,7 +1329,7 @@
         }
 
         // Fonctions page détail
-        function showPlantDetail(plantData, fromScreen = 'search') {
+        async function showPlantDetail(plantData, fromScreen = 'search') {
             previousScreen = fromScreen;
             currentPlantDetail = plantData;
             
@@ -1381,8 +1381,60 @@
                 document.getElementById('detail-url-group').style.display = 'none';
             }
             
+            // Charger les notes et quantité si la plante est déjà dans la bibliothèque
+            await loadPlantLibraryInfo(plantData);
+            
             // Réinitialiser l'onglet actif
             showDetailTab('info');
+        }
+
+        async function loadPlantLibraryInfo(plantData) {
+            try {
+                // Trouver le plant_id depuis la recherche locale
+                const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(plantData.nom_francais)}`);
+                const data = await response.json();
+                
+                // Chercher dans les plantes locales
+                const allPlants = [...data.local, ...data.web];
+                let plantId = null;
+                
+                for (let i = 0; i < allPlants.length; i++) {
+                    const plant = allPlants[i];
+                    if (plant.nom_francais === plantData.nom_francais && 
+                        (!plant.nom_latin || plant.nom_latin === plantData.nom_latin)) {
+                        plantId = i;
+                        break;
+                    }
+                }
+                
+                if (plantId !== null) {
+                    currentPlantDetail.plant_id = plantId;
+                    
+                    // Charger les infos de la bibliothèque
+                    const libResponse = await fetch(`${API_URL}/library/plant/${plantId}`);
+                    const libInfo = await libResponse.json();
+                    
+                    if (libInfo.in_library) {
+                        document.getElementById('detail-quantity').textContent = libInfo.quantity;
+                        document.getElementById('detail-notes').value = libInfo.notes || '';
+                        
+                        // Changer le bouton "Ajouter" en "Ajouté"
+                        const addBtn = document.getElementById('detail-add-btn');
+                        addBtn.innerHTML = '<span>✓</span><span>Ajouté</span>';
+                        addBtn.classList.add('added');
+                        addBtn.disabled = true;
+                    } else {
+                        // Réinitialiser pour une nouvelle plante
+                        document.getElementById('detail-quantity').textContent = '1';
+                        document.getElementById('detail-notes').value = '';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement infos bibliothèque:', error);
+                // Réinitialiser par défaut
+                document.getElementById('detail-quantity').textContent = '1';
+                document.getElementById('detail-notes').value = '';
+            }
         }
 
         function goBackFromDetail() {
@@ -1450,16 +1502,52 @@
             quantityEl.textContent = current;
         }
 
-        function saveNotes() {
+        async function saveNotes() {
+            if (!currentPlantDetail || !currentPlantDetail.plant_id) {
+                alert('Ajoutez d\'abord la plante à votre bibliothèque');
+                return;
+            }
+            
             const button = event.target;
             const originalText = button.textContent;
-            button.textContent = '✓ Sauvegardé';
-            button.style.background = '#45a049';
+            button.disabled = true;
             
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.style.background = '#4CAF50';
-            }, 2000);
+            try {
+                const notes = document.getElementById('detail-notes').value;
+                const quantity = parseInt(document.getElementById('detail-quantity').textContent);
+                
+                const response = await fetch(`${API_URL}/library/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        plant_id: currentPlantDetail.plant_id,
+                        notes: notes,
+                        quantity: quantity
+                    })
+                });
+                
+                if (response.ok) {
+                    button.textContent = '✓ Sauvegardé';
+                    button.style.background = '#45a049';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#4CAF50';
+                        button.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Erreur sauvegarde');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde notes:', error);
+                button.textContent = '❌ Erreur';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
         }
     </script>
 </body>
