@@ -280,6 +280,8 @@ class SimpleDatabase:
             for item in self.library:
                 if item['plant_id'] == plant_id:
                     item['quantity'] += quantity
+                    if notes:  # Mettre à jour les notes si fournies
+                        item['notes'] = notes
                     return True
             
             self.library.append({
@@ -291,6 +293,29 @@ class SimpleDatabase:
             })
             return True
         return False
+    
+    def update_plant_in_library(self, plant_id: int, notes: str = None, quantity: int = None):
+        """Met à jour les notes et/ou la quantité d'une plante dans la bibliothèque"""
+        for item in self.library:
+            if item['plant_id'] == plant_id:
+                if notes is not None:
+                    item['notes'] = notes
+                if quantity is not None:
+                    item['quantity'] = max(1, quantity)
+                return True
+        return False
+    
+    def get_plant_library_info(self, plant_id: int):
+        """Récupère les infos bibliothèque d'une plante spécifique"""
+        for item in self.library:
+            if item['plant_id'] == plant_id:
+                return {
+                    'notes': item['notes'],
+                    'quantity': item['quantity'],
+                    'date_added': item['date_added'],
+                    'in_library': True
+                }
+        return {'in_library': False, 'notes': '', 'quantity': 1}
     
     def get_library(self):
         return self.library
@@ -400,9 +425,34 @@ def add_to_library():
     success = db.add_to_library(plant_id, notes, quantity)
     
     if success:
-        return jsonify({'success': True, 'message': 'Plante ajoutée à la bibliothèque'})
+        return jsonify({'success': True, 'message': 'Plante ajoutée à la bibliothèque', 'plant_id': plant_id})
     else:
         return jsonify({'error': 'Failed to add plant'}), 500
+
+@app.route('/api/library/plant/<int:plant_id>', methods=['GET'])
+def get_plant_info(plant_id):
+    """Récupère les infos bibliothèque d'une plante spécifique"""
+    info = db.get_plant_library_info(plant_id)
+    return jsonify(info)
+
+@app.route('/api/library/update', methods=['POST'])
+def update_library_plant():
+    """Met à jour les notes et/ou quantité d'une plante"""
+    data = request.get_json()
+    
+    if not data or 'plant_id' not in data:
+        return jsonify({'error': 'Plant ID required'}), 400
+    
+    plant_id = data['plant_id']
+    notes = data.get('notes')
+    quantity = data.get('quantity')
+    
+    success = db.update_plant_in_library(plant_id, notes, quantity)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'Plante mise à jour'})
+    else:
+        return jsonify({'error': 'Plant not found in library'}), 404
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
