@@ -435,6 +435,20 @@ def get_plant_info(plant_id):
     info = db.get_plant_library_info(plant_id)
     return jsonify(info)
 
+@app.route('/api/library/get-or-create-id', methods=['POST'])
+def get_or_create_plant_id():
+    """Obtient ou crée l'ID d'une plante sans l'ajouter à la bibliothèque"""
+    data = request.get_json()
+    
+    if not data or 'plant' not in data:
+        return jsonify({'error': 'Plant data required'}), 400
+    
+    plant_data = data['plant']
+    plant = PlantInfo(**plant_data)
+    plant_id = db.save_plant(plant)
+    
+    return jsonify({'plant_id': plant_id})
+
 @app.route('/api/library/update', methods=['POST'])
 def update_library_plant():
     """Met à jour les notes et/ou quantité d'une plante"""
