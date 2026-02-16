@@ -1390,24 +1390,32 @@
 
         async function loadPlantLibraryInfo(plantData) {
             try {
-                // Trouver le plant_id depuis la recherche locale
-                const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(plantData.nom_francais)}`);
-                const data = await response.json();
+                // Chercher le plant_id dans la base locale
+                // On doit d'abord sauvegarder la plante pour obtenir son ID
+                const plantToSave = {
+                    nom_francais: plantData.nom_francais,
+                    nom_latin: plantData.nom_latin,
+                    exposition: plantData.exposition,
+                    type_plante: plantData.type_plante,
+                    prix: plantData.prix,
+                    description: plantData.description,
+                    icon: plantData.icon,
+                    url: plantData.url
+                };
                 
-                // Chercher dans les plantes locales
-                const allPlants = [...data.local, ...data.web];
-                let plantId = null;
+                // Appeler l'API pour obtenir/créer le plant_id
+                const saveResponse = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plant: plantToSave })
+                });
                 
-                for (let i = 0; i < allPlants.length; i++) {
-                    const plant = allPlants[i];
-                    if (plant.nom_francais === plantData.nom_francais && 
-                        (!plant.nom_latin || plant.nom_latin === plantData.nom_latin)) {
-                        plantId = i;
-                        break;
-                    }
-                }
-                
-                if (plantId !== null) {
+                if (saveResponse.ok) {
+                    const saveResult = await saveResponse.json();
+                    const plantId = saveResult.plant_id;
+                    
                     currentPlantDetail.plant_id = plantId;
                     
                     // Charger les infos de la bibliothèque
@@ -1420,13 +1428,23 @@
                         
                         // Changer le bouton "Ajouter" en "Ajouté"
                         const addBtn = document.getElementById('detail-add-btn');
-                        addBtn.innerHTML = '<span>✓</span><span>Ajouté</span>';
-                        addBtn.classList.add('added');
-                        addBtn.disabled = true;
+                        if (addBtn) {
+                            addBtn.innerHTML = '<span>✓</span><span>Ajouté</span>';
+                            addBtn.classList.add('added');
+                            addBtn.disabled = true;
+                        }
                     } else {
                         // Réinitialiser pour une nouvelle plante
                         document.getElementById('detail-quantity').textContent = '1';
                         document.getElementById('detail-notes').value = '';
+                        
+                        // S'assurer que le bouton est en mode "Ajouter"
+                        const addBtn = document.getElementById('detail-add-btn');
+                        if (addBtn) {
+                            addBtn.innerHTML = '<span>➕</span><span>Ajouter</span>';
+                            addBtn.classList.remove('added');
+                            addBtn.disabled = false;
+                        }
                     }
                 }
             } catch (error) {
@@ -1521,8 +1539,8 @@
         }
 
         async function saveNotes() {
-            if (!currentPlantDetail || !currentPlantDetail.plant_id) {
-                alert('Ajoutez d\'abord la plante à votre bibliothèque');
+            if (!currentPlantDetail || currentPlantDetail.plant_id === undefined) {
+                alert('Erreur : ID de plante non trouvé');
                 return;
             }
             
@@ -1531,6 +1549,16 @@
             button.disabled = true;
             
             try {
+                // Vérifier si la plante est dans la bibliothèque
+                const checkResponse = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}`);
+                const checkInfo = await checkResponse.json();
+                
+                if (!checkInfo.in_library) {
+                    alert('Veuillez d\'abord ajouter cette plante à votre bibliothèque via le bouton "➕ Ajouter"');
+                    button.disabled = false;
+                    return;
+                }
+                
                 const notes = document.getElementById('detail-notes').value;
                 const quantity = parseInt(document.getElementById('detail-quantity').textContent);
                 
