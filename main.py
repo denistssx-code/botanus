@@ -716,3 +716,12 @@ def save_notes(plant_id):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
+@app.route('/api/test-search')
+def test_search():
+    """Test direct du scraper"""
+    results = scraper.search_plants('lavande', 5)
+    return jsonify({
+        'message': f'Trouvé {len(results)} résultats',
+        'results': [asdict(plant) for plant in results]
+    })
