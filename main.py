@@ -537,10 +537,21 @@ def search():
     
     results = scraper.search_plants(query, max_results)
     
+    # CORRECTION : Changez cette structure pour correspondre au JavaScript
     return jsonify({
         'query': query,
         'count': len(results),
-        'results': [asdict(plant) for plant in results]
+        'results': [asdict(plant) for plant in results]  # Gardez cette ligne
+    })
+
+# AJOUTEZ aussi cet endpoint pour les stats (appelé par loadStats())
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Statistiques générales"""
+    total_plants = len(library_db)
+    return jsonify({
+        'total_plants': total_plants,
+        'reminders': 0  # À implémenter plus tard
     })
 
 @app.route('/api/plant/detail', methods=['GET'])
