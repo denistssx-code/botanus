@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dataclasses import dataclass, asdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 import os
 import requests
@@ -22,8 +22,82 @@ class PlantInfo:
     icon: str = "🌿"
     url: str = ""
 
+@dataclass
+class PlantDetailInfo:
+    """Structure complète pour les détails d'une plante"""
+    # Identification
+    nom_complet: str = ""
+    nom_latin: str = ""
+    nom_francais: str = ""
+    genre: str = ""
+    espece: str = ""
+    famille: str = ""
+    origine: str = ""
+    
+    # Descriptions
+    description_courte: str = ""
+    description_detaillee: str = ""
+    
+    # Caractéristiques visuelles
+    exposition: str = ""
+    rusticite: str = ""
+    zone_usda: str = ""
+    humidite_sol: str = ""
+    
+    # Dimensions
+    hauteur_maturite: str = ""
+    largeur_maturite: str = ""
+    taille_fleur: str = ""
+    port: str = ""
+    croissance: str = ""
+    
+    # Floraison
+    couleur_fleur: str = ""
+    periode_floraison: str = ""
+    inflorescence: str = ""
+    
+    # Feuillage
+    persistance_feuillage: str = ""
+    couleur_feuillage: str = ""
+    
+    # Plantation
+    meilleure_periode_plantation: str = ""
+    periode_raisonnable_plantation: str = ""
+    calendrier_plantation: Dict[str, str] = None
+    calendrier_floraison: Dict[str, str] = None
+    
+    # Culture
+    convient_pour: str = ""
+    type_utilisation: str = ""
+    climat_preference: str = ""
+    difficulte_culture: str = ""
+    ph_sol: str = ""
+    type_sol: str = ""
+    
+    # Entretien
+    taille: str = ""
+    resistance_maladies: str = ""
+    hivernage: str = ""
+    
+    # Formats disponibles
+    formats: List[Dict] = None
+    
+    # Images
+    image_principale: str = ""
+    images_galerie: List[str] = None
+    
+    def __post_init__(self):
+        if self.calendrier_plantation is None:
+            self.calendrier_plantation = {}
+        if self.calendrier_floraison is None:
+            self.calendrier_floraison = {}
+        if self.formats is None:
+            self.formats = []
+        if self.images_galerie is None:
+            self.images_galerie = []
+
 class PromesseDeFleursScraper:
-    """Scraper réel pour Promesse de Fleurs"""
+    """Scraper enrichi pour Promesse de Fleurs"""
     
     def __init__(self):
         self.base_url = "https://www.promessedefleurs.com"
@@ -49,6 +123,7 @@ class PromesseDeFleursScraper:
             'graminée': '🌾',
             'tomate': '🍅',
             'basilic': '🌿',
+            'magnolia': '🌸',
             'plante': '🌿'
         }
     
@@ -189,7 +264,7 @@ class PromesseDeFleursScraper:
             return "Rosier"
         elif any(word in text for word in ['arbre', 'érable', 'olivier', 'cerisier']):
             return "Arbre"
-        elif any(word in text for word in ['arbuste', 'hortensia', 'buddleia']):
+        elif any(word in text for word in ['arbuste', 'hortensia', 'buddleia', 'magnolia']):
             return "Arbuste"
         elif any(word in text for word in ['vivace', 'lavande', 'hémérocalle']):
             return "Vivace"
@@ -201,315 +276,432 @@ class PromesseDeFleursScraper:
             return "Grimpante"
         else:
             return "Plante"
-
-class MockScraper:
-    """Scraper de secours avec données simulées"""
     
-    def __init__(self):
-        self.mock_data = {
-            "lavande": [
-                {
-                    "nom_francais": "Lavande vraie",
-                    "nom_latin": "Lavandula angustifolia",
-                    "exposition": "Plein soleil",
-                    "type_plante": "Vivace",
-                    "prix": "8,90 €",
-                    "description": "Lavande officinale aux fleurs parfumées",
-                    "icon": "🌿",
-                    "url": ""
-                }
-            ],
-            "rosier": [
-                {
-                    "nom_francais": "Rosier David Austin",
-                    "nom_latin": "Rosa 'Abraham Darby'",
-                    "exposition": "Soleil",
-                    "type_plante": "Rosier",
-                    "prix": "24,90 €",
-                    "description": "Rosier anglais aux fleurs parfumées",
-                    "icon": "🌹",
-                    "url": ""
-                }
-            ]
-        }
-    
-    def search_plants(self, query: str, max_results: int = 10) -> List[PlantInfo]:
-        """Recherche dans les données mock"""
-        print(f"⚠️ Utilisation du scraper de secours (mock) pour: '{query}'")
+    def fetch_plant_detail(self, url: str) -> Optional[PlantDetailInfo]:
+        """
+        Extrait TOUTES les informations détaillées d'une page produit
+        """
+        print(f"🔍 Extraction détails: {url}")
         
-        results = []
-        query_lower = query.lower()
-        
-        for key, plants_data in self.mock_data.items():
-            if key in query_lower:
-                for plant_data in plants_data[:max_results]:
-                    plant = PlantInfo(**plant_data)
-                    results.append(plant)
-        
-        return results
-
-class SimpleDatabase:
-    """Base de données en mémoire"""
-    
-    def __init__(self):
-        self.plants = []
-        self.library = []
-    
-    def search_local(self, query: str) -> List[PlantInfo]:
-        query_lower = query.lower()
-        results = []
-        
-        for plant in self.plants:
-            if (query_lower in plant.nom_francais.lower() or 
-                query_lower in plant.nom_latin.lower()):
-                results.append(plant)
-        
-        return results
-    
-    def save_plant(self, plant: PlantInfo) -> int:
-        for i, existing in enumerate(self.plants):
-            if (existing.nom_francais == plant.nom_francais and 
-                (not plant.nom_latin or existing.nom_latin == plant.nom_latin)):
-                return i
-        
-        self.plants.append(plant)
-        return len(self.plants) - 1
-    
-    def add_to_library(self, plant_id: int, notes: str = "", quantity: int = 1):
-        if 0 <= plant_id < len(self.plants):
-            for item in self.library:
-                if item['plant_id'] == plant_id:
-                    item['quantity'] += quantity
-                    if notes:  # Mettre à jour les notes si fournies
-                        item['notes'] = notes
-                    return True
+        try:
+            # Faire la requête
+            response = requests.get(url, headers=self.headers, timeout=15)
+            response.raise_for_status()
             
-            self.library.append({
-                'plant_id': plant_id,
-                'notes': notes,
-                'quantity': quantity,
-                'plant': self.plants[plant_id],
-                'date_added': '2024-03-15'
-            })
-            return True
-        return False
-    
-    def update_plant_in_library(self, plant_id: int, notes: str = None, quantity: int = None):
-        """Met à jour les notes et/ou la quantité d'une plante dans la bibliothèque"""
-        for item in self.library:
-            if item['plant_id'] == plant_id:
-                if notes is not None:
-                    item['notes'] = notes
-                if quantity is not None:
-                    item['quantity'] = max(1, quantity)
-                return True
-        return False
-    
-    def get_plant_library_info(self, plant_id: int):
-        """Récupère les infos bibliothèque d'une plante spécifique"""
-        for item in self.library:
-            if item['plant_id'] == plant_id:
-                return {
-                    'notes': item['notes'],
-                    'quantity': item['quantity'],
-                    'date_added': item['date_added'],
-                    'in_library': True
-                }
-        return {'in_library': False, 'notes': '', 'quantity': 1}
-    
-    def get_library(self):
-        return self.library
-    
-    def get_stats(self):
-        total = len(self.library)
-        reminders = 0
-        types = {}
-        
-        for item in self.library:
-            plant_type = item['plant'].type_plante
-            types[plant_type] = types.get(plant_type, 0) + item['quantity']
-        
-        return {
-            'total': total,
-            'reminders': reminders,
-            'types': types,
-            'total_plants': sum(item['quantity'] for item in self.library)
-        }
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            detail = PlantDetailInfo()
+            
+            # 1. TITRE PRINCIPAL
+            h1 = soup.find('h1')
+            if h1:
+                detail.nom_complet = self.clean_text(h1.get_text())
+            
+            # 2. NOM LATIN & FRANÇAIS
+            h2 = soup.find('h2', class_='italic')
+            if h2:
+                parts = h2.get_text(separator='|', strip=True).split('|')
+                if len(parts) >= 1:
+                    detail.nom_latin = parts[0].strip()
+                if len(parts) >= 2:
+                    detail.nom_francais = parts[1].strip()
+            
+            # 3. DESCRIPTION COURTE
+            desc_short = soup.find('div', class_='product-description')
+            if desc_short:
+                detail.description_courte = self.clean_text(desc_short.get_text())
+            
+            # 4. DESCRIPTION DÉTAILLÉE (entretien)
+            desc_long = soup.find('div', class_='prose max-w-max')
+            if desc_long and 'product-description' not in desc_long.get('class', []):
+                detail.description_detaillee = self.clean_text(desc_long.get_text())
+            
+            # 5. ATTRIBUTS VISUELS
+            visual_attrs = soup.find('div', class_='visual-attributes')
+            if visual_attrs:
+                for attr_div in visual_attrs.find_all('div', attrs={'data-attribute': True}):
+                    attr_name = attr_div.get('data-attribute')
+                    attr_value = attr_div.find('span', class_='font-bold')
+                    if attr_value:
+                        value = self.clean_text(attr_value.get_text())
+                        
+                        if attr_name == 'exposition':
+                            detail.exposition = value
+                        elif attr_name == 'zone_climatique':
+                            detail.rusticite = value
+                            # Extraire zone USDA
+                            usda_match = re.search(r'zone USDA (\d+)', value, re.IGNORECASE)
+                            if usda_match:
+                                detail.zone_usda = usda_match.group(1)
+                        elif attr_name == 'hauteur':
+                            detail.hauteur_maturite = value
+                        elif attr_name == 'largeur':
+                            detail.largeur_maturite = value
+                        elif attr_name == 'taille_fleur':
+                            detail.taille_fleur = value
+                        elif attr_name == 'humidite_sol':
+                            detail.humidite_sol = value
+            
+            # 6. SECTIONS DÉTAILLÉES
+            sections_container = soup.find('div', class_='gap-y-8')
+            if sections_container:
+                for section in sections_container.find_all('div', recursive=False):
+                    title_elem = section.find('p', class_='font-bold')
+                    if not title_elem:
+                        continue
+                    
+                    section_title = self.clean_text(title_elem.get_text())
+                    
+                    # Extraire les paires label/valeur
+                    rows = section.find_all('div', class_='flex-row')
+                    for row in rows:
+                        spans = row.find_all(['span', 'h2'])
+                        if len(spans) >= 2:
+                            label = self.clean_text(spans[0].get_text())
+                            value = self.clean_text(spans[1].get_text())
+                            
+                            # Mapper selon la section
+                            if section_title == 'Port':
+                                if label == 'Port':
+                                    detail.port = value
+                                elif 'Croissance' in label:
+                                    detail.croissance = value
+                            
+                            elif section_title == 'Floraison':
+                                if 'couleur' in label.lower():
+                                    detail.couleur_fleur = value
+                                elif 'Période' in label:
+                                    detail.periode_floraison = value
+                                elif 'Inflorescence' in label:
+                                    detail.inflorescence = value
+                            
+                            elif section_title == 'Feuillage':
+                                if 'Persistance' in label:
+                                    detail.persistance_feuillage = value
+                                elif 'couleur' in label.lower():
+                                    detail.couleur_feuillage = value
+                            
+                            elif section_title == 'Botanique':
+                                if 'Genre' in label:
+                                    detail.genre = value
+                                elif 'Espèce' in label:
+                                    detail.espece = value
+                                elif 'Famille' in label:
+                                    detail.famille = value
+                                elif 'Origine' in label:
+                                    detail.origine = value
+                            
+                            elif section_title == 'Quand planter ?':
+                                if 'Meilleure' in label:
+                                    detail.meilleure_periode_plantation = value
+                                elif 'raisonnable' in label:
+                                    detail.periode_raisonnable_plantation = value
+                            
+                            elif section_title == 'Pour quel endroit ?':
+                                if 'Convient' in label:
+                                    detail.convient_pour = value
+                                elif 'utilisation' in label.lower():
+                                    detail.type_utilisation = value
+                                elif 'Climat' in label:
+                                    detail.climat_preference = value
+                                elif 'Difficulté' in label:
+                                    detail.difficulte_culture = value
+                                elif 'pH' in label:
+                                    detail.ph_sol = value
+                                elif 'Type de sol' in label:
+                                    detail.type_sol = value
+                            
+                            elif section_title == 'Soins':
+                                if 'Taille' in label:
+                                    detail.taille = value
+                                elif 'Résistance' in label:
+                                    detail.resistance_maladies = value
+                                elif 'Hivernage' in label:
+                                    detail.hivernage = value
+            
+            # 7. FORMATS & PRIX
+            formats = soup.find_all('div', class_='child-product')
+            for fmt in formats:
+                format_data = {}
+                
+                # Référence
+                ref_text = fmt.find(string=re.compile(r'Réf:\s*\d+'))
+                if ref_text:
+                    ref_match = re.search(r'Réf:\s*(\d+)', ref_text)
+                    if ref_match:
+                        format_data['reference'] = ref_match.group(1)
+                
+                # Format & hauteur
+                product_name = fmt.find('p', class_='product-item-name')
+                if product_name:
+                    full_text = product_name.get_text()
+                    # Extraire format
+                    format_match = re.search(r'Pot de [^(]+', full_text)
+                    if format_match:
+                        format_data['format'] = format_match.group(0).strip()
+                    
+                    # Extraire hauteur livraison
+                    height_match = re.search(r'Hauteur livrée env\. (\d+/\d+cm)', full_text)
+                    if height_match:
+                        format_data['hauteur_livraison'] = height_match.group(1)
+                
+                # Prix unitaire
+                price_elem = fmt.find('span', attrs={'data-price-amount': True})
+                if price_elem:
+                    price_str = price_elem.get('data-price-amount')
+                    try:
+                        format_data['prix_unitaire'] = float(price_str)
+                    except:
+                        pass
+                
+                # Prix par lot
+                tier_prices = fmt.find('ul', class_='prices-tier')
+                if tier_prices:
+                    format_data['prix_par_lot'] = {}
+                    for li in tier_prices.find_all('li'):
+                        text = li.get_text()
+                        lot_match = re.search(r'Les (\d+).*?(\d+,\d+)\s*€\s*l\'unité', text)
+                        if lot_match:
+                            qty = lot_match.group(1)
+                            price = lot_match.group(2).replace(',', '.')
+                            format_data['prix_par_lot'][qty] = float(price)
+                
+                # Stock
+                stock_elem = fmt.find('div', class_='stock-status')
+                if stock_elem:
+                    stock_span = stock_elem.find('span')
+                    if stock_span:
+                        try:
+                            format_data['stock'] = int(stock_span.get_text(strip=True))
+                        except:
+                            pass
+                
+                # Badges (production locale, etc.)
+                badges_div = fmt.find('div', class_='product-logos')
+                if badges_div:
+                    badges = []
+                    for img in badges_div.find_all('img'):
+                        alt = img.get('alt', '')
+                        if alt:
+                            badges.append(alt)
+                    if badges:
+                        format_data['badges'] = badges
+                
+                detail.formats.append(format_data)
+            
+            # 8. IMAGE PRINCIPALE
+            main_img = soup.find('img', alt=re.compile(detail.nom_complet or 'Magnolia'))
+            if main_img:
+                detail.image_principale = main_img.get('src', '')
+            
+            print(f"✅ Extraction réussie: {len(detail.formats)} formats trouvés")
+            return detail
+            
+        except Exception as e:
+            print(f"❌ Erreur extraction détails: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
-# Instances globales
-db = SimpleDatabase()
-real_scraper = PromesseDeFleursScraper()
-mock_scraper = MockScraper()
+# Instance globale du scraper
+scraper = PromesseDeFleursScraper()
 
-# Route pour servir le frontend
+# Stockage simple en mémoire (à remplacer par DB en production)
+library_db = {}
+notes_db = {}
+
+def get_next_plant_id():
+    """Génère un ID unique pour une plante"""
+    if not library_db:
+        return 1
+    return max(library_db.keys()) + 1
+
 @app.route('/')
 def index():
+    """Page d'accueil"""
     return send_from_directory('static', 'index.html')
 
-# Routes API
+@app.route('/<path:path>')
+def serve_static(path):
+    """Sert les fichiers statiques"""
+    return send_from_directory('static', path)
+
 @app.route('/api/search', methods=['GET'])
 def search():
+    """Endpoint de recherche"""
     query = request.args.get('q', '')
-    force_web = request.args.get('force_web', 'false').lower() == 'true'
+    max_results = int(request.args.get('max', 10))
     
     if not query:
-        return jsonify({'error': 'Query parameter required'}), 400
+        return jsonify({'error': 'Paramètre "q" requis'}), 400
     
-    results = {
-        'local': [],
-        'web': [],
-        'total_found': 0,
-        'source': 'unknown'
-    }
-    
-    # Recherche locale d'abord
-    if not force_web:
-        local_results = db.search_local(query)
-        results['local'] = [asdict(p) for p in local_results]
-        results['total_found'] = len(local_results)
-        results['source'] = 'local'
-    
-    # Recherche web si pas assez de résultats
-    if len(results['local']) < 3:
-        print(f"\n🌐 Recherche web pour: {query}")
-        
-        # Essayer le vrai scraper
-        web_results = real_scraper.search_plants(query, max_results=10)
-        
-        # Si échec, utiliser le mock
-        if not web_results:
-            print("⚠️ Scraper réel échoué, utilisation du mock")
-            web_results = mock_scraper.search_plants(query, max_results=5)
-            results['source'] = 'mock'
-        else:
-            results['source'] = 'promesse_de_fleurs'
-        
-        # Sauvegarder dans la BDD locale
-        for plant in web_results:
-            db.save_plant(plant)
-        
-        results['web'] = [asdict(p) for p in web_results]
-        results['total_found'] += len(web_results)
-    
-    return jsonify(results)
-
-@app.route('/api/library', methods=['GET'])
-def get_library():
-    library = db.get_library()
-    library_data = []
-    
-    for item in library:
-        plant_dict = asdict(item['plant'])
-        library_data.append({
-            'plant': plant_dict,
-            'notes': item['notes'],
-            'quantity': item['quantity'],
-            'date_added': item['date_added']
-        })
-    
-    return jsonify(library_data)
-
-@app.route('/api/library/add', methods=['POST'])
-def add_to_library():
-    data = request.get_json()
-    
-    if not data or 'plant' not in data:
-        return jsonify({'error': 'Plant data required'}), 400
-    
-    plant_data = data['plant']
-    notes = data.get('notes', '')
-    quantity = data.get('quantity', 1)
-    
-    plant = PlantInfo(**plant_data)
-    plant_id = db.save_plant(plant)
-    success = db.add_to_library(plant_id, notes, quantity)
-    
-    if success:
-        return jsonify({'success': True, 'message': 'Plante ajoutée à la bibliothèque', 'plant_id': plant_id})
-    else:
-        return jsonify({'error': 'Failed to add plant'}), 500
-
-@app.route('/api/library/plant/<int:plant_id>', methods=['GET'])
-def get_plant_info(plant_id):
-    """Récupère les infos bibliothèque d'une plante spécifique"""
-    info = db.get_plant_library_info(plant_id)
-    return jsonify(info)
-
-@app.route('/api/library/get-or-create-id', methods=['POST'])
-def get_or_create_plant_id():
-    """Obtient ou crée l'ID d'une plante sans l'ajouter à la bibliothèque"""
-    data = request.get_json()
-    
-    if not data or 'plant' not in data:
-        return jsonify({'error': 'Plant data required'}), 400
-    
-    plant_data = data['plant']
-    plant = PlantInfo(**plant_data)
-    plant_id = db.save_plant(plant)
-    
-    return jsonify({'plant_id': plant_id})
-
-@app.route('/api/library/update', methods=['POST'])
-def update_library_plant():
-    """Met à jour les notes et/ou quantité d'une plante"""
-    data = request.get_json()
-    
-    if not data or 'plant_id' not in data:
-        return jsonify({'error': 'Plant ID required'}), 400
-    
-    plant_id = data['plant_id']
-    notes = data.get('notes')
-    quantity = data.get('quantity')
-    
-    success = db.update_plant_in_library(plant_id, notes, quantity)
-    
-    if success:
-        return jsonify({'success': True, 'message': 'Plante mise à jour'})
-    else:
-        return jsonify({'error': 'Plant not found in library'}), 404
-
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    stats = db.get_stats()
-    return jsonify(stats)
-
-@app.route('/api/suggestions', methods=['GET'])
-def get_suggestions():
-    # Utiliser le vrai scraper pour les suggestions
-    suggestions_queries = ["rose", "lavande", "olivier", "hortensia"]
-    suggestions = []
-    
-    for query in suggestions_queries:
-        results = real_scraper.search_plants(query, max_results=1)
-        if results:
-            suggestions.append(asdict(results[0]))
-        else:
-            # Fallback sur mock
-            mock_results = mock_scraper.search_plants(query, max_results=1)
-            if mock_results:
-                suggestions.append(asdict(mock_results[0]))
-    
-    return jsonify(suggestions)
-
-@app.route('/api/test-scraper', methods=['GET'])
-def test_scraper():
-    """Route de test pour vérifier le scraper"""
-    query = request.args.get('q', 'lavande')
-    
-    results = real_scraper.search_plants(query, max_results=3)
+    results = scraper.search_plants(query, max_results)
     
     return jsonify({
         'query': query,
         'count': len(results),
-        'results': [asdict(p) for p in results],
-        'success': len(results) > 0
+        'results': [asdict(plant) for plant in results]
     })
+
+@app.route('/api/plant/detail', methods=['GET'])
+def get_plant_detail():
+    """
+    Endpoint pour récupérer les détails complets d'une plante
+    Usage: /api/plant/detail?url=https://...
+    """
+    url = request.args.get('url', '')
+    
+    if not url:
+        return jsonify({'error': 'Paramètre "url" requis'}), 400
+    
+    detail = scraper.fetch_plant_detail(url)
+    
+    if detail:
+        return jsonify({
+            'success': True,
+            'data': asdict(detail)
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Impossible d\'extraire les détails'
+        }), 500
+
+@app.route('/api/library', methods=['GET'])
+def get_library():
+    """Récupère la bibliothèque complète"""
+    plants_with_notes = []
+    
+    for plant_id, plant_data in library_db.items():
+        plant_with_notes = plant_data.copy()
+        plant_with_notes['plant_id'] = plant_id
+        
+        # Ajouter notes et quantité si existants
+        if plant_id in notes_db:
+            plant_with_notes['notes'] = notes_db[plant_id].get('notes', '')
+            plant_with_notes['quantity'] = notes_db[plant_id].get('quantity', 0)
+        else:
+            plant_with_notes['notes'] = ''
+            plant_with_notes['quantity'] = 0
+        
+        plants_with_notes.append(plant_with_notes)
+    
+    return jsonify({
+        'count': len(plants_with_notes),
+        'plants': plants_with_notes
+    })
+
+@app.route('/api/library/add', methods=['POST'])
+def add_to_library():
+    """Ajoute une plante à la bibliothèque"""
+    data = request.json
+    
+    if not data or 'nom_francais' not in data:
+        return jsonify({'error': 'Données invalides'}), 400
+    
+    # Générer un nouvel ID
+    plant_id = get_next_plant_id()
+    
+    # Stocker la plante
+    library_db[plant_id] = {
+        'nom_francais': data.get('nom_francais', ''),
+        'nom_latin': data.get('nom_latin', ''),
+        'exposition': data.get('exposition', ''),
+        'type_plante': data.get('type_plante', ''),
+        'prix': data.get('prix', ''),
+        'description': data.get('description', ''),
+        'icon': data.get('icon', '🌿'),
+        'url': data.get('url', '')
+    }
+    
+    # Initialiser notes vides
+    notes_db[plant_id] = {
+        'notes': '',
+        'quantity': 0
+    }
+    
+    return jsonify({
+        'success': True,
+        'plant_id': plant_id,
+        'message': 'Plante ajoutée avec succès'
+    })
+
+@app.route('/api/library/get-or-create-id', methods=['POST'])
+def get_or_create_plant_id():
+    """
+    Retourne l'ID d'une plante existante ou en crée un nouveau
+    Basé sur nom_francais + nom_latin pour identifier les doublons
+    """
+    data = request.json
+    
+    if not data or 'nom_francais' not in data:
+        return jsonify({'error': 'Données invalides'}), 400
+    
+    nom_francais = data.get('nom_francais', '').strip()
+    nom_latin = data.get('nom_latin', '').strip()
+    
+    # Chercher si la plante existe déjà
+    for plant_id, plant_data in library_db.items():
+        if (plant_data['nom_francais'] == nom_francais and 
+            plant_data['nom_latin'] == nom_latin):
+            # Plante existe déjà
+            return jsonify({
+                'plant_id': plant_id,
+                'exists': True
+            })
+    
+    # Plante n'existe pas, créer un nouvel ID
+    plant_id = get_next_plant_id()
+    
+    # Stocker la plante
+    library_db[plant_id] = {
+        'nom_francais': nom_francais,
+        'nom_latin': nom_latin,
+        'exposition': data.get('exposition', ''),
+        'type_plante': data.get('type_plante', ''),
+        'prix': data.get('prix', ''),
+        'description': data.get('description', ''),
+        'icon': data.get('icon', '🌿'),
+        'url': data.get('url', '')
+    }
+    
+    # Initialiser notes vides
+    notes_db[plant_id] = {
+        'notes': '',
+        'quantity': 0
+    }
+    
+    return jsonify({
+        'plant_id': plant_id,
+        'exists': False
+    })
+
+@app.route('/api/library/<int:plant_id>', methods=['DELETE'])
+def delete_from_library(plant_id):
+    """Supprime une plante de la bibliothèque"""
+    if plant_id in library_db:
+        del library_db[plant_id]
+        if plant_id in notes_db:
+            del notes_db[plant_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Plante non trouvée'}), 404
+
+@app.route('/api/library/<int:plant_id>/notes', methods=['POST'])
+def save_notes(plant_id):
+    """Sauvegarde les notes et la quantité d'une plante"""
+    data = request.json
+    
+    if plant_id not in library_db:
+        return jsonify({'error': 'Plante non trouvée'}), 404
+    
+    notes_db[plant_id] = {
+        'notes': data.get('notes', ''),
+        'quantity': data.get('quantity', 0)
+    }
+    
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print("🌿 SERVEUR DÉMARRÉ - Botanus v2.0 avec Scraper Réel")
-    print("=" * 60)
-    print(f"Port: {port}")
-    print(f"Scraper: Promesse de Fleurs (avec fallback mock)")
-    print("=" * 60)
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
