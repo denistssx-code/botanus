@@ -569,6 +569,61 @@ def serve_static(path):
     """Sert les fichiers statiques"""
     return send_from_directory('static', path)
 
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Statistiques de la bibliothèque"""
+    total = len(library_db)
+    
+    # Compter par type
+    type_counts = {}
+    for plant_data in library_db.values():
+        plant_type = plant_data.get('type_plante', 'Plante')
+        type_counts[plant_type] = type_counts.get(plant_type, 0) + 1
+    
+    return jsonify({
+        'total': total,
+        'by_type': type_counts
+    })
+
+@app.route('/api/suggestions', methods=['GET'])
+def get_suggestions():
+    """Suggestions de plantes populaires"""
+    # Suggestions par défaut si la bibliothèque est vide
+    default_suggestions = [
+        PlantInfo(
+            nom_francais="Lavande vraie",
+            nom_latin="Lavandula angustifolia",
+            exposition="Plein soleil",
+            type_plante="Vivace",
+            prix="8,90 €",
+            description="Lavande officinale aux fleurs parfumées et mellifères",
+            icon="🌿",
+            url=""
+        ),
+        PlantInfo(
+            nom_francais="Rosier Pierre de Ronsard",
+            nom_latin="Rosa 'Pierre de Ronsard'",
+            exposition="Soleil",
+            type_plante="Rosier",
+            prix="24,90 €",
+            description="Rosier grimpant aux grandes fleurs roses et blanches",
+            icon="🌹",
+            url=""
+        ),
+        PlantInfo(
+            nom_francais="Hortensia paniculé",
+            nom_latin="Hydrangea paniculata",
+            exposition="Mi-ombre",
+            type_plante="Arbuste",
+            prix="19,90 €",
+            description="Arbuste à grandes panicules de fleurs blanches virant au rose",
+            icon="🌺",
+            url=""
+        )
+    ]
+    
+    return jsonify([asdict(plant) for plant in default_suggestions])
+
 @app.route('/api/search', methods=['GET'])
 def search():
     """Endpoint de recherche"""
