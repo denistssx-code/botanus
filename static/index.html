@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
+    <!-- VERSION 4.0 - Corrections complètes - 2026-02-22 -->
     <style>
         * {
             margin: 0;
@@ -784,6 +785,11 @@
                 <div class="chip" data-type="Vivace">Vivaces</div>
                 <div class="chip" data-type="Arbre">Arbres</div>
                 <div class="chip" data-type="Rosier">Rosiers</div>
+                <div class="chip" data-type="Grimpante">Grimpantes</div>
+                <div class="chip" data-type="Succulente">Succulentes</div>
+                <div class="chip" data-type="Aromatique">Aromatiques</div>
+                <div class="chip" data-type="Bulbe">Bulbes</div>
+                <div class="chip" data-type="Graminée">Graminées</div>
             </div>
 
             <div class="main-content">
@@ -1014,8 +1020,9 @@
                 const response = await fetch(`${API_URL}/stats`);
                 const stats = await response.json();
                 
-                document.getElementById('total-plants').textContent = stats.total_plants || 0;
-                document.getElementById('total-reminders').textContent = stats.reminders || 0;
+                // L'API retourne {total: X, by_type: {...}}
+                document.getElementById('total-plants').textContent = stats.total || 0;
+                document.getElementById('total-reminders').textContent = '0'; // À implémenter plus tard
             } catch (error) {
                 console.error('Erreur chargement stats:', error);
                 document.getElementById('total-plants').textContent = '0';
@@ -1027,7 +1034,10 @@
         async function loadRecentPlants() {
             try {
                 const response = await fetch(`${API_URL}/library`);
-                const library = await response.json();
+                const data = await response.json();
+                
+                // L'API retourne {count: X, plants: [...]}
+                const library = data.plants || [];
                 
                 const recentList = document.getElementById('recent-plants-list');
                 recentList.innerHTML = '';
@@ -1044,8 +1054,7 @@
                 }
                 
                 // Afficher les 3 dernières plantes
-                library.slice(0, 3).forEach(item => {
-                    const plant = item.plant;
+                library.slice(0, 3).forEach(plant => {
                     const plantEl = document.createElement('div');
                     plantEl.className = 'plant-item';
                     plantEl.innerHTML = `
@@ -1104,7 +1113,8 @@
                 
                 loadingDiv.style.display = 'none';
                 
-                const allResults = [...data.local, ...data.web];
+                // Le backend retourne data.results (tableau)
+                const allResults = data.results || [];
                 
                 if (allResults.length === 0) {
                     noResultsDiv.style.display = 'block';
@@ -1170,7 +1180,7 @@
             plantEl.className = 'search-suggestion';
             plantEl.dataset.type = plant.type_plante || 'Plante';
             
-            // Stocker les données dans un attribut data au lieu du onclick
+            // Stocker les données dans un attribut data
             plantEl.dataset.plantData = JSON.stringify(plant);
             
             plantEl.innerHTML = `
@@ -1179,17 +1189,26 @@
                     <div class="suggestion-name">${plant.nom_francais}</div>
                     <div class="suggestion-latin">${plant.nom_latin}</div>
                 </div>
-                <button class="add-btn">Ajouter</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="detail-btn" style="padding: 8px 12px; background: #f5f5f5; color: #2E7D32; border: 1px solid #2E7D32; border-radius: 8px; font-size: 13px; cursor: pointer;">🔍 Détails</button>
+                    <button class="add-btn">Ajouter</button>
+                </div>
             `;
             
-            // Clic sur la carte entière pour voir les détails
-            plantEl.addEventListener('click', () => {
-                showPlantDetail(plant, 'search');
+            // Bouton détails
+            const detailBtn = plantEl.querySelector('.detail-btn');
+            detailBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (plant.url) {
+                    window.location.href = `plant-detail.html?url=${encodeURIComponent(plant.url)}`;
+                } else {
+                    alert('URL de la plante non disponible');
+                }
             });
             
-            // Ajouter l'événement click proprement sur le bouton
-            const button = plantEl.querySelector('.add-btn');
-            button.addEventListener('click', (e) => {
+            // Bouton ajouter
+            const addButton = plantEl.querySelector('.add-btn');
+            addButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 addToLibrary(e, plant);
             });
