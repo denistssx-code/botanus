@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 4.0 - Corrections complètes - 2026-02-22 -->
+    <!-- VERSION 4.1 FINALE - Toutes corrections appliquées - 2026-02-22 -->
     <style>
         * {
             margin: 0;
@@ -1237,16 +1237,13 @@
             button.disabled = true;
             
             try {
-                const response = await fetch(`${API_URL}/library/add`, {
+                // Utiliser get-or-create-id au lieu de add
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        plant: plantData,
-                        notes: '',
-                        quantity: 1
-                    })
+                    body: JSON.stringify(plantData)
                 });
                 
                 if (response.ok) {
@@ -1282,7 +1279,10 @@
             
             try {
                 const response = await fetch(`${API_URL}/library`);
-                const library = await response.json();
+                const data = await response.json();
+                
+                // L'API retourne {count: X, plants: [...]}
+                const library = data.plants || [];
                 
                 loadingDiv.style.display = 'none';
                 
@@ -1296,9 +1296,9 @@
                 
                 // Calculer les stats par type
                 const typeStats = {};
-                library.forEach(item => {
-                    const type = item.plant.type_plante || 'Autre';
-                    typeStats[type] = (typeStats[type] || 0) + (item.quantity || 1);
+                library.forEach(plant => {
+                    const type = plant.type_plante || 'Autre';
+                    typeStats[type] = (typeStats[type] || 0) + (plant.quantity || 1);
                 });
                 
                 // Afficher les stats
@@ -1319,15 +1319,14 @@
                 });
                 
                 // Afficher les plantes
-                library.forEach(item => {
-                    const plant = item.plant;
+                library.forEach(plant => {
                     const cardEl = document.createElement('div');
                     cardEl.className = 'library-card';
                     cardEl.innerHTML = `
                         <div class="library-card-image">${plant.icon || '🌿'}</div>
                         <div class="library-card-content">
                             <div class="library-card-name">${plant.nom_francais}</div>
-                            <div class="library-card-details">${item.quantity || 1} plant${(item.quantity || 1) > 1 ? 's' : ''} • ${plant.prix || 'Prix non spécifié'}</div>
+                            <div class="library-card-details">${plant.quantity || 1} plant${(plant.quantity || 1) > 1 ? 's' : ''} • ${plant.prix || 'Prix non spécifié'}</div>
                         </div>
                     `;
                     
