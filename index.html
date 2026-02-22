@@ -1019,8 +1019,9 @@
                 const response = await fetch(`${API_URL}/stats`);
                 const stats = await response.json();
                 
-                document.getElementById('total-plants').textContent = stats.total_plants || 0;
-                document.getElementById('total-reminders').textContent = stats.reminders || 0;
+                // L'API retourne {total: X, by_type: {...}}
+                document.getElementById('total-plants').textContent = stats.total || 0;
+                document.getElementById('total-reminders').textContent = '0'; // À implémenter plus tard
             } catch (error) {
                 console.error('Erreur chargement stats:', error);
                 document.getElementById('total-plants').textContent = '0';
@@ -1032,7 +1033,10 @@
         async function loadRecentPlants() {
             try {
                 const response = await fetch(`${API_URL}/library`);
-                const library = await response.json();
+                const data = await response.json();
+                
+                // L'API retourne {count: X, plants: [...]}
+                const library = data.plants || [];
                 
                 const recentList = document.getElementById('recent-plants-list');
                 recentList.innerHTML = '';
@@ -1049,8 +1053,7 @@
                 }
                 
                 // Afficher les 3 dernières plantes
-                library.slice(0, 3).forEach(item => {
-                    const plant = item.plant;
+                library.slice(0, 3).forEach(plant => {
                     const plantEl = document.createElement('div');
                     plantEl.className = 'plant-item';
                     plantEl.innerHTML = `
