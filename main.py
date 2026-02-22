@@ -257,25 +257,68 @@ class PromesseDeFleursScraper:
         )
     
     def guess_plant_type(self, name: str, description: str = "") -> str:
-        """Devine le type de plante depuis le nom"""
+        """Devine le type de plante depuis le nom et description"""
         text = (name + " " + description).lower()
         
+        # Ordre d'importance (du plus spécifique au plus général)
+        
+        # Plantes grasses et succulentes
+        if any(word in text for word in ['succulente', 'cactus', 'crassula', 'echeveria', 'sedum', 'aloe', 'agave']):
+            return "Succulente"
+        
+        # Rosiers (très spécifique)
         if any(word in text for word in ['rosier', 'rose ']):
             return "Rosier"
-        elif any(word in text for word in ['arbre', 'érable', 'olivier', 'cerisier']):
-            return "Arbre"
-        elif any(word in text for word in ['arbuste', 'hortensia', 'buddleia', 'magnolia']):
-            return "Arbuste"
-        elif any(word in text for word in ['vivace', 'lavande', 'hémérocalle']):
-            return "Vivace"
-        elif any(word in text for word in ['graminée', 'miscanthus', 'stipa']):
-            return "Graminée"
-        elif any(word in text for word in ['annuelle', 'tomate', 'basilic']):
-            return "Annuelle"
-        elif any(word in text for word in ['grimpant', 'clématite', 'glycine']):
+        
+        # Plantes aromatiques et potager
+        if any(word in text for word in ['aromatique', 'basilic', 'thym', 'romarin', 'persil', 'menthe', 'sauge', 'ciboulette', 'origan']):
+            return "Aromatique"
+        
+        if any(word in text for word in ['potager', 'tomate', 'courgette', 'aubergine', 'poivron', 'salade', 'légume']):
+            return "Potager"
+        
+        # Bulbes et tubercules
+        if any(word in text for word in ['bulbe', 'tulipe', 'narcisse', 'jacinthe', 'dahlia', 'glaïeul', 'crocus']):
+            return "Bulbe"
+        
+        # Grimpantes
+        if any(word in text for word in ['grimpant', 'clématite', 'glycine', 'vigne', 'lierre', 'chèvrefeuille', 'jasmin grimpant']):
             return "Grimpante"
-        else:
-            return "Plante"
+        
+        # Arbres (avant arbustes car certains arbustes contiennent "arbre")
+        if any(word in text for word in ['arbre ', 'érable', 'chêne', 'bouleau', 'tilleul', 'fruitier', 'pommier', 'cerisier', 'prunier']):
+            return "Arbre"
+        
+        # Arbustes
+        if any(word in text for word in ['arbuste', 'hortensia', 'buddleia', 'magnolia', 'forsythia', 'weigela', 'spirée', 'lilas']):
+            return "Arbuste"
+        
+        # Vivaces
+        if any(word in text for word in ['vivace', 'lavande', 'hémérocalle', 'géranium vivace', 'campanule', 'hosta', 'astilbe', 'rudbeckia']):
+            return "Vivace"
+        
+        # Graminées
+        if any(word in text for word in ['graminée', 'miscanthus', 'stipa', 'pennisetum', 'festuca', 'carex', 'bambou']):
+            return "Graminée"
+        
+        # Annuelles et bisannuelles
+        if any(word in text for word in ['annuelle', 'bisannuelle', 'pétunia', 'géranium ', 'impatiens', 'bégonia']):
+            return "Annuelle"
+        
+        # Plantes d'intérieur
+        if any(word in text for word in ['intérieur', 'plante d\'intérieur', 'ficus', 'monstera', 'pothos', 'philodendron']):
+            return "Intérieur"
+        
+        # Aquatiques
+        if any(word in text for word in ['aquatique', 'nénuphar', 'iris d\'eau', 'papyrus']):
+            return "Aquatique"
+        
+        # Fougères
+        if any(word in text for word in ['fougère', 'polystichum', 'dryopteris']):
+            return "Fougère"
+        
+        # Par défaut
+        return "Plante"
     
     def fetch_plant_detail(self, url: str) -> Optional[PlantDetailInfo]:
         """
@@ -537,21 +580,10 @@ def search():
     
     results = scraper.search_plants(query, max_results)
     
-    # CORRECTION : Changez cette structure pour correspondre au JavaScript
     return jsonify({
         'query': query,
         'count': len(results),
-        'results': [asdict(plant) for plant in results]  # Gardez cette ligne
-    })
-
-# AJOUTEZ aussi cet endpoint pour les stats (appelé par loadStats())
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    """Statistiques générales"""
-    total_plants = len(library_db)
-    return jsonify({
-        'total_plants': total_plants,
-        'reminders': 0  # À implémenter plus tard
+        'results': [asdict(plant) for plant in results]
     })
 
 @app.route('/api/plant/detail', methods=['GET'])
@@ -716,12 +748,3 @@ def save_notes(plant_id):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
-@app.route('/api/test-search')
-def test_search():
-    """Test direct du scraper"""
-    results = scraper.search_plants('lavande', 5)
-    return jsonify({
-        'message': f'Trouvé {len(results)} résultats',
-        'results': [asdict(plant) for plant in results]
-    })
