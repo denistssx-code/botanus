@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails - Ma Bibliothèque Végétale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .phone-container {
+            max-width: 375px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        /* HEADER */
+        .detail-header {
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            color: white;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .back-btn:active {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .plant-title {
+            flex: 1;
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .plant-latin {
+            font-style: italic;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* LOADING */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            gap: 20px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* CONTENT */
+        .detail-content {
+            padding: 16px;
+        }
+        
+        .section {
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2E7D32;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .description-box {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        .info-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .info-item {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        /* FORMATS */
+        .format-card {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 2px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .format-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #4CAF50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .format-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .format-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+        
+        .format-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2E7D32;
+        }
+        
+        .format-stock {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .calendar-container {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 12px;
+        }
+        
+        .calendar-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .calendar-months {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+        }
+        
+        .month-item {
+            flex-shrink: 0;
+            width: 48px;
+            text-align: center;
+        }
+        
+        .month-bar {
+            height: 24px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .month-bar.best { background: #4CAF50; }
+        .month-bar.fit { background: #FFC107; }
+        .month-bar.no { background: #e0e0e0; }
+        
+        .month-label {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* BOUTON FLOTTANT */
+        .floating-action {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 375px;
+            background: white;
+            padding: 16px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .add-library-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+        
+        .add-library-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .add-library-btn.added {
+            background: #4CAF50;
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <!-- HEADER -->
+        <div class="detail-header">
+            <div class="header-top">
+                <button class="back-btn" onclick="goBack()">←</button>
+                <div style="flex: 1;">
+                    <div class="plant-title" id="headerTitle">Chargement...</div>
+                    <div class="plant-latin" id="headerLatin"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div class="loading-container" id="loadingView">
+            <div class="spinner"></div>
+            <div style="color: #666;">Chargement des détails...</div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="detail-content" id="contentView" style="display: none; padding-bottom: 100px;">
+            <!-- Le contenu sera inséré ici -->
+        </div>
+
+        <!-- ERROR -->
+        <div class="error-message" id="errorView" style="display: none;">
+            <div style="font-size: 48px; margin-bottom: 16px;">😕</div>
+            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Impossible de charger les détails</div>
+            <div style="font-size: 14px;">L'URL de la plante est manquante ou invalide.</div>
+            <button onclick="goBack()" style="margin-top: 20px; padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 8px;">
+                Retour
+            </button>
+        </div>
+
+        <!-- BOUTON FLOTTANT -->
+        <div class="floating-action" id="floatingAction" style="display: none;">
+            <button class="add-library-btn" id="addBtn" onclick="addToLibrary()">
+                ➕ Ajouter à ma bibliothèque
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000/api' 
+            : '/api';
+
+        let currentPlantData = null;
+
+        async function loadPlantDetails() {
+            // Récupérer l'URL de la plante depuis les paramètres
+            const params = new URLSearchParams(window.location.search);
+            const plantUrl = params.get('url');
+
+            if (!plantUrl) {
+                document.getElementById('loadingView').style.display = 'none';
+                document.getElementById('errorView').style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(plantUrl)}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error('Échec extraction détails');
+                }
+
+                currentPlantData = data.data;
+                displayPlantDetails(data.data);
+                
+                document.getElementById('loadingView').style.display = 'none';
+                document.getElementById('contentView').style.display = 'block';
+                document.getElementById('floatingAction').style.display = 'block';
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('loadingView').style.display = 'none';
+                document.getElementById('errorView').style.display = 'block';
+            }
+        }
+
+        function displayPlantDetails(data) {
+            // Header
+            document.getElementById('headerTitle').textContent = data.nom_francais || data.nom_complet || 'Plante';
+            document.getElementById('headerLatin').textContent = data.nom_latin || '';
+
+            const content = document.getElementById('contentView');
+            let html = '';
+
+            // DESCRIPTION
+            if (data.description_courte) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">📝 Description</div>
+                        <div class="description-box">${data.description_courte}</div>
+                    </div>
+                `;
+            }
+
+            // CARACTÉRISTIQUES
+            const hasCarac = data.exposition || data.rusticite || data.hauteur_maturite || data.largeur_maturite || data.periode_floraison || data.couleur_fleur;
+            if (hasCarac) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">🌱 Caractéristiques</div>
+                        <div class="info-grid">
+                `;
+                
+                if (data.exposition) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Exposition</div>
+                            <div class="info-value">☀️ ${data.exposition}</div>
+                        </div>
+                    `;
+                }
+                
+                if (data.rusticite) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Rusticité</div>
+                            <div class="info-value">❄️ ${data.rusticite}</div>
+                        </div>
+                    `;
+                }
+                
+                if (data.hauteur_maturite) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Hauteur</div>
+                            <div class="info-value">📏 ${data.hauteur_maturite}</div>
+                        </div>
+                    `;
+                }
+                
+                if (data.largeur_maturite) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Largeur</div>
+                            <div class="info-value">📐 ${data.largeur_maturite}</div>
+                        </div>
+                    `;
+                }
+                
+                if (data.periode_floraison) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Floraison</div>
+                            <div class="info-value">🌸 ${data.periode_floraison}</div>
+                        </div>
+                    `;
+                }
+                
+                if (data.couleur_fleur) {
+                    html += `
+                        <div class="info-item">
+                            <div class="info-label">Couleur</div>
+                            <div class="info-value">🎨 ${data.couleur_fleur}</div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // BOTANIQUE
+            if (data.genre || data.espece || data.famille) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">🔬 Botanique</div>
+                        <div class="info-grid">
+                `;
+                
+                if (data.genre) html += `<div class="info-item"><div class="info-label">Genre</div><div class="info-value">${data.genre}</div></div>`;
+                if (data.espece) html += `<div class="info-item"><div class="info-label">Espèce</div><div class="info-value">${data.espece}</div></div>`;
+                if (data.famille) html += `<div class="info-item"><div class="info-label">Famille</div><div class="info-value">${data.famille}</div></div>`;
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // FORMATS
+            if (data.formats && data.formats.length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">💰 Formats disponibles</div>
+                `;
+                
+                data.formats.forEach(format => {
+                    html += `
+                        <div class="format-card">
+                            ${format.badges && format.badges.length > 0 ? `<div class="format-badge">${format.badges[0]}</div>` : ''}
+                            <div class="format-title">${format.format || 'Format'}</div>
+                            <div style="font-size: 13px; color: #666;">
+                                ${format.hauteur_livraison ? `Hauteur: ${format.hauteur_livraison}` : ''}
+                                ${format.reference ? ` • Réf: ${format.reference}` : ''}
+                            </div>
+                            <div class="format-details">
+                                <div>
+                                    <div class="format-price">${format.prix_unitaire ? format.prix_unitaire.toFixed(2) + ' €' : 'N/A'}</div>
+                                    ${format.prix_par_lot ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">Prix dégressif disponible</div>` : ''}
+                                </div>
+                                ${format.stock ? `<div class="format-stock">✓ ${format.stock} en stock</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+
+            // PLANTATION
+            if (data.meilleure_periode_plantation) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">📅 Plantation</div>
+                        <div class="calendar-container">
+                            <div class="calendar-title">Meilleure période: ${data.meilleure_periode_plantation}</div>
+                            <div class="calendar-months">
+                                ${['JAN', 'FEV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOU', 'SEP', 'OCT', 'NOV', 'DEC'].map(m => `
+                                    <div class="month-item">
+                                        <div class="month-bar no"></div>
+                                        <div class="month-label">${m}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // ENTRETIEN
+            const hasEntretien = data.taille || data.resistance_maladies || data.hivernage || data.difficulte_culture;
+            if (hasEntretien) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">🌿 Entretien</div>
+                        <div class="info-grid">
+                `;
+                
+                if (data.difficulte_culture) html += `<div class="info-item"><div class="info-label">Difficulté</div><div class="info-value">${data.difficulte_culture}</div></div>`;
+                if (data.taille) html += `<div class="info-item"><div class="info-label">Taille</div><div class="info-value">${data.taille}</div></div>`;
+                if (data.resistance_maladies) html += `<div class="info-item"><div class="info-label">Résistance</div><div class="info-value">${data.resistance_maladies}</div></div>`;
+                if (data.hivernage) html += `<div class="info-item"><div class="info-label">Hivernage</div><div class="info-value">${data.hivernage}</div></div>`;
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+        }
+
+        async function addToLibrary() {
+            const btn = document.getElementById('addBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Ajout...';
+            btn.disabled = true;
+
+            try {
+                // Préparer les données simplifiées pour la bibliothèque
+                const libraryData = {
+                    nom_francais: currentPlantData.nom_francais || currentPlantData.nom_complet || '',
+                    nom_latin: currentPlantData.nom_latin || '',
+                    exposition: currentPlantData.exposition || '',
+                    type_plante: currentPlantData.type_plante || 'Plante',
+                    prix: currentPlantData.formats && currentPlantData.formats.length > 0 
+                        ? currentPlantData.formats[0].prix_unitaire + ' €' 
+                        : '',
+                    description: currentPlantData.description_courte || '',
+                    icon: '🌿',
+                    url: new URLSearchParams(window.location.search).get('url')
+                };
+
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(libraryData)
+                });
+
+                if (response.ok) {
+                    btn.textContent = '✓ Ajouté à la bibliothèque';
+                    btn.classList.add('added');
+                    setTimeout(() => {
+                        goBack();
+                    }, 1500);
+                } else {
+                    throw new Error('Erreur ajout');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert('Erreur lors de l\'ajout');
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        // Charger au démarrage
+        loadPlantDetails();
+    </script>
+</body>
+</html>
