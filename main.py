@@ -800,6 +800,16 @@ def save_notes(plant_id):
     
     return jsonify({'success': True})
 
+@app.after_request
+def add_no_cache_headers(response):
+    """Ajoute des headers pour éviter le cache navigateur"""
+    # Ne pas cacher les fichiers statiques HTML/JS
+    if request.path.endswith(('.html', '.js')) or request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, public, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
