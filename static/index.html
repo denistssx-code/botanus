@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 4.2 - Onglets Info/Entretien/Notes + Stockage détails complets - 2026-02-22 -->
+    <!-- VERSION 4.3 - Onglet Entretien enrichi avec extraction prose + produits - 2026-02-22 -->
     <style>
         * {
             margin: 0;
@@ -923,6 +923,12 @@
                     <div class="info-group" id="detail-calendrier-group" style="display: none;">
                         <div class="info-title">📅 Calendrier de plantation</div>
                         <div class="info-text" id="detail-calendrier-plantation">Mars à Mai, Septembre à Octobre</div>
+                        <div class="info-text" id="detail-calendrier-raisonnable" style="font-size: 13px; color: #666; margin-top: 4px;"></div>
+                    </div>
+
+                    <div class="info-group" id="detail-densite-group" style="display: none;">
+                        <div class="info-title">🌱 Densité de plantation</div>
+                        <div class="info-text" id="detail-densite">3 plants par m²</div>
                     </div>
 
                     <div class="info-group" id="detail-periode-floraison-group" style="display: none;">
@@ -933,6 +939,13 @@
                     <div class="info-group" id="detail-taille-group" style="display: none;">
                         <div class="info-title">✂️ Taille</div>
                         <div class="info-text" id="detail-taille-entretien">Taille légère après floraison</div>
+                        <div class="info-text" id="detail-frequence-taille" style="font-size: 13px; color: #666; margin-top: 4px;"></div>
+                        <div class="info-text" id="detail-periode-taille" style="font-size: 13px; color: #666; margin-top: 4px;"></div>
+                    </div>
+
+                    <div class="info-group" id="detail-descriptif-taille-group" style="display: none;">
+                        <div class="info-title">✂️ Comment tailler</div>
+                        <div class="info-text" id="detail-descriptif-taille" style="line-height: 1.6; font-size: 14px;">Détails de taille...</div>
                     </div>
 
                     <div class="info-group" id="detail-arrosage-group" style="display: none;">
@@ -950,9 +963,19 @@
                         <div class="info-text" id="detail-maladies">Bonne</div>
                     </div>
 
+                    <div class="info-group" id="detail-hivernage-group" style="display: none;">
+                        <div class="info-title">❄️ Hivernage</div>
+                        <div class="info-text" id="detail-hivernage">Peut rester en terre</div>
+                    </div>
+
                     <div class="info-group" id="detail-conseils-group" style="display: none;">
-                        <div class="info-title">💡 Conseils d'entretien</div>
-                        <div class="info-text" id="detail-conseils" style="line-height: 1.6;">Plantez dans un sol bien drainé...</div>
+                        <div class="info-title">💡 Conseils d'entretien détaillés</div>
+                        <div class="info-text" id="detail-conseils" style="line-height: 1.6; font-size: 14px; white-space: pre-line;">Plantez dans un sol bien drainé...</div>
+                    </div>
+
+                    <div class="info-group" id="detail-produits-group" style="display: none;">
+                        <div class="info-title">🌿 Produits recommandés</div>
+                        <div id="detail-produits-liste" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
                     </div>
 
                     <div class="info-group" id="no-entretien-info" style="text-align: center; padding: 40px 20px; color: #999;">
@@ -1517,12 +1540,16 @@
             // Onglet Entretien - afficher message "non disponible"
             document.getElementById('no-entretien-info').style.display = 'block';
             document.getElementById('detail-calendrier-group').style.display = 'none';
+            document.getElementById('detail-densite-group').style.display = 'none';
             document.getElementById('detail-periode-floraison-group').style.display = 'none';
             document.getElementById('detail-taille-group').style.display = 'none';
+            document.getElementById('detail-descriptif-taille-group').style.display = 'none';
             document.getElementById('detail-arrosage-group').style.display = 'none';
             document.getElementById('detail-difficulte-group').style.display = 'none';
             document.getElementById('detail-maladies-group').style.display = 'none';
+            document.getElementById('detail-hivernage-group').style.display = 'none';
             document.getElementById('detail-conseils-group').style.display = 'none';
+            document.getElementById('detail-produits-group').style.display = 'none';
         }
         
         function displayDetailedInfo(details) {
@@ -1585,7 +1612,20 @@
             if (details.meilleure_periode_plantation) {
                 document.getElementById('detail-calendrier-plantation').textContent = 
                     `Meilleure période: ${details.meilleure_periode_plantation}`;
+                
+                if (details.periode_raisonnable_plantation) {
+                    document.getElementById('detail-calendrier-raisonnable').textContent = 
+                        `Période raisonnable: ${details.periode_raisonnable_plantation}`;
+                }
+                
                 document.getElementById('detail-calendrier-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Densité plantation
+            if (details.densite_plantation) {
+                document.getElementById('detail-densite').textContent = details.densite_plantation;
+                document.getElementById('detail-densite-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
@@ -1596,16 +1636,32 @@
                 hasEntretienInfo = true;
             }
             
-            // Taille
-            if (details.taille) {
-                document.getElementById('detail-taille-entretien').textContent = details.taille;
+            // Taille (simple)
+            if (details.taille || details.frequence_taille || details.periode_taille) {
+                if (details.taille) {
+                    document.getElementById('detail-taille-entretien').textContent = details.taille;
+                }
+                if (details.frequence_taille) {
+                    document.getElementById('detail-frequence-taille').textContent = `Fréquence: ${details.frequence_taille}`;
+                }
+                if (details.periode_taille) {
+                    document.getElementById('detail-periode-taille').textContent = `Période: ${details.periode_taille}`;
+                }
                 document.getElementById('detail-taille-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
-            // Arrosage (humidité sol)
-            if (details.humidite_sol) {
-                document.getElementById('detail-arrosage').textContent = details.humidite_sol;
+            // Descriptif taille détaillé
+            if (details.descriptif_taille_detaille) {
+                document.getElementById('detail-descriptif-taille').textContent = details.descriptif_taille_detaille;
+                document.getElementById('detail-descriptif-taille-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Arrosage
+            if (details.arrosage_conseils || details.humidite_sol) {
+                const arrosageText = details.arrosage_conseils || details.humidite_sol;
+                document.getElementById('detail-arrosage').textContent = arrosageText;
                 document.getElementById('detail-arrosage-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
@@ -1624,10 +1680,39 @@
                 hasEntretienInfo = true;
             }
             
+            // Hivernage
+            if (details.hivernage) {
+                document.getElementById('detail-hivernage').textContent = details.hivernage;
+                document.getElementById('detail-hivernage-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
             // Conseils détaillés
             if (details.description_detaillee) {
                 document.getElementById('detail-conseils').textContent = details.description_detaillee;
                 document.getElementById('detail-conseils-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Produits associés
+            if (details.produits_associes && details.produits_associes.length > 0) {
+                const produitsListe = document.getElementById('detail-produits-liste');
+                produitsListe.innerHTML = '';
+                
+                details.produits_associes.forEach(produit => {
+                    const produitEl = document.createElement('div');
+                    produitEl.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 8px; font-size: 13px;';
+                    produitEl.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 4px;">${produit.nom}</div>
+                        <div style="color: #666; display: flex; justify-content: space-between;">
+                            <span>${produit.prix || ''}</span>
+                            ${produit.stock ? `<span style="color: #4CAF50;">✓ ${produit.stock} en stock</span>` : ''}
+                        </div>
+                    `;
+                    produitsListe.appendChild(produitEl);
+                });
+                
+                document.getElementById('detail-produits-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
