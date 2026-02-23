@@ -362,10 +362,21 @@ class PromesseDeFleursScraper:
             if desc_short:
                 detail.description_courte = self.clean_text(desc_short.get_text())
             
-            # 4. DESCRIPTION DÉTAILLÉE (entretien)
-            desc_long = soup.find('div', class_='prose max-w-max')
-            if desc_long and 'product-description' not in desc_long.get('class', []):
-                detail.description_detaillee = self.clean_text(desc_long.get_text())
+            # 4. DESCRIPTION DÉTAILLÉE (entretien - sous "Plantations et soins")
+            # Chercher le h2 "Plantations et soins" puis le div.prose qui suit
+            h2_plantation = soup.find('h2', string=re.compile(r'Plantations et soins', re.IGNORECASE))
+            if h2_plantation:
+                # Chercher le div.prose.max-w-max qui suit ce h2
+                prose_div = h2_plantation.find_next('div', class_='prose')
+                if prose_div:
+                    detail.description_detaillee = self.clean_text(prose_div.get_text())
+                    print(f"✅ Description entretien trouvée: {len(detail.description_detaillee)} caractères")
+            else:
+                # Fallback: chercher n'importe quel div.prose.max-w-max
+                desc_long = soup.find('div', class_='prose max-w-max')
+                if desc_long and 'product-description' not in desc_long.get('class', []):
+                    detail.description_detaillee = self.clean_text(desc_long.get_text())
+                    print(f"⚠️ Description fallback: {len(detail.description_detaillee)} caractères")
             
             # 5. ATTRIBUTS VISUELS
             visual_attrs = soup.find('div', class_='visual-attributes')
@@ -584,18 +595,18 @@ class PromesseDeFleursScraper:
                             detail.produits_associes.append(prod_data)
             
             # 9. CONSEILS D'ARROSAGE depuis description détaillée
-            if detail.description_detaillee:
-                # Chercher mentions d'arrosage
-                arrosage_patterns = [
-                    r'arrosage.*?\.(?:\s|$)',
-                    r'eau.*?\.(?:\s|$)',
-                    r'irrigation.*?\.(?:\s|$)'
-                ]
-                for pattern in arrosage_patterns:
-                    match = re.search(pattern, detail.description_detaillee, re.IGNORECASE | re.DOTALL)
-                    if match:
-                        detail.arrosage_conseils = match.group(0).strip()
-                        break
+            # NOTE: Extraction désactivée car peu fiable - les infos sont dans description_detaillee
+            # if detail.description_detaillee:
+            #     arrosage_patterns = [
+            #         r'arrosage.*?\.(?:\s|$)',
+            #         r'eau.*?\.(?:\s|$)',
+            #         r'irrigation.*?\.(?:\s|$)'
+            #     ]
+            #     for pattern in arrosage_patterns:
+            #         match = re.search(pattern, detail.description_detaillee, re.IGNORECASE | re.DOTALL)
+            #         if match:
+            #             detail.arrosage_conseils = match.group(0).strip()
+            #             break
             
             # 10. IMAGE PRINCIPALE
             main_img = soup.find('img', alt=re.compile(detail.nom_complet or 'Magnolia'))
