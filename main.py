@@ -396,12 +396,14 @@ class PromesseDeFleursScraper:
             # 6. SECTIONS DÉTAILLÉES
             sections_container = soup.find('div', class_='gap-y-8')
             if sections_container:
+                print(f"📦 Sections container trouvé")
                 for section in sections_container.find_all('div', recursive=False):
                     title_elem = section.find('p', class_='font-bold')
                     if not title_elem:
                         continue
                     
                     section_title = self.clean_text(title_elem.get_text())
+                    print(f"  📋 Section: {section_title}")
                     
                     # Extraire les paires label/valeur
                     rows = section.find_all('div', class_='flex-row')
@@ -410,6 +412,7 @@ class PromesseDeFleursScraper:
                         if len(spans) >= 2:
                             label = self.clean_text(spans[0].get_text())
                             value = self.clean_text(spans[1].get_text())
+                            print(f"    • {label}: {value[:50]}...")
                             
                             # Mapper selon la section
                             if section_title == 'Port':
@@ -461,6 +464,8 @@ class PromesseDeFleursScraper:
                                     detail.ph_sol = value
                                 elif 'Type de sol' in label:
                                     detail.type_sol = value
+                                elif 'Densité' in label:
+                                    detail.densite_plantation = value
                             
                             elif section_title == 'Soins':
                                 if label == 'Taille':
@@ -647,6 +652,38 @@ def get_stats():
         'by_type': type_counts
     })
 
+@app.route('/api/plant/detail', methods=['GET'])
+def get_plant_detail():
+    """Extrait les détails complets d'une plante"""
+    url = request.args.get('url', '')
+    
+    if not url:
+        return jsonify({'error': 'URL requise'}), 400
+    
+    print(f"\n{'='*60}")
+    print(f"🔍 EXTRACTION DÉTAILS: {url}")
+    print(f"{'='*60}\n")
+    
+    detail = scraper.fetch_plant_detail(url)
+    
+    if detail:
+        print(f"\n✅ EXTRACTION RÉUSSIE")
+        print(f"  • Nom: {detail.nom_francais}")
+        print(f"  • Plantation: {detail.meilleure_periode_plantation}")
+        print(f"  • Densité: {detail.densite_plantation}")
+        print(f"  • Taille: {detail.taille}")
+        print(f"  • Période taille: {detail.periode_taille}")
+        print(f"  • Descriptif taille: {detail.descriptif_taille_detaille[:50] if detail.descriptif_taille_detaille else 'N/A'}...")
+        print(f"  • Produits: {len(detail.produits_associes) if detail.produits_associes else 0}")
+        print(f"{'='*60}\n")
+        
+        return jsonify({
+            'success': True,
+            'data': asdict(detail)
+        })
+    else:
+        return jsonify({'error': 'Échec extraction'}), 500
+
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
     """Suggestions de plantes populaires"""
@@ -702,30 +739,6 @@ def search():
         'count': len(results),
         'results': [asdict(plant) for plant in results]
     })
-
-@app.route('/api/plant/detail', methods=['GET'])
-def get_plant_detail():
-    """
-    Endpoint pour récupérer les détails complets d'une plante
-    Usage: /api/plant/detail?url=https://...
-    """
-    url = request.args.get('url', '')
-    
-    if not url:
-        return jsonify({'error': 'Paramètre "url" requis'}), 400
-    
-    detail = scraper.fetch_plant_detail(url)
-    
-    if detail:
-        return jsonify({
-            'success': True,
-            'data': asdict(detail)
-        })
-    else:
-        return jsonify({
-            'success': False,
-            'error': 'Impossible d\'extraire les détails'
-        }), 500
 
 @app.route('/api/library', methods=['GET'])
 def get_library():
