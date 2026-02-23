@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 4.5 - Fix description détaillée + suppression arrosage - 2026-02-22 -->
+    <!-- VERSION 5.0 - Onglet Info enrichi + Graphiques calendrier + Page Rappels - 2026-02-23 -->
     <style>
         * {
             margin: 0;
@@ -266,31 +266,61 @@
         }
         
         .fab {
-            position: absolute;
-            bottom: 110px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            background: #4CAF50;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
-            transition: all 0.2s ease;
-            z-index: 999;
+            display: none; /* Caché car remplacé par la bottom nav */
         }
         
-        .fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px;
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 12px;
+        }
+        
+        .nav-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .nav-btn.active {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
         }
         
         .screen {
             display: none;
             animation: slideIn 0.3s ease;
-            height: calc(100% - 80px);
+            height: calc(100% - 70px); /* Ajusté pour la bottom nav */
             overflow-y: auto;
         }
         
@@ -902,14 +932,34 @@
                         <div class="info-text" id="detail-feuillage">Caduc - Vert</div>
                     </div>
 
+                    <div class="info-group" id="detail-utilisation-group" style="display: none;">
+                        <div class="info-title">🏡 Type d'utilisation</div>
+                        <div class="info-text" id="detail-utilisation">Massif, Bordure, Pot</div>
+                    </div>
+
                     <div class="info-group" id="detail-sol-group" style="display: none;">
-                        <div class="info-title">🌍 Sol</div>
-                        <div class="info-text" id="detail-sol">Bien drainé, pH neutre</div>
+                        <div class="info-title">🌍 Type de sol</div>
+                        <div class="info-text" id="detail-sol">Bien drainé</div>
+                    </div>
+
+                    <div class="info-group" id="detail-ph-group" style="display: none;">
+                        <div class="info-title">⚗️ pH du sol</div>
+                        <div class="info-text" id="detail-ph">Acide, Neutre</div>
                     </div>
 
                     <div class="info-group" id="detail-description-group">
                         <div class="info-title">📝 Description</div>
                         <div class="info-text" id="detail-description">Description de la plante...</div>
+                    </div>
+
+                    <div class="info-group" id="detail-botanique-group" style="display: none;">
+                        <div class="info-title">🔬 Botanique</div>
+                        <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px;"></div>
+                    </div>
+
+                    <div class="info-group" id="detail-formats-group" style="display: none;">
+                        <div class="info-title">💰 Formats disponibles</div>
+                        <div id="detail-formats-liste" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
                     </div>
 
                     <div class="info-group" id="detail-url-group" style="display: none;">
@@ -922,18 +972,24 @@
                 <div class="tab-content" id="tab-entretien" style="display: none;">
                     <div class="info-group" id="detail-calendrier-group" style="display: none;">
                         <div class="info-title">📅 Calendrier de plantation</div>
-                        <div class="info-text" id="detail-calendrier-plantation">Mars à Mai, Septembre à Octobre</div>
-                        <div class="info-text" id="detail-calendrier-raisonnable" style="font-size: 13px; color: #666; margin-top: 4px;"></div>
+                        <div class="info-text" id="detail-calendrier-plantation" style="margin-bottom: 12px;">Mars à Mai, Septembre à Octobre</div>
+                        <div id="detail-calendrier-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
+                            <!-- Graphique généré dynamiquement -->
+                        </div>
+                        <div class="info-text" id="detail-calendrier-raisonnable" style="font-size: 13px; color: #666; margin-top: 8px;"></div>
+                    </div>
+
+                    <div class="info-group" id="detail-floraison-calendrier-group" style="display: none;">
+                        <div class="info-title">🌺 Période de floraison</div>
+                        <div class="info-text" id="detail-periode-floraison-entretien" style="margin-bottom: 12px;">Avril à Juin</div>
+                        <div id="detail-floraison-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
+                            <!-- Graphique généré dynamiquement -->
+                        </div>
                     </div>
 
                     <div class="info-group" id="detail-densite-group" style="display: none;">
                         <div class="info-title">🌱 Densité de plantation</div>
                         <div class="info-text" id="detail-densite">3 plants par m²</div>
-                    </div>
-
-                    <div class="info-group" id="detail-periode-floraison-group" style="display: none;">
-                        <div class="info-title">🌺 Période de floraison</div>
-                        <div class="info-text" id="detail-periode-floraison">Avril à Juin</div>
                     </div>
 
                     <div class="info-group" id="detail-taille-group" style="display: none;">
@@ -1004,8 +1060,79 @@
             </div>
         </div>
 
+        <!-- Rappels Screen -->
+        <div class="screen" id="rappels-screen">
+            <div class="detail-container">
+                <div class="detail-header">
+                    <button class="back-btn" onclick="goBackFromRappels()">←</button>
+                    <div class="detail-plant-info">
+                        <h2 class="detail-plant-name">📅 Mes Rappels</h2>
+                        <p class="detail-plant-latin">Calendrier d'entretien de ma bibliothèque</p>
+                    </div>
+                </div>
+
+                <div class="detail-content" style="padding-top: 100px;">
+                    <!-- Mois actuel -->
+                    <div class="info-group" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">Nous sommes en</div>
+                        <div id="rappels-mois-actuel" style="font-size: 28px; font-weight: 700;">Février 2026</div>
+                    </div>
+
+                    <!-- Rappels du mois -->
+                    <div class="info-group">
+                        <div class="info-title">🌱 Ce mois-ci</div>
+                        <div id="rappels-mois" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Prochains rappels -->
+                    <div class="info-group">
+                        <div class="info-title">⏰ Prochainement</div>
+                        <div id="rappels-prochains" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Message si vide -->
+                    <div id="rappels-vide" style="text-align: center; padding: 60px 20px; color: #999; display: none;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">📅</div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun rappel</div>
+                        <div style="font-size: 14px;">Ajoutez des plantes à votre bibliothèque pour voir les rappels d'entretien</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- FAB Button -->
         <button class="fab" onclick="showSearchScreen()">+</button>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn" onclick="showSearchScreen()" id="nav-search">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <span>Recherche</span>
+            </button>
+            <button class="nav-btn" onclick="showLibraryScreen()" id="nav-library">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <span>Bibliothèque</span>
+            </button>
+            <button class="nav-btn" onclick="showRappelsScreen()" id="nav-rappels">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Rappels</span>
+            </button>
+        </nav>
 
         <!-- Navigation bottom -->
         <div class="bottom-nav">
@@ -1047,8 +1174,11 @@
             console.log('🌿 Application démarrée');
             updateTime();
             setInterval(updateTime, 60000);
-            loadStats();
-            loadRecentPlants();
+            
+            // Afficher la bibliothèque par défaut
+            showLibraryScreen();
+            
+            // Charger les suggestions pour la recherche
             loadSuggestions();
             
             // Gestionnaires de recherche
@@ -1100,6 +1230,183 @@
 
         function showSearchScreen() {
             showScreen('search');
+            updateBottomNav('search');
+        }
+        
+        function showLibraryScreen() {
+            showScreen('library');
+            updateBottomNav('library');
+        }
+        
+        function showRappelsScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('rappels-screen').classList.add('active');
+            updateBottomNav('rappels');
+            loadRappels();
+        }
+        
+        function goBackFromRappels() {
+            showLibraryScreen();
+        }
+        
+        function updateBottomNav(activeScreen) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(`nav-${activeScreen}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+        
+        async function loadRappels() {
+            // Charger la bibliothèque pour générer les rappels
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                
+                if (!data.plants || data.plants.length === 0) {
+                    document.getElementById('rappels-vide').style.display = 'block';
+                    document.getElementById('rappels-mois').style.display = 'none';
+                    document.getElementById('rappels-prochains').style.display = 'none';
+                    return;
+                }
+                
+                // Afficher le mois actuel
+                const maintenant = new Date();
+                const moisNoms = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                document.getElementById('rappels-mois-actuel').textContent = 
+                    `${moisNoms[maintenant.getMonth()]} ${maintenant.getFullYear()}`;
+                
+                // Générer les rappels
+                const rappelsMois = [];
+                const rappelsProchains = [];
+                
+                data.plants.forEach(plant => {
+                    // Récupérer les détails si disponibles
+                    const details = plant.details || {};
+                    
+                    // Rappel de taille
+                    if (details.periode_taille) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Taille',
+                            periode: details.periode_taille,
+                            description: details.descriptif_taille_detaille || details.taille || 'Tailler la plante',
+                            icon: '✂️'
+                        };
+                        
+                        if (isCurrentMonth(details.periode_taille, maintenant)) {
+                            rappelsMois.push(rappel);
+                        } else if (isNextMonths(details.periode_taille, maintenant, 3)) {
+                            rappelsProchains.push(rappel);
+                        }
+                    }
+                    
+                    // Rappel de plantation (si période raisonnable)
+                    if (details.meilleure_periode_plantation) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Plantation',
+                            periode: details.meilleure_periode_plantation,
+                            description: 'Période idéale pour planter',
+                            icon: '🌱'
+                        };
+                        
+                        if (isCurrentMonth(details.meilleure_periode_plantation, maintenant)) {
+                            rappelsMois.push(rappel);
+                        } else if (isNextMonths(details.meilleure_periode_plantation, maintenant, 3)) {
+                            rappelsProchains.push(rappel);
+                        }
+                    }
+                    
+                    // Rappel de floraison (pour admirer!)
+                    if (details.periode_floraison) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Floraison',
+                            periode: details.periode_floraison,
+                            description: 'Période de floraison à admirer',
+                            icon: '🌸'
+                        };
+                        
+                        if (isCurrentMonth(details.periode_floraison, maintenant)) {
+                            rappelsMois.push(rappel);
+                        } else if (isNextMonths(details.periode_floraison, maintenant, 3)) {
+                            rappelsProchains.push(rappel);
+                        }
+                    }
+                });
+                
+                // Afficher les rappels
+                displayRappels('rappels-mois', rappelsMois);
+                displayRappels('rappels-prochains', rappelsProchains);
+                
+                if (rappelsMois.length === 0 && rappelsProchains.length === 0) {
+                    document.getElementById('rappels-vide').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Erreur chargement rappels:', error);
+            }
+        }
+        
+        function isCurrentMonth(periodeText, date) {
+            if (!periodeText) return false;
+            const moisActuel = date.getMonth();
+            const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
+                              'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const periodeLower = periodeText.toLowerCase();
+            return periodeLower.includes(moisNoms[moisActuel]);
+        }
+        
+        function isNextMonths(periodeText, date, nbMois) {
+            if (!periodeText) return false;
+            const moisActuel = date.getMonth();
+            const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
+                              'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const periodeLower = periodeText.toLowerCase();
+            
+            for (let i = 1; i <= nbMois; i++) {
+                const moisFutur = (moisActuel + i) % 12;
+                if (periodeLower.includes(moisNoms[moisFutur])) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        function displayRappels(containerId, rappels) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (rappels.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">Aucun rappel</div>';
+                return;
+            }
+            
+            rappels.forEach(rappel => {
+                const rappelEl = document.createElement('div');
+                rappelEl.style.cssText = 'padding: 16px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; cursor: pointer; transition: all 0.2s;';
+                rappelEl.onmouseover = () => rappelEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                rappelEl.onmouseout = () => rappelEl.style.boxShadow = 'none';
+                
+                rappelEl.innerHTML = `
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <div style="font-size: 32px;">${rappel.icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">${rappel.plante}</div>
+                            <div style="font-size: 13px; color: #4CAF50; font-weight: 600; margin-bottom: 6px;">${rappel.action} • ${rappel.periode}</div>
+                            <div style="font-size: 13px; color: #666; line-height: 1.4;">${rappel.description.substring(0, 100)}${rappel.description.length > 100 ? '...' : ''}</div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(rappelEl);
+            });
         }
 
         // Statistiques
@@ -1530,13 +1837,17 @@
             document.getElementById('detail-dimensions-group').style.display = 'none';
             document.getElementById('detail-floraison-group').style.display = 'none';
             document.getElementById('detail-feuillage-group').style.display = 'none';
+            document.getElementById('detail-utilisation-group').style.display = 'none';
             document.getElementById('detail-sol-group').style.display = 'none';
+            document.getElementById('detail-ph-group').style.display = 'none';
+            document.getElementById('detail-botanique-group').style.display = 'none';
+            document.getElementById('detail-formats-group').style.display = 'none';
             
             // Onglet Entretien - afficher message "non disponible"
             document.getElementById('no-entretien-info').style.display = 'block';
             document.getElementById('detail-calendrier-group').style.display = 'none';
             document.getElementById('detail-densite-group').style.display = 'none';
-            document.getElementById('detail-periode-floraison-group').style.display = 'none';
+            document.getElementById('detail-floraison-calendrier-group').style.display = 'none';
             document.getElementById('detail-taille-group').style.display = 'none';
             document.getElementById('detail-descriptif-taille-group').style.display = 'none';
             document.getElementById('detail-difficulte-group').style.display = 'none';
@@ -1544,6 +1855,86 @@
             document.getElementById('detail-hivernage-group').style.display = 'none';
             document.getElementById('detail-conseils-group').style.display = 'none';
             document.getElementById('detail-produits-group').style.display = 'none';
+        }
+        
+        
+        function createMonthCalendar(periodeText, containerId) {
+            /**
+             * Crée un graphique visuel des mois avec les mois actifs en vert
+             * @param periodeText - Texte comme "Mars à Mai, Septembre à Octobre"
+             * @param containerId - ID du conteneur où insérer le graphique
+             */
+            const container = document.getElementById(containerId);
+            if (!container || !periodeText) return;
+            
+            const mois = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+            const moisComplets = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            
+            // Parser le texte pour déterminer quels mois sont actifs
+            const moisActifs = new Set();
+            
+            // Patterns pour extraire les périodes
+            const patterns = [
+                // "Mars à Mai" -> index 2 à 4
+                /(\w+)\s+à\s+(\w+)/gi,
+                // "Mars, Avril" -> index 2, 3
+                /(\w+)(?:,|\set)/gi
+            ];
+            
+            // Fonction pour trouver l'index d'un mois
+            const getMoisIndex = (moisNom) => {
+                const moisNomLower = moisNom.toLowerCase().trim();
+                return moisComplets.findIndex(m => m.toLowerCase().startsWith(moisNomLower.substring(0, 3)));
+            };
+            
+            // Parser les périodes type "Mars à Mai"
+            const rangeMatches = periodeText.matchAll(/(\w+)\s+à\s+(\w+)/gi);
+            for (const match of rangeMatches) {
+                const startIdx = getMoisIndex(match[1]);
+                const endIdx = getMoisIndex(match[2]);
+                
+                if (startIdx >= 0 && endIdx >= 0) {
+                    if (startIdx <= endIdx) {
+                        for (let i = startIdx; i <= endIdx; i++) {
+                            moisActifs.add(i);
+                        }
+                    } else {
+                        // Période sur 2 années (ex: Nov à Fév)
+                        for (let i = startIdx; i < 12; i++) moisActifs.add(i);
+                        for (let i = 0; i <= endIdx; i++) moisActifs.add(i);
+                    }
+                }
+            }
+            
+            // Parser les mois individuels (dans le texte restant)
+            const texteNettoye = periodeText.replace(/(\w+)\s+à\s+(\w+)/gi, '');
+            const moisIndividuels = texteNettoye.matchAll(/(\w+)/gi);
+            for (const match of moisIndividuels) {
+                const idx = getMoisIndex(match[1]);
+                if (idx >= 0) moisActifs.add(idx);
+            }
+            
+            // Générer le graphique
+            container.innerHTML = '';
+            mois.forEach((m, index) => {
+                const moisDiv = document.createElement('div');
+                moisDiv.style.cssText = `
+                    flex: 1;
+                    text-align: center;
+                    padding: 8px 4px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    ${moisActifs.has(index) ? 
+                        'background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; box-shadow: 0 2px 4px rgba(76,175,80,0.3);' : 
+                        'background: #f5f5f5; color: #999;'}
+                `;
+                moisDiv.textContent = m;
+                moisDiv.title = moisComplets[index];
+                container.appendChild(moisDiv);
+            });
         }
         
         function displayDetailedInfo(details) {
@@ -1589,13 +1980,84 @@
             }
             
             // Sol
-            if (details.type_sol || details.ph_sol || details.humidite_sol) {
-                let solText = '';
-                if (details.type_sol) solText += details.type_sol;
-                if (details.ph_sol) solText += `, pH ${details.ph_sol}`;
-                if (details.humidite_sol) solText += `, ${details.humidite_sol}`;
-                document.getElementById('detail-sol').textContent = solText;
+            if (details.type_sol) {
+                document.getElementById('detail-sol').textContent = details.type_sol;
                 document.getElementById('detail-sol-group').style.display = 'block';
+            }
+            
+            // Type d'utilisation
+            if (details.type_utilisation) {
+                document.getElementById('detail-utilisation').textContent = details.type_utilisation;
+                document.getElementById('detail-utilisation-group').style.display = 'block';
+            }
+            
+            // pH du sol (séparé)
+            if (details.ph_sol) {
+                document.getElementById('detail-ph').textContent = details.ph_sol;
+                document.getElementById('detail-ph-group').style.display = 'block';
+            }
+            
+            // Botanique
+            if (details.genre || details.espece || details.famille || details.origine) {
+                const botaniqueDiv = document.getElementById('detail-botanique');
+                botaniqueDiv.innerHTML = '';
+                
+                if (details.genre) {
+                    botaniqueDiv.innerHTML += `<div><strong>Genre :</strong> ${details.genre}</div>`;
+                }
+                if (details.espece) {
+                    botaniqueDiv.innerHTML += `<div><strong>Espèce :</strong> ${details.espece}</div>`;
+                }
+                if (details.famille) {
+                    botaniqueDiv.innerHTML += `<div><strong>Famille :</strong> ${details.famille}</div>`;
+                }
+                if (details.origine) {
+                    botaniqueDiv.innerHTML += `<div><strong>Origine :</strong> ${details.origine}</div>`;
+                }
+                
+                document.getElementById('detail-botanique-group').style.display = 'block';
+            }
+            
+            // Formats disponibles
+            if (details.formats && details.formats.length > 0) {
+                const formatsListe = document.getElementById('detail-formats-liste');
+                formatsListe.innerHTML = '';
+                
+                details.formats.forEach(format => {
+                    const formatEl = document.createElement('div');
+                    formatEl.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 8px; font-size: 13px;';
+                    
+                    let html = '<div style="font-weight: 600; margin-bottom: 4px;">';
+                    if (format.format) html += format.format;
+                    if (format.hauteur_livraison) html += ` (${format.hauteur_livraison})`;
+                    html += '</div>';
+                    
+                    html += '<div style="color: #666; display: flex; justify-content: space-between; align-items: center;">';
+                    
+                    if (format.prix_unitaire) {
+                        html += `<span style="font-size: 15px; font-weight: 600; color: #4CAF50;">${format.prix_unitaire.toFixed(2)} €</span>`;
+                    }
+                    
+                    if (format.stock) {
+                        html += `<span style="color: #4CAF50; font-size: 12px;">✓ ${format.stock} en stock</span>`;
+                    }
+                    
+                    html += '</div>';
+                    
+                    if (format.prix_par_lot && Object.keys(format.prix_par_lot).length > 0) {
+                        html += '<div style="font-size: 11px; color: #999; margin-top: 4px;">';
+                        Object.entries(format.prix_par_lot).forEach(([qty, prix]) => {
+                            html += `${qty} plants: ${prix}€/u • `;
+                        });
+                        html = html.slice(0, -3); // Enlever le dernier •
+                        html += '</div>';
+                    }
+                    
+                    formatEl.innerHTML = html;
+                    formatsListe.appendChild(formatEl);
+                });
+                
+                document.getElementById('detail-formats-group').style.display = 'block';
             }
             
             // ONGLET ENTRETIEN
@@ -1612,7 +2074,21 @@
                         `Période raisonnable: ${details.periode_raisonnable_plantation}`;
                 }
                 
+                // Créer le graphique visuel
+                createMonthCalendar(details.meilleure_periode_plantation, 'detail-calendrier-visuel');
+                
                 document.getElementById('detail-calendrier-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Période floraison avec graphique
+            if (details.periode_floraison) {
+                document.getElementById('detail-periode-floraison-entretien').textContent = details.periode_floraison;
+                
+                // Créer le graphique visuel
+                createMonthCalendar(details.periode_floraison, 'detail-floraison-visuel');
+                
+                document.getElementById('detail-floraison-calendrier-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
@@ -1620,13 +2096,6 @@
             if (details.densite_plantation) {
                 document.getElementById('detail-densite').textContent = details.densite_plantation;
                 document.getElementById('detail-densite-group').style.display = 'block';
-                hasEntretienInfo = true;
-            }
-            
-            // Période floraison
-            if (details.periode_floraison) {
-                document.getElementById('detail-periode-floraison').textContent = details.periode_floraison;
-                document.getElementById('detail-periode-floraison-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
