@@ -79,6 +79,14 @@ class PlantDetailInfo:
     resistance_maladies: str = ""
     hivernage: str = ""
     
+    # Entretien détaillé (NOUVEAU)
+    descriptif_taille_detaille: str = ""
+    periode_taille: str = ""
+    frequence_taille: str = ""
+    densite_plantation: str = ""
+    arrosage_conseils: str = ""
+    produits_associes: List[Dict] = None
+    
     # Formats disponibles
     formats: List[Dict] = None
     
@@ -455,12 +463,21 @@ class PromesseDeFleursScraper:
                                     detail.type_sol = value
                             
                             elif section_title == 'Soins':
-                                if 'Taille' in label:
+                                if label == 'Taille':
                                     detail.taille = value
+                                    detail.frequence_taille = value  # "Taille conseillée 1 fois par an"
+                                elif 'Descriptif taille' in label:
+                                    detail.descriptif_taille_detaille = value
+                                elif 'Période de taille' in label:
+                                    detail.periode_taille = value
                                 elif 'Résistance' in label:
                                     detail.resistance_maladies = value
                                 elif 'Hivernage' in label:
                                     detail.hivernage = value
+                            
+                            elif section_title == 'Pour quel endroit ?':
+                                if 'Densité' in label:
+                                    detail.densite_plantation = value
             
             # 7. FORMATS & PRIX
             formats = soup.find_all('div', class_='child-product')
@@ -532,7 +549,52 @@ class PromesseDeFleursScraper:
                 
                 detail.formats.append(format_data)
             
-            # 8. IMAGE PRINCIPALE
+            # 8. PRODUITS ASSOCIÉS (section avec icône pelle)
+            produits_section = soup.find('svg', attrs={'xlink:href': '#shovel-symbol'})
+            if produits_section:
+                produits_container = produits_section.find_parent('div', class_='border')
+                if produits_container:
+                    detail.produits_associes = []
+                    products = produits_container.find_all('div', class_='product-item')
+                    for product in products[:4]:  # Limiter à 4 produits
+                        prod_data = {}
+                        
+                        # Nom
+                        name_elem = product.find('a', class_='product-item-link')
+                        if name_elem:
+                            prod_data['nom'] = self.clean_text(name_elem.get_text())
+                        
+                        # Prix
+                        price_elem = product.find('span', class_='price')
+                        if price_elem:
+                            prod_data['prix'] = self.clean_text(price_elem.get_text())
+                        
+                        # Stock
+                        stock_elem = product.find('div', class_='stock-status')
+                        if stock_elem:
+                            stock_text = self.clean_text(stock_elem.get_text())
+                            stock_match = re.search(r'(\d+)', stock_text)
+                            if stock_match:
+                                prod_data['stock'] = int(stock_match.group(1))
+                        
+                        if prod_data.get('nom'):
+                            detail.produits_associes.append(prod_data)
+            
+            # 9. CONSEILS D'ARROSAGE depuis description détaillée
+            if detail.description_detaillee:
+                # Chercher mentions d'arrosage
+                arrosage_patterns = [
+                    r'arrosage.*?\.(?:\s|$)',
+                    r'eau.*?\.(?:\s|$)',
+                    r'irrigation.*?\.(?:\s|$)'
+                ]
+                for pattern in arrosage_patterns:
+                    match = re.search(pattern, detail.description_detaillee, re.IGNORECASE | re.DOTALL)
+                    if match:
+                        detail.arrosage_conseils = match.group(0).strip()
+                        break
+            
+            # 10. IMAGE PRINCIPALE
             main_img = soup.find('img', alt=re.compile(detail.nom_complet or 'Magnolia'))
             if main_img:
                 detail.image_principale = main_img.get('src', '')
