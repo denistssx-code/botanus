@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 4.4 - FIX extraction tous conteneurs sections - 2026-02-22 -->
+    <!-- VERSION 4.5 - Fix description détaillée + suppression arrosage - 2026-02-22 -->
     <style>
         * {
             margin: 0;
@@ -948,11 +948,6 @@
                         <div class="info-text" id="detail-descriptif-taille" style="line-height: 1.6; font-size: 14px;">Détails de taille...</div>
                     </div>
 
-                    <div class="info-group" id="detail-arrosage-group" style="display: none;">
-                        <div class="info-title">💧 Arrosage</div>
-                        <div class="info-text" id="detail-arrosage">Régulier, sol frais</div>
-                    </div>
-
                     <div class="info-group" id="detail-difficulte-group" style="display: none;">
                         <div class="info-title">🎯 Difficulté</div>
                         <div class="info-text" id="detail-difficulte">Débutant</div>
@@ -1544,7 +1539,6 @@
             document.getElementById('detail-periode-floraison-group').style.display = 'none';
             document.getElementById('detail-taille-group').style.display = 'none';
             document.getElementById('detail-descriptif-taille-group').style.display = 'none';
-            document.getElementById('detail-arrosage-group').style.display = 'none';
             document.getElementById('detail-difficulte-group').style.display = 'none';
             document.getElementById('detail-maladies-group').style.display = 'none';
             document.getElementById('detail-hivernage-group').style.display = 'none';
@@ -1655,14 +1649,6 @@
             if (details.descriptif_taille_detaille) {
                 document.getElementById('detail-descriptif-taille').textContent = details.descriptif_taille_detaille;
                 document.getElementById('detail-descriptif-taille-group').style.display = 'block';
-                hasEntretienInfo = true;
-            }
-            
-            // Arrosage
-            if (details.arrosage_conseils || details.humidite_sol) {
-                const arrosageText = details.arrosage_conseils || details.humidite_sol;
-                document.getElementById('detail-arrosage').textContent = arrosageText;
-                document.getElementById('detail-arrosage-group').style.display = 'block';
                 hasEntretienInfo = true;
             }
             
