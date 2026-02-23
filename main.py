@@ -729,6 +729,7 @@ def get_or_create_plant_id():
     """
     Retourne l'ID d'une plante existante ou en crée un nouveau
     Basé sur nom_francais + nom_latin pour identifier les doublons
+    Stocke TOUTES les données détaillées si disponibles
     """
     data = request.json
     
@@ -742,7 +743,9 @@ def get_or_create_plant_id():
     for plant_id, plant_data in library_db.items():
         if (plant_data['nom_francais'] == nom_francais and 
             plant_data['nom_latin'] == nom_latin):
-            # Plante existe déjà
+            # Plante existe déjà - mettre à jour les détails si fournis
+            if 'details' in data and data['details']:
+                plant_data['details'] = data['details']
             return jsonify({
                 'plant_id': plant_id,
                 'exists': True
@@ -751,8 +754,9 @@ def get_or_create_plant_id():
     # Plante n'existe pas, créer un nouvel ID
     plant_id = get_next_plant_id()
     
-    # Stocker la plante
+    # Stocker la plante avec toutes les données disponibles
     library_db[plant_id] = {
+        # Données de base (toujours présentes)
         'nom_francais': nom_francais,
         'nom_latin': nom_latin,
         'exposition': data.get('exposition', ''),
@@ -760,7 +764,10 @@ def get_or_create_plant_id():
         'prix': data.get('prix', ''),
         'description': data.get('description', ''),
         'icon': data.get('icon', '🌿'),
-        'url': data.get('url', '')
+        'url': data.get('url', ''),
+        
+        # Données détaillées (si disponibles)
+        'details': data.get('details', {})
     }
     
     # Initialiser notes vides
