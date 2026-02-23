@@ -393,10 +393,12 @@ class PromesseDeFleursScraper:
                         elif attr_name == 'humidite_sol':
                             detail.humidite_sol = value
             
-            # 6. SECTIONS DÉTAILLÉES
-            sections_container = soup.find('div', class_='gap-y-8')
-            if sections_container:
-                print(f"📦 Sections container trouvé")
+            # 6. SECTIONS DÉTAILLÉES (il peut y avoir plusieurs conteneurs)
+            sections_containers = soup.find_all('div', class_='gap-y-8')
+            print(f"📦 {len(sections_containers)} conteneurs de sections trouvés")
+            
+            for container_idx, sections_container in enumerate(sections_containers):
+                print(f"\n📦 Conteneur {container_idx + 1}:")
                 for section in sections_container.find_all('div', recursive=False):
                     title_elem = section.find('p', class_='font-bold')
                     if not title_elem:
@@ -479,10 +481,6 @@ class PromesseDeFleursScraper:
                                     detail.resistance_maladies = value
                                 elif 'Hivernage' in label:
                                     detail.hivernage = value
-                            
-                            elif section_title == 'Pour quel endroit ?':
-                                if 'Densité' in label:
-                                    detail.densite_plantation = value
             
             # 7. FORMATS & PRIX
             formats = soup.find_all('div', class_='child-product')
