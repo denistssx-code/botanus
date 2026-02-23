@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 4.1 FINALE - Toutes corrections appliquées - 2026-02-22 -->
+    <!-- VERSION 4.2 - Onglets Info/Entretien/Notes + Stockage détails complets - 2026-02-22 -->
     <style>
         * {
             margin: 0;
@@ -861,6 +861,7 @@
 
                 <div class="detail-tabs">
                     <div class="tab active" onclick="showDetailTab('info')">Infos</div>
+                    <div class="tab" onclick="showDetailTab('entretien')">Entretien</div>
                     <div class="tab" onclick="showDetailTab('notes')">Notes</div>
                 </div>
 
@@ -877,18 +878,87 @@
                     </div>
 
                     <div class="info-group" id="detail-exposition-group" style="display: none;">
-                        <div class="info-title">Exposition</div>
+                        <div class="info-title">☀️ Exposition</div>
                         <div class="info-text" id="detail-exposition">Plein soleil</div>
                     </div>
 
+                    <div class="info-group" id="detail-rusticite-group" style="display: none;">
+                        <div class="info-title">❄️ Rusticité</div>
+                        <div class="info-text" id="detail-rusticite">Jusqu'à -15°C</div>
+                    </div>
+
+                    <div class="info-group" id="detail-dimensions-group" style="display: none;">
+                        <div class="info-title">📏 Dimensions</div>
+                        <div class="info-text" id="detail-dimensions">H: 60cm × L: 40cm</div>
+                    </div>
+
+                    <div class="info-group" id="detail-floraison-group" style="display: none;">
+                        <div class="info-title">🌸 Floraison</div>
+                        <div class="info-text" id="detail-floraison">Juin à Septembre - Rose</div>
+                    </div>
+
+                    <div class="info-group" id="detail-feuillage-group" style="display: none;">
+                        <div class="info-title">🍃 Feuillage</div>
+                        <div class="info-text" id="detail-feuillage">Caduc - Vert</div>
+                    </div>
+
+                    <div class="info-group" id="detail-sol-group" style="display: none;">
+                        <div class="info-title">🌍 Sol</div>
+                        <div class="info-text" id="detail-sol">Bien drainé, pH neutre</div>
+                    </div>
+
                     <div class="info-group" id="detail-description-group">
-                        <div class="info-title">Description</div>
+                        <div class="info-title">📝 Description</div>
                         <div class="info-text" id="detail-description">Description de la plante...</div>
                     </div>
 
                     <div class="info-group" id="detail-url-group" style="display: none;">
-                        <div class="info-title">En savoir plus</div>
-                        <a href="#" id="detail-url" class="url-link" target="_blank">Voir sur Promesse de Fleurs →</a>
+                        <div class="info-title">🔗 En savoir plus</div>
+                        <a href="#" id="detail-url" class="url-link" target="_blank">Voir les détails complets →</a>
+                    </div>
+                </div>
+
+                <!-- Tab Entretien -->
+                <div class="tab-content" id="tab-entretien" style="display: none;">
+                    <div class="info-group" id="detail-calendrier-group" style="display: none;">
+                        <div class="info-title">📅 Calendrier de plantation</div>
+                        <div class="info-text" id="detail-calendrier-plantation">Mars à Mai, Septembre à Octobre</div>
+                    </div>
+
+                    <div class="info-group" id="detail-periode-floraison-group" style="display: none;">
+                        <div class="info-title">🌺 Période de floraison</div>
+                        <div class="info-text" id="detail-periode-floraison">Avril à Juin</div>
+                    </div>
+
+                    <div class="info-group" id="detail-taille-group" style="display: none;">
+                        <div class="info-title">✂️ Taille</div>
+                        <div class="info-text" id="detail-taille-entretien">Taille légère après floraison</div>
+                    </div>
+
+                    <div class="info-group" id="detail-arrosage-group" style="display: none;">
+                        <div class="info-title">💧 Arrosage</div>
+                        <div class="info-text" id="detail-arrosage">Régulier, sol frais</div>
+                    </div>
+
+                    <div class="info-group" id="detail-difficulte-group" style="display: none;">
+                        <div class="info-title">🎯 Difficulté</div>
+                        <div class="info-text" id="detail-difficulte">Débutant</div>
+                    </div>
+
+                    <div class="info-group" id="detail-maladies-group" style="display: none;">
+                        <div class="info-title">🛡️ Résistance aux maladies</div>
+                        <div class="info-text" id="detail-maladies">Bonne</div>
+                    </div>
+
+                    <div class="info-group" id="detail-conseils-group" style="display: none;">
+                        <div class="info-title">💡 Conseils d'entretien</div>
+                        <div class="info-text" id="detail-conseils" style="line-height: 1.6;">Plantez dans un sol bien drainé...</div>
+                    </div>
+
+                    <div class="info-group" id="no-entretien-info" style="text-align: center; padding: 40px 20px; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🌿</div>
+                        <div>Informations d'entretien non disponibles</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Consultez la page détails pour plus d'infos</div>
                     </div>
                 </div>
 
@@ -1359,7 +1429,7 @@
             // Afficher l'écran détail
             document.getElementById('detail-screen').classList.add('active');
             
-            // Remplir les informations
+            // Remplir les informations DE BASE
             document.getElementById('detail-plant-name').textContent = plantData.nom_francais;
             document.getElementById('detail-plant-latin').textContent = plantData.nom_latin || 'Nom latin non disponible';
             document.getElementById('detail-plant-icon').innerHTML = `
@@ -1375,6 +1445,60 @@
             document.getElementById('detail-price').textContent = plantData.prix || 'Prix non disponible';
             document.getElementById('detail-type').textContent = plantData.type_plante || 'Plante';
             
+            // Description de base
+            if (plantData.description) {
+                document.getElementById('detail-description').textContent = plantData.description;
+                document.getElementById('detail-description-group').style.display = 'block';
+            } else {
+                document.getElementById('detail-description-group').style.display = 'none';
+            }
+            
+            // Essayer de charger les détails complets si URL disponible
+            if (plantData.url) {
+                document.getElementById('detail-url').href = plantData.url;
+                document.getElementById('detail-url-group').style.display = 'block';
+                
+                // Charger les détails complets en arrière-plan
+                loadCompleteDetails(plantData.url);
+            } else {
+                document.getElementById('detail-url-group').style.display = 'none';
+                // Afficher uniquement les infos de base
+                displayBasicInfo(plantData);
+            }
+            
+            // Si les détails sont déjà dans plantData (venant de la bibliothèque)
+            if (plantData.details) {
+                displayDetailedInfo(plantData.details);
+            } else {
+                // Afficher infos de base en attendant
+                displayBasicInfo(plantData);
+            }
+            
+            // Charger les notes et quantité si la plante est déjà dans la bibliothèque
+            await loadPlantLibraryInfo(plantData);
+            
+            // Réinitialiser l'onglet actif
+            showDetailTab('info');
+        }
+        
+        async function loadCompleteDetails(url) {
+            try {
+                const response = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    // Stocker les détails dans la plante actuelle
+                    currentPlantDetail.details = data.data;
+                    
+                    // Afficher les infos détaillées
+                    displayDetailedInfo(data.data);
+                }
+            } catch (error) {
+                console.log('Détails complets non disponibles');
+            }
+        }
+        
+        function displayBasicInfo(plantData) {
             // Exposition
             if (plantData.exposition) {
                 document.getElementById('detail-exposition').textContent = plantData.exposition;
@@ -1383,27 +1507,134 @@
                 document.getElementById('detail-exposition-group').style.display = 'none';
             }
             
-            // Description
-            if (plantData.description) {
-                document.getElementById('detail-description').textContent = plantData.description;
-                document.getElementById('detail-description-group').style.display = 'block';
-            } else {
-                document.getElementById('detail-description-group').style.display = 'none';
+            // Masquer les autres infos détaillées
+            document.getElementById('detail-rusticite-group').style.display = 'none';
+            document.getElementById('detail-dimensions-group').style.display = 'none';
+            document.getElementById('detail-floraison-group').style.display = 'none';
+            document.getElementById('detail-feuillage-group').style.display = 'none';
+            document.getElementById('detail-sol-group').style.display = 'none';
+            
+            // Onglet Entretien - afficher message "non disponible"
+            document.getElementById('no-entretien-info').style.display = 'block';
+            document.getElementById('detail-calendrier-group').style.display = 'none';
+            document.getElementById('detail-periode-floraison-group').style.display = 'none';
+            document.getElementById('detail-taille-group').style.display = 'none';
+            document.getElementById('detail-arrosage-group').style.display = 'none';
+            document.getElementById('detail-difficulte-group').style.display = 'none';
+            document.getElementById('detail-maladies-group').style.display = 'none';
+            document.getElementById('detail-conseils-group').style.display = 'none';
+        }
+        
+        function displayDetailedInfo(details) {
+            // ONGLET INFO
+            
+            // Exposition
+            if (details.exposition) {
+                document.getElementById('detail-exposition').textContent = details.exposition;
+                document.getElementById('detail-exposition-group').style.display = 'block';
             }
             
-            // URL
-            if (plantData.url) {
-                document.getElementById('detail-url').href = plantData.url;
-                document.getElementById('detail-url-group').style.display = 'block';
-            } else {
-                document.getElementById('detail-url-group').style.display = 'none';
+            // Rusticité
+            if (details.rusticite) {
+                document.getElementById('detail-rusticite').textContent = details.rusticite;
+                document.getElementById('detail-rusticite-group').style.display = 'block';
             }
             
-            // Charger les notes et quantité si la plante est déjà dans la bibliothèque
-            await loadPlantLibraryInfo(plantData);
+            // Dimensions
+            if (details.hauteur_maturite || details.largeur_maturite) {
+                let dimText = '';
+                if (details.hauteur_maturite) dimText += `H: ${details.hauteur_maturite}`;
+                if (details.largeur_maturite) dimText += ` × L: ${details.largeur_maturite}`;
+                document.getElementById('detail-dimensions').textContent = dimText;
+                document.getElementById('detail-dimensions-group').style.display = 'block';
+            }
             
-            // Réinitialiser l'onglet actif
-            showDetailTab('info');
+            // Floraison
+            if (details.periode_floraison || details.couleur_fleur) {
+                let florText = '';
+                if (details.periode_floraison) florText += details.periode_floraison;
+                if (details.couleur_fleur) florText += ` - ${details.couleur_fleur}`;
+                document.getElementById('detail-floraison').textContent = florText;
+                document.getElementById('detail-floraison-group').style.display = 'block';
+            }
+            
+            // Feuillage
+            if (details.persistance_feuillage || details.couleur_feuillage) {
+                let feuillText = '';
+                if (details.persistance_feuillage) feuillText += details.persistance_feuillage;
+                if (details.couleur_feuillage) feuillText += ` - ${details.couleur_feuillage}`;
+                document.getElementById('detail-feuillage').textContent = feuillText;
+                document.getElementById('detail-feuillage-group').style.display = 'block';
+            }
+            
+            // Sol
+            if (details.type_sol || details.ph_sol || details.humidite_sol) {
+                let solText = '';
+                if (details.type_sol) solText += details.type_sol;
+                if (details.ph_sol) solText += `, pH ${details.ph_sol}`;
+                if (details.humidite_sol) solText += `, ${details.humidite_sol}`;
+                document.getElementById('detail-sol').textContent = solText;
+                document.getElementById('detail-sol-group').style.display = 'block';
+            }
+            
+            // ONGLET ENTRETIEN
+            
+            let hasEntretienInfo = false;
+            
+            // Calendrier plantation
+            if (details.meilleure_periode_plantation) {
+                document.getElementById('detail-calendrier-plantation').textContent = 
+                    `Meilleure période: ${details.meilleure_periode_plantation}`;
+                document.getElementById('detail-calendrier-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Période floraison
+            if (details.periode_floraison) {
+                document.getElementById('detail-periode-floraison').textContent = details.periode_floraison;
+                document.getElementById('detail-periode-floraison-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Taille
+            if (details.taille) {
+                document.getElementById('detail-taille-entretien').textContent = details.taille;
+                document.getElementById('detail-taille-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Arrosage (humidité sol)
+            if (details.humidite_sol) {
+                document.getElementById('detail-arrosage').textContent = details.humidite_sol;
+                document.getElementById('detail-arrosage-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Difficulté
+            if (details.difficulte_culture) {
+                document.getElementById('detail-difficulte').textContent = details.difficulte_culture;
+                document.getElementById('detail-difficulte-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Maladies
+            if (details.resistance_maladies) {
+                document.getElementById('detail-maladies').textContent = details.resistance_maladies;
+                document.getElementById('detail-maladies-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Conseils détaillés
+            if (details.description_detaillee) {
+                document.getElementById('detail-conseils').textContent = details.description_detaillee;
+                document.getElementById('detail-conseils-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Masquer "non disponible" si on a des infos
+            if (hasEntretienInfo) {
+                document.getElementById('no-entretien-info').style.display = 'none';
+            }
         }
 
         async function loadPlantLibraryInfo(plantData) {
@@ -1481,6 +1712,7 @@
         function showDetailTab(tabName) {
             // Masquer tous les contenus
             document.getElementById('tab-info').style.display = 'none';
+            document.getElementById('tab-entretien').style.display = 'none';
             document.getElementById('tab-notes').style.display = 'none';
             
             // Afficher le contenu sélectionné
@@ -1504,7 +1736,7 @@
             button.disabled = true;
             
             try {
-                // Créer une copie sans plant_id pour l'API
+                // Envoyer les données avec les détails complets si disponibles
                 const plantToSend = {
                     nom_francais: currentPlantDetail.nom_francais,
                     nom_latin: currentPlantDetail.nom_latin,
@@ -1513,19 +1745,17 @@
                     prix: currentPlantDetail.prix,
                     description: currentPlantDetail.description,
                     icon: currentPlantDetail.icon,
-                    url: currentPlantDetail.url
+                    url: currentPlantDetail.url,
+                    // Ajouter les détails complets si disponibles
+                    details: currentPlantDetail.details || {}
                 };
                 
-                const response = await fetch(`${API_URL}/library/add`, {
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        plant: plantToSend,
-                        notes: document.getElementById('detail-notes').value || '',
-                        quantity: parseInt(document.getElementById('detail-quantity').textContent) || 1
-                    })
+                    body: JSON.stringify(plantToSend)
                 });
                 
                 if (response.ok) {
