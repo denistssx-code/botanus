@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.2 - FIX BUGS CRITIQUES (showDetailTab + get-or-create-id) - 2026-02-23 -->
+    <!-- VERSION 5.3 - FIX RAPPELS (suppression doublon bottom-nav) - 2026-02-23 -->
     <style>
         * {
             margin: 0;
@@ -1151,29 +1151,6 @@
             </button>
         </nav>
 
-        <!-- Navigation bottom -->
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="showScreen('home')">
-                <div class="nav-icon">🏠</div>
-                <div class="nav-label">Accueil</div>
-            </div>
-            <div class="nav-item" onclick="showScreen('search')">
-                <div class="nav-icon">🔍</div>
-                <div class="nav-label">Recherche</div>
-            </div>
-            <div class="nav-item" onclick="showScreen('library')">
-                <div class="nav-icon">📚</div>
-                <div class="nav-label">Bibliothèque</div>
-            </div>
-            <div class="nav-item">
-                <div class="nav-icon">🔔</div>
-                <div class="nav-label">Rappels</div>
-            </div>
-            <div class="nav-item">
-                <div class="nav-icon">⚙️</div>
-                <div class="nav-label">Profil</div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -1256,10 +1233,25 @@
         }
         
         function showRappelsScreen() {
+            console.log('🎯 showRappelsScreen appelé');
+            
+            // Retirer active de tous les screens
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
+                console.log('  - Retiré active de:', screen.id);
             });
-            document.getElementById('rappels-screen').classList.add('active');
+            
+            // Ajouter active à rappels-screen
+            const rappelsScreen = document.getElementById('rappels-screen');
+            console.log('  - Rappels screen trouvé:', rappelsScreen ? 'OUI' : 'NON');
+            
+            if (rappelsScreen) {
+                rappelsScreen.classList.add('active');
+                console.log('  - Active ajouté à rappels-screen');
+                console.log('  - Classes sur rappels-screen:', rappelsScreen.className);
+                console.log('  - Display style:', window.getComputedStyle(rappelsScreen).display);
+            }
+            
             updateBottomNav('rappels');
             loadRappels();
         }
