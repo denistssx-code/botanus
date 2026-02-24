@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.3 - FIX RAPPELS (suppression doublon bottom-nav) - 2026-02-23 -->
+    <!-- VERSION 5.5 - Page Profil + Fix détection mois rappels - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -1121,35 +1121,138 @@
             </div>
         </div>
 
-        <!-- FAB Button -->
-        <button class="fab" onclick="showSearchScreen()">+</button>
+        <!-- Profil Screen -->
+        <div class="screen" id="profil-screen">
+            <div class="detail-container">
+                <div class="detail-header">
+                    <button class="back-btn" onclick="goBackFromProfil()">←</button>
+                    <div class="detail-plant-info">
+                        <h2 class="detail-plant-name">⚙️ Mon Profil</h2>
+                        <p class="detail-plant-latin">Paramètres et statistiques</p>
+                    </div>
+                </div>
+
+                <div class="detail-content" style="padding-top: 100px;">
+                    
+                    <!-- Statistiques -->
+                    <div class="info-group">
+                        <div class="info-title">📊 Mes Statistiques</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px;">
+                            <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-plantes">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Plantes</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-rappels">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Rappels</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #FF9800, #FFA726); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-types">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Types</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #9C27B0, #AB47BC); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-avec-photos">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Avec photos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Import/Export -->
+                    <div class="info-group">
+                        <div class="info-title">💾 Données</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button onclick="exportLibrary()" style="padding: 14px; background: #2196F3; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📥 Exporter ma bibliothèque
+                            </button>
+                            <button onclick="document.getElementById('import-file').click()" style="padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📤 Importer une bibliothèque
+                            </button>
+                            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importLibrary(event)">
+                        </div>
+                    </div>
+
+                    <!-- Préférences -->
+                    <div class="info-group">
+                        <div class="info-title">🔔 Préférences</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Notifications rappels</div>
+                                    <div style="font-size: 12px; color: #666;">Recevoir des alertes d'entretien</div>
+                                </div>
+                                <label style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                                    <input type="checkbox" id="notif-toggle" style="opacity: 0; width: 0; height: 0;">
+                                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 28px; transition: 0.3s;"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Thème sombre</div>
+                                    <div style="font-size: 12px; color: #666;">Mode nuit (à venir)</div>
+                                </div>
+                                <label style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                                    <input type="checkbox" id="dark-mode-toggle" disabled style="opacity: 0; width: 0; height: 0;">
+                                    <span style="position: absolute; cursor: not-allowed; top: 0; left: 0; right: 0; bottom: 0; background: #ddd; border-radius: 28px;"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="info-group" style="border: 2px solid #f44336; border-radius: 12px;">
+                        <div class="info-title" style="color: #f44336;">⚠️ Zone dangereuse</div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                            Ces actions sont irréversibles
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button onclick="resetLibrary()" style="padding: 12px; background: white; color: #f44336; border: 2px solid #f44336; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                🗑️ Réinitialiser la bibliothèque
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- À propos -->
+                    <div class="info-group">
+                        <div class="info-title">ℹ️ À propos</div>
+                        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+                            <p><strong>Ma Bibliothèque Végétale</strong></p>
+                            <p>Version 5.5</p>
+                            <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
+                            <p style="margin-top: 12px;">
+                                <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
+                                    Données fournies par Promesse de Fleurs
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
 
         <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <button class="nav-btn" onclick="showSearchScreen()" id="nav-search">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <span>Recherche</span>
-            </button>
-            <button class="nav-btn" onclick="showLibraryScreen()" id="nav-library">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-                <span>Bibliothèque</span>
-            </button>
-            <button class="nav-btn" onclick="showRappelsScreen()" id="nav-rappels">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <span>Rappels</span>
-            </button>
-        </nav>
+        <div class="bottom-nav">
+            <div class="nav-item" onclick="showHomeScreen()" id="nav-home">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Accueil</div>
+            </div>
+            <div class="nav-item" onclick="showSearchScreen()" id="nav-search">
+                <div class="nav-icon">🔍</div>
+                <div class="nav-label">Recherche</div>
+            </div>
+            <div class="nav-item active" onclick="showLibraryScreen()" id="nav-library">
+                <div class="nav-icon">📚</div>
+                <div class="nav-label">Bibliothèque</div>
+            </div>
+            <div class="nav-item" onclick="showRappelsScreen()" id="nav-rappels">
+                <div class="nav-icon">🔔</div>
+                <div class="nav-label">Rappels</div>
+            </div>
+            <div class="nav-item" onclick="showProfilScreen()" id="nav-profil">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-label">Profil</div>
+            </div>
+        </div>
 
     </div>
 
@@ -1232,6 +1335,11 @@
             updateBottomNav('library');
         }
         
+        function showHomeScreen() {
+            showScreen('home');
+            updateBottomNav('home');
+        }
+        
         function showRappelsScreen() {
             console.log('🎯 showRappelsScreen appelé');
             
@@ -1260,13 +1368,135 @@
             showLibraryScreen();
         }
         
-        function updateBottomNav(activeScreen) {
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('active');
+        function showProfilScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
             });
-            const activeBtn = document.getElementById(`nav-${activeScreen}`);
-            if (activeBtn) {
-                activeBtn.classList.add('active');
+            document.getElementById('profil-screen').classList.add('active');
+            updateBottomNav('profil');
+            loadProfilStats();
+        }
+        
+        function goBackFromProfil() {
+            showLibraryScreen();
+        }
+        
+        async function loadProfilStats() {
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                const plants = data.plants || [];
+                
+                // Total plantes
+                document.getElementById('profil-total-plantes').textContent = plants.length;
+                
+                // Compter les types uniques
+                const types = new Set(plants.map(p => p.type_plante).filter(Boolean));
+                document.getElementById('profil-total-types').textContent = types.size;
+                
+                // Compter les plantes avec photos personnalisées
+                const withPhotos = plants.filter(p => p.custom_photo).length;
+                document.getElementById('profil-avec-photos').textContent = withPhotos;
+                
+                // Compter les rappels (approximatif)
+                let totalRappels = 0;
+                plants.forEach(plant => {
+                    const details = plant.details || {};
+                    if (details.periode_taille) totalRappels++;
+                    if (details.meilleure_periode_plantation) totalRappels++;
+                    if (details.periode_floraison) totalRappels++;
+                });
+                document.getElementById('profil-total-rappels').textContent = totalRappels;
+                
+            } catch (error) {
+                console.error('Erreur chargement stats profil:', error);
+            }
+        }
+        
+        function exportLibrary() {
+            fetch(`${API_URL}/library`)
+                .then(response => response.json())
+                .then(data => {
+                    const dataStr = JSON.stringify(data, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `ma-bibliotheque-${new Date().toISOString().split('T')[0]}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    
+                    alert('✅ Bibliothèque exportée avec succès !');
+                })
+                .catch(error => {
+                    console.error('Erreur export:', error);
+                    alert('❌ Erreur lors de l\'export');
+                });
+        }
+        
+        function importLibrary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.plants || !Array.isArray(importedData.plants)) {
+                        alert('❌ Fichier invalide');
+                        return;
+                    }
+                    
+                    const confirmMsg = `Importer ${importedData.plants.length} plantes ?\n\nCeci remplacera votre bibliothèque actuelle.`;
+                    if (!confirm(confirmMsg)) return;
+                    
+                    // Pour l'instant, on ne peut pas vraiment importer car il faudrait recréer toutes les plantes
+                    // via l'API. C'est une fonctionnalité avancée à implémenter côté serveur.
+                    alert('⚠️ Fonctionnalité d\'import en cours de développement.\n\nPour l\'instant, seul l\'export est disponible.');
+                    
+                } catch (error) {
+                    console.error('Erreur import:', error);
+                    alert('❌ Erreur lors de la lecture du fichier');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset l'input pour permettre de réimporter le même fichier
+            event.target.value = '';
+        }
+        
+        function resetLibrary() {
+            const confirmMsg = '⚠️ ATTENTION ⚠️\n\nVoulez-vous vraiment SUPPRIMER TOUTE votre bibliothèque ?\n\nCette action est IRRÉVERSIBLE !';
+            if (!confirm(confirmMsg)) return;
+            
+            const doubleConfirm = 'Tapez "SUPPRIMER" pour confirmer :';
+            const userInput = prompt(doubleConfirm);
+            
+            if (userInput === 'SUPPRIMER') {
+                fetch(`${API_URL}/library`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(() => {
+                        alert('✅ Bibliothèque réinitialisée');
+                        showLibraryScreen();
+                        loadLibrary();
+                    })
+                    .catch(error => {
+                        console.error('Erreur reset:', error);
+                        alert('❌ Erreur lors de la réinitialisation');
+                    });
+            } else {
+                alert('Annulé');
+            }
+        }
+        
+        function updateBottomNav(activeScreen) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeItem = document.getElementById(`nav-${activeScreen}`);
+            if (activeItem) {
+                activeItem.classList.add('active');
             }
         }
         
@@ -1393,8 +1623,12 @@
             const moisActuel = date.getMonth();
             const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
                               'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-            const periodeLower = periodeText.toLowerCase();
-            return periodeLower.includes(moisNoms[moisActuel]);
+            const periodeLower = periodeText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Retire accents
+            const moisNomNormalized = moisNoms[moisActuel].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            const found = periodeLower.includes(moisNomNormalized);
+            console.log(`  🔍 isCurrentMonth("${periodeText}") → contient "${moisNoms[moisActuel]}" ? ${found}`);
+            return found;
         }
         
         function isNextMonths(periodeText, date, nbMois) {
@@ -1402,11 +1636,17 @@
             const moisActuel = date.getMonth();
             const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
                               'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-            const periodeLower = periodeText.toLowerCase();
+            const periodeLower = periodeText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            console.log(`  🔍 isNextMonths("${periodeText}", nbMois=${nbMois})`);
+            console.log(`     Mois actuel: ${moisNoms[moisActuel]} (${moisActuel})`);
             
             for (let i = 1; i <= nbMois; i++) {
                 const moisFutur = (moisActuel + i) % 12;
-                if (periodeLower.includes(moisNoms[moisFutur])) {
+                const moisNomNormalized = moisNoms[moisFutur].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const found = periodeLower.includes(moisNomNormalized);
+                console.log(`     Mois+${i}: ${moisNoms[moisFutur]} → ${found}`);
+                if (found) {
                     return true;
                 }
             }
