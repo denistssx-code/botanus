@@ -758,13 +758,15 @@ def get_library():
         plant_with_notes = plant_data.copy()
         plant_with_notes['plant_id'] = plant_id
         
-        # Ajouter notes et quantité si existants
+        # Ajouter notes, quantité et photo personnalisée si existants
         if plant_id in notes_db:
             plant_with_notes['notes'] = notes_db[plant_id].get('notes', '')
             plant_with_notes['quantity'] = notes_db[plant_id].get('quantity', 0)
+            plant_with_notes['custom_photo'] = notes_db[plant_id].get('custom_photo')
         else:
             plant_with_notes['notes'] = ''
             plant_with_notes['quantity'] = 0
+            plant_with_notes['custom_photo'] = None
         
         plants_with_notes.append(plant_with_notes)
     
@@ -884,12 +886,66 @@ def save_notes(plant_id):
     if plant_id not in library_db:
         return jsonify({'error': 'Plante non trouvée'}), 404
     
+    # Conserver la photo personnalisée si elle existe
+    existing_photo = notes_db.get(plant_id, {}).get('custom_photo')
+    
     notes_db[plant_id] = {
         'notes': data.get('notes', ''),
-        'quantity': data.get('quantity', 0)
+        'quantity': data.get('quantity', 0),
+        'custom_photo': existing_photo
     }
     
     return jsonify({'success': True})
+
+@app.route('/api/library/plant/<int:plant_id>/photo', methods=['POST'])
+def save_custom_photo(plant_id):
+    """Sauvegarde une photo personnalisée pour une plante"""
+    data = request.json
+    
+    if plant_id not in library_db:
+        return jsonify({'error': 'Plante non trouvée'}), 404
+    
+    photo = data.get('photo', '')
+    
+    # Vérifier que c'est une image base64
+    if not photo.startswith('data:image'):
+        return jsonify({'error': 'Format photo invalide'}), 400
+    
+    # Initialiser notes_db si nécessaire
+    if plant_id not in notes_db:
+        notes_db[plant_id] = {'notes': '', 'quantity': 0}
+    
+    notes_db[plant_id]['custom_photo'] = photo
+    
+    return jsonify({'success': True})
+
+@app.route('/api/library/plant/<int:plant_id>/photo', methods=['DELETE'])
+def delete_custom_photo(plant_id):
+    """Supprime la photo personnalisée d'une plante"""
+    if plant_id not in library_db:
+        return jsonify({'error': 'Plante non trouvée'}), 404
+    
+    if plant_id in notes_db:
+        notes_db[plant_id]['custom_photo'] = None
+    
+    return jsonify({'success': True})
+
+@app.route('/api/library/plant/<int:plant_id>', methods=['GET'])
+def get_plant_info(plant_id):
+    """Récupère les infos complètes d'une plante (notes + photo)"""
+    if plant_id not in library_db:
+        return jsonify({'error': 'Plante non trouvée'}), 404
+    
+    plant_data = library_db[plant_id].copy()
+    notes_data = notes_db.get(plant_id, {})
+    
+    return jsonify({
+        'in_library': True,
+        'plant': plant_data,
+        'notes': notes_data.get('notes', ''),
+        'quantity': notes_data.get('quantity', 0),
+        'custom_photo': notes_data.get('custom_photo')
+    })
 
 @app.after_request
 def add_no_cache_headers(response):
