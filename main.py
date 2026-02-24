@@ -749,9 +749,19 @@ def search():
         'results': [asdict(plant) for plant in results]
     })
 
-@app.route('/api/library', methods=['GET'])
-def get_library():
-    """Récupère la bibliothèque complète"""
+@app.route('/api/library', methods=['GET', 'DELETE'])
+def handle_library():
+    """Récupère ou réinitialise la bibliothèque complète"""
+    if request.method == 'DELETE':
+        # Réinitialiser complètement la bibliothèque
+        library_db.clear()
+        notes_db.clear()
+        return jsonify({
+            'success': True,
+            'message': 'Bibliothèque réinitialisée'
+        })
+    
+    # GET - Récupérer la bibliothèque
     plants_with_notes = []
     
     for plant_id, plant_data in library_db.items():
