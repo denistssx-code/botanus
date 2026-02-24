@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.0 - Onglet Info enrichi + Graphiques calendrier + Page Rappels - 2026-02-23 -->
+    <!-- VERSION 5.1 - Fix Rappels + Upload photo personnalisée - 2026-02-23 -->
     <style>
         * {
             margin: 0;
@@ -760,7 +760,7 @@
         </div>
 
         <!-- Écran d'accueil -->
-        <div class="screen active" id="home-screen">
+        <div class="screen" id="home-screen">
             <div class="app-header">
                 <div class="app-title">Ma Bibliothèque Végétale</div>
                 <div class="app-subtitle">Gestionnaire de plantes professionnel</div>
@@ -1039,6 +1039,23 @@
                 <!-- Tab Notes -->
                 <div class="tab-content" id="tab-notes" style="display: none;">
                     <div class="info-group">
+                        <div class="info-title">📷 Photo personnalisée</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div id="current-photo-preview" style="display: none; position: relative;">
+                                <img id="current-photo-img" src="" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px;">
+                                <button onclick="removePhoto()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px;">×</button>
+                            </div>
+                            <input type="file" id="photo-upload" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)">
+                            <button onclick="document.getElementById('photo-upload').click()" class="save-notes-btn" style="background: #2196F3;">
+                                📷 Ajouter une photo
+                            </button>
+                            <div style="font-size: 12px; color: #666;">
+                                Ajoutez votre propre photo si l'image automatique n'est pas disponible
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-group">
                         <div class="info-title">Quantité</div>
                         <div class="quantity-control">
                             <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
@@ -1262,15 +1279,21 @@
         }
         
         async function loadRappels() {
+            console.log('🔄 Chargement des rappels...');
+            
             // Charger la bibliothèque pour générer les rappels
             try {
                 const response = await fetch(`${API_URL}/library`);
                 const data = await response.json();
                 
+                console.log('📚 Bibliothèque chargée:', data);
+                
+                // Réinitialiser l'affichage
+                document.getElementById('rappels-vide').style.display = 'none';
+                
                 if (!data.plants || data.plants.length === 0) {
+                    console.log('📭 Bibliothèque vide');
                     document.getElementById('rappels-vide').style.display = 'block';
-                    document.getElementById('rappels-mois').style.display = 'none';
-                    document.getElementById('rappels-prochains').style.display = 'none';
                     return;
                 }
                 
@@ -1286,6 +1309,8 @@
                 const rappelsProchains = [];
                 
                 data.plants.forEach(plant => {
+                    console.log(`🌿 Traitement: ${plant.nom_francais}`);
+                    
                     // Récupérer les détails si disponibles
                     const details = plant.details || {};
                     
@@ -1299,14 +1324,18 @@
                             icon: '✂️'
                         };
                         
-                        if (isCurrentMonth(details.periode_taille, maintenant)) {
-                            rappelsMois.push(rappel);
-                        } else if (isNextMonths(details.periode_taille, maintenant, 3)) {
-                            rappelsProchains.push(rappel);
+                        try {
+                            if (isCurrentMonth(details.periode_taille, maintenant)) {
+                                rappelsMois.push(rappel);
+                            } else if (isNextMonths(details.periode_taille, maintenant, 3)) {
+                                rappelsProchains.push(rappel);
+                            }
+                        } catch (e) {
+                            console.error('Erreur isCurrentMonth/isNextMonths:', e);
                         }
                     }
                     
-                    // Rappel de plantation (si période raisonnable)
+                    // Rappel de plantation
                     if (details.meilleure_periode_plantation) {
                         const rappel = {
                             plante: plant.nom_francais,
@@ -1316,14 +1345,18 @@
                             icon: '🌱'
                         };
                         
-                        if (isCurrentMonth(details.meilleure_periode_plantation, maintenant)) {
-                            rappelsMois.push(rappel);
-                        } else if (isNextMonths(details.meilleure_periode_plantation, maintenant, 3)) {
-                            rappelsProchains.push(rappel);
+                        try {
+                            if (isCurrentMonth(details.meilleure_periode_plantation, maintenant)) {
+                                rappelsMois.push(rappel);
+                            } else if (isNextMonths(details.meilleure_periode_plantation, maintenant, 3)) {
+                                rappelsProchains.push(rappel);
+                            }
+                        } catch (e) {
+                            console.error('Erreur periode plantation:', e);
                         }
                     }
                     
-                    // Rappel de floraison (pour admirer!)
+                    // Rappel de floraison
                     if (details.periode_floraison) {
                         const rappel = {
                             plante: plant.nom_francais,
@@ -1333,24 +1366,33 @@
                             icon: '🌸'
                         };
                         
-                        if (isCurrentMonth(details.periode_floraison, maintenant)) {
-                            rappelsMois.push(rappel);
-                        } else if (isNextMonths(details.periode_floraison, maintenant, 3)) {
-                            rappelsProchains.push(rappel);
+                        try {
+                            if (isCurrentMonth(details.periode_floraison, maintenant)) {
+                                rappelsMois.push(rappel);
+                            } else if (isNextMonths(details.periode_floraison, maintenant, 3)) {
+                                rappelsProchains.push(rappel);
+                            }
+                        } catch (e) {
+                            console.error('Erreur periode floraison:', e);
                         }
                     }
                 });
+                
+                console.log(`✅ ${rappelsMois.length} rappels ce mois-ci`);
+                console.log(`⏰ ${rappelsProchains.length} rappels prochainement`);
                 
                 // Afficher les rappels
                 displayRappels('rappels-mois', rappelsMois);
                 displayRappels('rappels-prochains', rappelsProchains);
                 
                 if (rappelsMois.length === 0 && rappelsProchains.length === 0) {
+                    console.log('📭 Aucun rappel trouvé');
                     document.getElementById('rappels-vide').style.display = 'block';
                 }
                 
             } catch (error) {
-                console.error('Erreur chargement rappels:', error);
+                console.error('❌ Erreur chargement rappels:', error);
+                document.getElementById('rappels-vide').style.display = 'block';
             }
         }
         
@@ -1717,8 +1759,17 @@
                 library.forEach(plant => {
                     const cardEl = document.createElement('div');
                     cardEl.className = 'library-card';
+                    
+                    // Utiliser photo personnalisée si disponible, sinon icône
+                    let imageHTML;
+                    if (plant.custom_photo) {
+                        imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+                    } else {
+                        imageHTML = plant.icon || '🌿';
+                    }
+                    
                     cardEl.innerHTML = `
-                        <div class="library-card-image">${plant.icon || '🌿'}</div>
+                        <div class="library-card-image">${imageHTML}</div>
                         <div class="library-card-content">
                             <div class="library-card-name">${plant.nom_francais}</div>
                             <div class="library-card-details">${plant.quantity || 1} plant${(plant.quantity || 1) > 1 ? 's' : ''} • ${plant.prix || 'Prix non spécifié'}</div>
@@ -2215,6 +2266,15 @@
                         document.getElementById('detail-quantity').textContent = libInfo.quantity;
                         document.getElementById('detail-notes').value = libInfo.notes || '';
                         
+                        // Charger la photo personnalisée si disponible
+                        if (libInfo.custom_photo) {
+                            document.getElementById('current-photo-img').src = libInfo.custom_photo;
+                            document.getElementById('current-photo-preview').style.display = 'block';
+                            updatePlantIcon(libInfo.custom_photo);
+                        } else {
+                            document.getElementById('current-photo-preview').style.display = 'none';
+                        }
+                        
                         // Changer le bouton "Ajouter" en "Ajouté"
                         const addBtn = document.getElementById('detail-add-btn');
                         if (addBtn) {
@@ -2226,6 +2286,7 @@
                         // Réinitialiser pour une nouvelle plante
                         document.getElementById('detail-quantity').textContent = '1';
                         document.getElementById('detail-notes').value = '';
+                        document.getElementById('current-photo-preview').style.display = 'none';
                         
                         // S'assurer que le bouton est en mode "Ajouter"
                         const addBtn = document.getElementById('detail-add-btn');
@@ -2326,6 +2387,97 @@
             quantityEl.textContent = current;
         }
 
+        
+        async function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Vérifier la taille (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La photo est trop grande (max 2MB)');
+                return;
+            }
+            
+            // Convertir en base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result;
+                
+                // Afficher l'aperçu
+                document.getElementById('current-photo-img').src = base64;
+                document.getElementById('current-photo-preview').style.display = 'block';
+                
+                // Sauvegarder automatiquement
+                if (currentPlantDetail && currentPlantDetail.plant_id) {
+                    try {
+                        const response = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}/photo`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ photo: base64 })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ Photo sauvegardée');
+                            // Mettre à jour l'icône dans le header
+                            updatePlantIcon(base64);
+                        }
+                    } catch (error) {
+                        console.error('Erreur sauvegarde photo:', error);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function removePhoto() {
+            if (!currentPlantDetail || !currentPlantDetail.plant_id) return;
+            
+            if (confirm('Supprimer la photo personnalisée ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}/photo`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        document.getElementById('current-photo-preview').style.display = 'none';
+                        updatePlantIcon(currentPlantDetail.icon || '🌿');
+                        console.log('✅ Photo supprimée');
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression photo:', error);
+                }
+            }
+        }
+        
+        function updatePlantIcon(iconOrPhoto) {
+            const iconEl = document.getElementById('detail-plant-icon');
+            if (iconOrPhoto && iconOrPhoto.startsWith('data:image')) {
+                // C'est une photo base64
+                iconEl.innerHTML = `
+                    <img src="${iconOrPhoto}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            } else {
+                // C'est un emoji
+                iconEl.innerHTML = `
+                    ${iconOrPhoto || '🌿'}
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
         async function saveNotes() {
             if (!currentPlantDetail || currentPlantDetail.plant_id === undefined) {
                 alert('Erreur : ID de plante non trouvé');
