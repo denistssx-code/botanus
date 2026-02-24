@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.1 - Fix Rappels + Upload photo personnalisée - 2026-02-23 -->
+    <!-- VERSION 5.2 - FIX BUGS CRITIQUES (showDetailTab + get-or-create-id) - 2026-02-23 -->
     <style>
         * {
             margin: 0;
@@ -890,9 +890,9 @@
                 </div>
 
                 <div class="detail-tabs">
-                    <div class="tab active" onclick="showDetailTab('info')">Infos</div>
-                    <div class="tab" onclick="showDetailTab('entretien')">Entretien</div>
-                    <div class="tab" onclick="showDetailTab('notes')">Notes</div>
+                    <div class="tab active" onclick="showDetailTab('info', this)">Infos</div>
+                    <div class="tab" onclick="showDetailTab('entretien', this)">Entretien</div>
+                    <div class="tab" onclick="showDetailTab('notes', this)">Notes</div>
                 </div>
 
                 <!-- Tab Infos -->
@@ -2249,7 +2249,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ plant: plantToSave })
+                    body: JSON.stringify(plantToSave)
                 });
                 
                 if (saveResponse.ok) {
@@ -2310,7 +2310,7 @@
             showScreen(previousScreen);
         }
 
-        function showDetailTab(tabName) {
+        function showDetailTab(tabName, clickedElement) {
             // Masquer tous les contenus
             document.getElementById('tab-info').style.display = 'none';
             document.getElementById('tab-entretien').style.display = 'none';
@@ -2323,7 +2323,9 @@
             document.querySelectorAll('.detail-tabs .tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            }
         }
 
         async function addFromDetail() {
