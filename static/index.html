@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.8 - Filtres bibliothèque + Recherche hybride (local + internet) + Badge "Dans ma bibliothèque" - 2026-02-24 -->
+    <!-- VERSION 5.9 - FIX: Filtres cliquables + Badge bibliothèque avec logs debug - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -1277,6 +1277,9 @@
             updateTime();
             setInterval(updateTime, 60000);
             
+            // Charger la bibliothèque en arrière-plan pour les recherches
+            loadLibraryData();
+            
             // Afficher la bibliothèque par défaut
             showLibraryScreen();
             
@@ -1297,6 +1300,19 @@
                 });
             });
         });
+        
+        // Charger les données de la bibliothèque en arrière-plan (pour recherche hybride)
+        async function loadLibraryData() {
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                allLibraryPlants = data.plants || [];
+                console.log(`📚 Bibliothèque chargée: ${allLibraryPlants.length} plantes`);
+            } catch (error) {
+                console.error('Erreur chargement bibliothèque data:', error);
+                allLibraryPlants = [];
+            }
+        }
 
         function updateTime() {
             const now = new Date();
@@ -1802,6 +1818,12 @@
             try {
                 const queryLower = query.toLowerCase().trim();
                 
+                console.log(`🔍 Recherche: "${query}"`);
+                console.log(`📚 Bibliothèque locale: ${allLibraryPlants.length} plantes`);
+                if (allLibraryPlants.length > 0) {
+                    console.log(`   Exemples: ${allLibraryPlants.slice(0, 3).map(p => p.nom_francais).join(', ')}`);
+                }
+                
                 // 1. RECHERCHE LOCALE dans la bibliothèque
                 const localResults = allLibraryPlants.filter(plant => {
                     const nomFr = (plant.nom_francais || '').toLowerCase();
@@ -1810,22 +1832,33 @@
                     return nomFr.includes(queryLower) || nomLat.includes(queryLower) || type.includes(queryLower);
                 });
                 
-                console.log(`🔍 Recherche "${query}": ${localResults.length} résultats locaux`);
+                console.log(`✅ ${localResults.length} résultats locaux`);
+                if (localResults.length > 0) {
+                    console.log(`   Trouvé: ${localResults.map(p => p.nom_francais).join(', ')}`);
+                }
                 
                 // 2. RECHERCHE INTERNET
                 const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
                 const internetResults = data.results || [];
                 
-                console.log(`🌐 Recherche internet: ${internetResults.length} résultats`);
+                console.log(`🌐 ${internetResults.length} résultats internet`);
                 
                 loadingDiv.style.display = 'none';
                 
                 // 3. MARQUER les plantes déjà dans la bibliothèque
                 const libraryNames = new Set(allLibraryPlants.map(p => p.nom_francais.toLowerCase()));
+                console.log(`🏷️ Noms en bibliothèque:`, Array.from(libraryNames).slice(0, 5));
+                
+                let markedCount = 0;
                 internetResults.forEach(plant => {
                     plant.inLibrary = libraryNames.has(plant.nom_francais.toLowerCase());
+                    if (plant.inLibrary) {
+                        markedCount++;
+                        console.log(`   ✓ Marqué: ${plant.nom_francais}`);
+                    }
                 });
+                console.log(`✅ ${markedCount} plantes marquées comme "dans la bibliothèque"`);
                 
                 // 4. AFFICHER les résultats
                 if (localResults.length === 0 && internetResults.length === 0) {
@@ -2011,6 +2044,9 @@
                     // Recharger les stats
                     loadStats();
                     loadRecentPlants();
+                    
+                    // Recharger allLibraryPlants pour la recherche
+                    loadLibraryData();
                 } else {
                     throw new Error('Erreur lors de l\'ajout');
                 }
@@ -2084,11 +2120,27 @@
                 // Générer les filtres cliquables
                 if (filtersDiv) {
                     const types = Object.keys(typeStats).sort();
-                    filtersDiv.innerHTML = '<div class="chip active" data-type="Tous" onclick="filterLibrary(\'Tous\')">📚 Tous</div>';
+                    filtersDiv.innerHTML = '';
+                    
+                    // Chip "Tous"
+                    const allChip = document.createElement('div');
+                    allChip.className = 'chip active';
+                    allChip.dataset.type = 'Tous';
+                    allChip.textContent = '📚 Tous';
+                    allChip.addEventListener('click', () => filterLibrary('Tous'));
+                    filtersDiv.appendChild(allChip);
+                    
+                    // Chips par type
                     types.forEach(type => {
                         const count = typeStats[type];
-                        filtersDiv.innerHTML += `<div class="chip" data-type="${type}" onclick="filterLibrary('${type}')">${type} (${count})</div>`;
+                        const chip = document.createElement('div');
+                        chip.className = 'chip';
+                        chip.dataset.type = type;
+                        chip.textContent = `${type} (${count})`;
+                        chip.addEventListener('click', () => filterLibrary(type));
+                        filtersDiv.appendChild(chip);
                     });
+                    
                     filtersDiv.style.display = 'flex';
                 }
                 
