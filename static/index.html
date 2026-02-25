@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.7 - FIX: Récupération détails depuis bibliothèque + Logs détaillés - 2026-02-24 -->
+    <!-- VERSION 5.8 - Filtres bibliothèque + Recherche hybride (local + internet) + Badge "Dans ma bibliothèque" - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -847,6 +847,11 @@
 
             <div class="library-header" id="library-header-stats">
                 <div class="library-stats" id="library-type-stats"></div>
+            </div>
+
+            <!-- Filtres par type -->
+            <div class="filter-chips" id="library-filters" style="display: none;">
+                <div class="chip active" data-type="Tous" onclick="filterLibrary('Tous')">Tous</div>
             </div>
 
             <div class="main-content">
@@ -1795,20 +1800,41 @@
             noResultsDiv.style.display = 'none';
             
             try {
+                const queryLower = query.toLowerCase().trim();
+                
+                // 1. RECHERCHE LOCALE dans la bibliothèque
+                const localResults = allLibraryPlants.filter(plant => {
+                    const nomFr = (plant.nom_francais || '').toLowerCase();
+                    const nomLat = (plant.nom_latin || '').toLowerCase();
+                    const type = (plant.type_plante || '').toLowerCase();
+                    return nomFr.includes(queryLower) || nomLat.includes(queryLower) || type.includes(queryLower);
+                });
+                
+                console.log(`🔍 Recherche "${query}": ${localResults.length} résultats locaux`);
+                
+                // 2. RECHERCHE INTERNET
                 const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
+                const internetResults = data.results || [];
+                
+                console.log(`🌐 Recherche internet: ${internetResults.length} résultats`);
                 
                 loadingDiv.style.display = 'none';
                 
-                // Le backend retourne data.results (tableau)
-                const allResults = data.results || [];
+                // 3. MARQUER les plantes déjà dans la bibliothèque
+                const libraryNames = new Set(allLibraryPlants.map(p => p.nom_francais.toLowerCase()));
+                internetResults.forEach(plant => {
+                    plant.inLibrary = libraryNames.has(plant.nom_francais.toLowerCase());
+                });
                 
-                if (allResults.length === 0) {
+                // 4. AFFICHER les résultats
+                if (localResults.length === 0 && internetResults.length === 0) {
                     noResultsDiv.style.display = 'block';
                     return;
                 }
                 
-                displaySearchResults(allResults);
+                displaySearchResults(localResults, internetResults);
+                
             } catch (error) {
                 console.error('Erreur recherche:', error);
                 loadingDiv.style.display = 'none';
@@ -1844,22 +1870,47 @@
             }
         }
 
-        function displaySearchResults(results) {
+        function displaySearchResults(localResults, internetResults) {
             const resultsDiv = document.getElementById('search-results');
-            resultsDiv.innerHTML = `
-                <div class="recent-section">
-                    <div class="section-header">
-                        <span>Résultats (${results.length})</span>
+            resultsDiv.innerHTML = '';
+            
+            // Section 1: Résultats dans MA bibliothèque
+            if (localResults.length > 0) {
+                const localSection = document.createElement('div');
+                localSection.className = 'recent-section';
+                localSection.innerHTML = `
+                    <div class="section-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">📚 Dans ma bibliothèque (${localResults.length})</span>
                     </div>
-                </div>
-            `;
+                `;
+                
+                localResults.forEach(plant => {
+                    plant.inLibrary = true; // Marquer comme étant dans la bibliothèque
+                    const plantEl = createSearchResultElement(plant);
+                    localSection.appendChild(plantEl);
+                });
+                
+                resultsDiv.appendChild(localSection);
+            }
             
-            const sectionDiv = resultsDiv.querySelector('.recent-section');
-            
-            results.forEach(plant => {
-                const plantEl = createSearchResultElement(plant);
-                sectionDiv.appendChild(plantEl);
-            });
+            // Section 2: Résultats sur internet
+            if (internetResults.length > 0) {
+                const internetSection = document.createElement('div');
+                internetSection.className = 'recent-section';
+                internetSection.style.marginTop = localResults.length > 0 ? '20px' : '0';
+                internetSection.innerHTML = `
+                    <div class="section-header">
+                        <span>🌐 Recherche en ligne (${internetResults.length})</span>
+                    </div>
+                `;
+                
+                internetResults.forEach(plant => {
+                    const plantEl = createSearchResultElement(plant);
+                    internetSection.appendChild(plantEl);
+                });
+                
+                resultsDiv.appendChild(internetSection);
+            }
         }
 
         function createSearchResultElement(plant) {
@@ -1867,18 +1918,35 @@
             plantEl.className = 'search-suggestion';
             plantEl.dataset.type = plant.type_plante || 'Plante';
             
+            // Style spécial si déjà dans la bibliothèque
+            if (plant.inLibrary) {
+                plantEl.style.background = 'linear-gradient(to right, #E8F5E9 0%, #ffffff 15%)';
+                plantEl.style.borderLeft = '4px solid #4CAF50';
+            }
+            
             // Stocker les données dans un attribut data
             plantEl.dataset.plantData = JSON.stringify(plant);
+            
+            // Badge "Dans ma bibliothèque"
+            const libraryBadge = plant.inLibrary ? 
+                '<span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px;">✓ Dans ma bibliothèque</span>' : 
+                '';
             
             plantEl.innerHTML = `
                 <div class="suggestion-icon">${plant.icon || '🌿'}</div>
                 <div class="suggestion-info">
-                    <div class="suggestion-name">${plant.nom_francais}</div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="suggestion-name">${plant.nom_francais}</div>
+                        ${libraryBadge}
+                    </div>
                     <div class="suggestion-latin">${plant.nom_latin}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="detail-btn" style="padding: 8px 12px; background: #f5f5f5; color: #2E7D32; border: 1px solid #2E7D32; border-radius: 8px; font-size: 13px; cursor: pointer;">🔍 Détails</button>
-                    <button class="add-btn">Ajouter</button>
+                    ${plant.inLibrary ? 
+                        '<button class="add-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Déjà ajouté</button>' : 
+                        '<button class="add-btn">Ajouter</button>'
+                    }
                 </div>
             `;
             
@@ -1893,12 +1961,14 @@
                 }
             });
             
-            // Bouton ajouter
-            const addButton = plantEl.querySelector('.add-btn');
-            addButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                addToLibrary(e, plant);
-            });
+            // Bouton ajouter (seulement si pas déjà dans la bibliothèque)
+            if (!plant.inLibrary) {
+                const addButton = plantEl.querySelector('.add-btn');
+                addButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addToLibrary(e, plant);
+                });
+            }
             
             return plantEl;
         }
@@ -1953,12 +2023,17 @@
         }
 
         // Bibliothèque
+        // Variables globales pour filtrage bibliothèque
+        let allLibraryPlants = [];
+        let currentLibraryFilter = 'Tous';
+        
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
             const emptyDiv = document.getElementById('empty-library');
             const loadingDiv = document.getElementById('library-loading');
             const subtitleDiv = document.getElementById('library-subtitle');
             const statsDiv = document.getElementById('library-type-stats');
+            const filtersDiv = document.getElementById('library-filters');
             
             loadingDiv.style.display = 'block';
             gridDiv.innerHTML = '';
@@ -1968,22 +2043,23 @@
                 const response = await fetch(`${API_URL}/library`);
                 const data = await response.json();
                 
-                // L'API retourne {count: X, plants: [...]}
-                const library = data.plants || [];
+                // Stocker toutes les plantes pour filtrage
+                allLibraryPlants = data.plants || [];
                 
                 loadingDiv.style.display = 'none';
                 
-                if (library.length === 0) {
+                if (allLibraryPlants.length === 0) {
                     emptyDiv.style.display = 'block';
                     subtitleDiv.textContent = 'Votre collection est vide';
+                    if (filtersDiv) filtersDiv.style.display = 'none';
                     return;
                 }
                 
-                subtitleDiv.textContent = `${library.length} plante${library.length > 1 ? 's' : ''} dans votre collection`;
+                subtitleDiv.textContent = `${allLibraryPlants.length} plante${allLibraryPlants.length > 1 ? 's' : ''} dans votre collection`;
                 
                 // Calculer les stats par type
                 const typeStats = {};
-                library.forEach(plant => {
+                allLibraryPlants.forEach(plant => {
                     const type = plant.type_plante || 'Autre';
                     typeStats[type] = (typeStats[type] || 0) + (plant.quantity || 1);
                 });
@@ -1991,7 +2067,7 @@
                 // Afficher les stats
                 statsDiv.innerHTML = `
                     <div class="library-stat">
-                        <div class="library-stat-number">${library.length}</div>
+                        <div class="library-stat-number">${allLibraryPlants.length}</div>
                         <div class="library-stat-label">Total</div>
                     </div>
                 `;
@@ -2005,34 +2081,20 @@
                     `;
                 });
                 
-                // Afficher les plantes
-                library.forEach(plant => {
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'library-card';
-                    
-                    // Utiliser photo personnalisée si disponible, sinon icône
-                    let imageHTML;
-                    if (plant.custom_photo) {
-                        imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
-                    } else {
-                        imageHTML = plant.icon || '🌿';
-                    }
-                    
-                    cardEl.innerHTML = `
-                        <div class="library-card-image">${imageHTML}</div>
-                        <div class="library-card-content">
-                            <div class="library-card-name">${plant.nom_francais}</div>
-                            <div class="library-card-details">${plant.quantity || 1} plant${(plant.quantity || 1) > 1 ? 's' : ''} • ${plant.prix || 'Prix non spécifié'}</div>
-                        </div>
-                    `;
-                    
-                    // Clic pour voir les détails
-                    cardEl.addEventListener('click', () => {
-                        showPlantDetail(plant, 'library');
+                // Générer les filtres cliquables
+                if (filtersDiv) {
+                    const types = Object.keys(typeStats).sort();
+                    filtersDiv.innerHTML = '<div class="chip active" data-type="Tous" onclick="filterLibrary(\'Tous\')">📚 Tous</div>';
+                    types.forEach(type => {
+                        const count = typeStats[type];
+                        filtersDiv.innerHTML += `<div class="chip" data-type="${type}" onclick="filterLibrary('${type}')">${type} (${count})</div>`;
                     });
-                    
-                    gridDiv.appendChild(cardEl);
-                });
+                    filtersDiv.style.display = 'flex';
+                }
+                
+                // Afficher toutes les plantes
+                displayFilteredLibrary(allLibraryPlants);
+                
             } catch (error) {
                 console.error('Erreur chargement bibliothèque:', error);
                 loadingDiv.style.display = 'none';
@@ -2040,6 +2102,64 @@
                 emptyDiv.querySelector('.info-text').textContent = 
                     'Erreur lors du chargement. Vérifiez que le serveur backend est démarré.';
             }
+        }
+        
+        function filterLibrary(type) {
+            currentLibraryFilter = type;
+            
+            // Mettre à jour les chips actifs
+            document.querySelectorAll('#library-filters .chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.type === type) {
+                    chip.classList.add('active');
+                }
+            });
+            
+            // Filtrer et afficher
+            if (type === 'Tous') {
+                displayFilteredLibrary(allLibraryPlants);
+            } else {
+                const filtered = allLibraryPlants.filter(p => p.type_plante === type);
+                displayFilteredLibrary(filtered);
+            }
+        }
+        
+        function displayFilteredLibrary(plants) {
+            const gridDiv = document.getElementById('library-grid');
+            gridDiv.innerHTML = '';
+            
+            if (plants.length === 0) {
+                gridDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Aucune plante de ce type</div>';
+                return;
+            }
+            
+            plants.forEach(plant => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'library-card';
+                
+                // Utiliser photo personnalisée si disponible, sinon icône
+                let imageHTML;
+                if (plant.custom_photo) {
+                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+                } else {
+                    imageHTML = plant.icon || '🌿';
+                }
+                
+                cardEl.innerHTML = `
+                    <div class="library-card-image">${imageHTML}</div>
+                    <div class="library-card-content">
+                        <div class="library-card-name">${plant.nom_francais}</div>
+                        <div class="library-card-details">${plant.quantity || 1} plant${(plant.quantity || 1) > 1 ? 's' : ''} • ${plant.prix || 'Prix non spécifié'}</div>
+                    </div>
+                `;
+                
+                // Clic pour voir les détails
+                cardEl.addEventListener('click', () => {
+                    showPlantDetail(plant, 'library');
+                });
+                
+                gridDiv.appendChild(cardEl);
+            });
         }
 
         // Fonctions page détail
