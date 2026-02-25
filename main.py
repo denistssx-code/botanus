@@ -830,6 +830,15 @@ def get_or_create_plant_id():
     """
     data = request.json
     
+    print(f"\n{'='*60}")
+    print(f"📥 get_or_create_plant_id - Données reçues:")
+    print(f"   Nom: {data.get('nom_francais', 'N/A')}")
+    print(f"   Details présents: {'details' in data}")
+    if 'details' in data:
+        print(f"   Details keys: {list(data['details'].keys())[:10]}")
+        print(f"   periode_taille: {data['details'].get('periode_taille', 'NON PRÉSENT')}")
+    print(f"{'='*60}\n")
+    
     if not data or 'nom_francais' not in data:
         return jsonify({'error': 'Données invalides'}), 400
     
@@ -843,6 +852,7 @@ def get_or_create_plant_id():
             # Plante existe déjà - mettre à jour les détails si fournis
             if 'details' in data and data['details']:
                 plant_data['details'] = data['details']
+                print(f"✅ Plante existe - Détails mis à jour pour ID {plant_id}")
             return jsonify({
                 'plant_id': plant_id,
                 'exists': True
@@ -866,6 +876,11 @@ def get_or_create_plant_id():
         # Données détaillées (si disponibles)
         'details': data.get('details', {})
     }
+    
+    print(f"✅ Nouvelle plante créée - ID {plant_id}")
+    print(f"   Details stockés: {bool(library_db[plant_id]['details'])}")
+    if library_db[plant_id]['details']:
+        print(f"   periode_taille: {library_db[plant_id]['details'].get('periode_taille', 'NON')}")
     
     # Initialiser notes vides
     notes_db[plant_id] = {
