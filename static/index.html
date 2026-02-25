@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.6 - FIX CRITIQUE: Stockage détails dans bibliothèque pour rappels - 2026-02-24 -->
+    <!-- VERSION 5.7 - FIX: Récupération détails depuis bibliothèque + Logs détaillés - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -2084,8 +2084,8 @@
                 document.getElementById('detail-url').href = plantData.url;
                 document.getElementById('detail-url-group').style.display = 'block';
                 
-                // Charger les détails complets en arrière-plan
-                loadCompleteDetails(plantData.url);
+                // Charger les détails complets ET ATTENDRE qu'ils soient chargés
+                await loadCompleteDetails(plantData.url);
             } else {
                 document.getElementById('detail-url-group').style.display = 'none';
                 // Afficher uniquement les infos de base
@@ -2109,18 +2109,26 @@
         
         async function loadCompleteDetails(url) {
             try {
+                console.log('📥 loadCompleteDetails appelé pour:', url);
                 const response = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(url)}`);
                 const data = await response.json();
+                
+                console.log('📦 Réponse API détails:', data.success ? 'SUCCESS' : 'FAIL');
                 
                 if (data.success && data.data) {
                     // Stocker les détails dans la plante actuelle
                     currentPlantDetail.details = data.data;
+                    console.log('✅ Détails stockés dans currentPlantDetail');
+                    console.log('   - periode_taille:', data.data.periode_taille || 'NON PRÉSENT');
+                    console.log('   - Nombre de champs:', Object.keys(data.data).length);
                     
                     // Afficher les infos détaillées
                     displayDetailedInfo(data.data);
+                } else {
+                    console.log('⚠️ Pas de données dans la réponse API');
                 }
             } catch (error) {
-                console.log('Détails complets non disponibles');
+                console.log('❌ Détails complets non disponibles:', error.message);
             }
         }
         
@@ -2522,6 +2530,16 @@
                         document.getElementById('detail-quantity').textContent = libInfo.quantity;
                         document.getElementById('detail-notes').value = libInfo.notes || '';
                         
+                        // IMPORTANT: Récupérer les détails depuis la bibliothèque
+                        if (libInfo.plant && libInfo.plant.details) {
+                            currentPlantDetail.details = libInfo.plant.details;
+                            console.log('✅ Détails récupérés depuis bibliothèque');
+                            console.log('   periode_taille:', libInfo.plant.details.periode_taille || 'NON');
+                            
+                            // Réafficher les détails
+                            displayDetailedInfo(libInfo.plant.details);
+                        }
+                        
                         // Charger la photo personnalisée si disponible
                         if (libInfo.custom_photo) {
                             document.getElementById('current-photo-img').src = libInfo.custom_photo;
@@ -2587,6 +2605,16 @@
         async function addFromDetail() {
             if (!currentPlantDetail) return;
             
+            console.log('➕ addFromDetail appelé');
+            console.log('   currentPlantDetail:', currentPlantDetail);
+            console.log('   currentPlantDetail.details:', currentPlantDetail.details);
+            
+            if (currentPlantDetail.details && currentPlantDetail.details.periode_taille) {
+                console.log('   ✅ Details.periode_taille présent:', currentPlantDetail.details.periode_taille);
+            } else {
+                console.log('   ❌ Details.periode_taille ABSENT !');
+            }
+            
             const button = document.getElementById('detail-add-btn');
             const originalHTML = button.innerHTML;
             
@@ -2609,6 +2637,13 @@
                     details: currentPlantDetail.details || {}
                 };
                 
+                console.log('📤 Envoi à API:', {
+                    nom_francais: plantToSend.nom_francais,
+                    has_details: !!plantToSend.details,
+                    details_keys: Object.keys(plantToSend.details || {}),
+                    periode_taille: plantToSend.details?.periode_taille
+                });
+                
                 const response = await fetch(`${API_URL}/library/get-or-create-id`, {
                     method: 'POST',
                     headers: {
@@ -2619,6 +2654,7 @@
                 
                 if (response.ok) {
                     const result = await response.json();
+                    console.log('✅ Réponse API:', result);
                     // Stocker le plant_id retourné par l'API
                     if (result.plant_id !== undefined) {
                         currentPlantDetail.plant_id = result.plant_id;
