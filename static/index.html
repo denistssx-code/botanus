@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 5.5 - Page Profil + Fix détection mois rappels - 2026-02-24 -->
+    <!-- VERSION 5.6 - FIX CRITIQUE: Stockage détails dans bibliothèque pour rappels - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -1535,8 +1535,14 @@
                     
                     // Récupérer les détails si disponibles
                     const details = plant.details || {};
+                    console.log(`   📦 Details présents:`, Object.keys(details).length > 0 ? 'OUI' : 'NON');
+                    
+                    if (Object.keys(details).length > 0) {
+                        console.log(`   📋 Champs details:`, Object.keys(details).slice(0, 10).join(', '));
+                    }
                     
                     // Rappel de taille
+                    console.log(`   ✂️ periode_taille:`, details.periode_taille || 'NON PRÉSENT');
                     if (details.periode_taille) {
                         const rappel = {
                             plante: plant.nom_francais,
@@ -1546,11 +1552,23 @@
                             icon: '✂️'
                         };
                         
+                        console.log(`   📅 Vérification période taille: "${details.periode_taille}"`);
+                        
                         try {
-                            if (isCurrentMonth(details.periode_taille, maintenant)) {
+                            const isCurrent = isCurrentMonth(details.periode_taille, maintenant);
+                            const isNext = isNextMonths(details.periode_taille, maintenant, 3);
+                            
+                            console.log(`      → Ce mois-ci: ${isCurrent}`);
+                            console.log(`      → Prochainement: ${isNext}`);
+                            
+                            if (isCurrent) {
                                 rappelsMois.push(rappel);
-                            } else if (isNextMonths(details.periode_taille, maintenant, 3)) {
+                                console.log(`      ✅ Ajouté à "Ce mois-ci"`);
+                            } else if (isNext) {
                                 rappelsProchains.push(rappel);
+                                console.log(`      ✅ Ajouté à "Prochainement"`);
+                            } else {
+                                console.log(`      ⏭️ Pas dans les 3 prochains mois`);
                             }
                         } catch (e) {
                             console.error('Erreur isCurrentMonth/isNextMonths:', e);
@@ -2474,6 +2492,12 @@
                     icon: plantData.icon,
                     url: plantData.url
                 };
+                
+                // Ajouter les détails s'ils sont disponibles dans currentPlantDetail
+                if (currentPlantDetail && currentPlantDetail.details) {
+                    plantToSave.details = currentPlantDetail.details;
+                    console.log('📦 Envoi des détails avec periode_taille:', currentPlantDetail.details.periode_taille);
+                }
                 
                 // Appeler l'API pour obtenir/créer le plant_id
                 const saveResponse = await fetch(`${API_URL}/library/get-or-create-id`, {
