@@ -34,6 +34,10 @@ class PlantDetailInfo:
     famille: str = ""
     origine: str = ""
     
+    # Catégorisation (depuis breadcrumb)
+    type_plante: str = ""
+    sous_categorie: str = ""
+    
     # Descriptions
     description_courte: str = ""
     description_detaillee: str = ""
@@ -356,6 +360,37 @@ class PromesseDeFleursScraper:
                     detail.nom_latin = parts[0].strip()
                 if len(parts) >= 2:
                     detail.nom_francais = parts[1].strip()
+            
+            # 2.5. TYPE DE PLANTE depuis le fil d'Ariane (breadcrumb)
+            breadcrumb = soup.find('ol', class_='items')
+            if breadcrumb:
+                # Trouver tous les items du breadcrumb
+                items = breadcrumb.find_all('li', class_='item')
+                print(f"🍞 Breadcrumb: {len(items)} niveaux trouvés")
+                
+                # Le niveau 1 (après "Plantes de jardin") contient le type
+                # Structure: [0] = Accueil, [1] = Type (Vivaces/Arbustes/etc), [2] = Sous-catégorie
+                if len(items) >= 2:
+                    # Prendre le 2ème élément (index 1)
+                    type_item = items[1]
+                    type_link = type_item.find('a')
+                    if type_link:
+                        type_text = self.clean_text(type_link.get_text())
+                        detail.type_plante = type_text
+                        print(f"  ✅ Type extrait: {type_text}")
+                    
+                    # Bonus: extraire aussi la sous-catégorie si elle existe
+                    if len(items) >= 3:
+                        subcat_item = items[2]
+                        subcat_link = subcat_item.find('a')
+                        if subcat_link:
+                            subcat_text = self.clean_text(subcat_link.get_text())
+                            detail.sous_categorie = subcat_text
+                            print(f"  📂 Sous-catégorie: {subcat_text}")
+                else:
+                    print(f"  ⚠️ Breadcrumb trop court, utilisation fallback")
+            else:
+                print(f"  ⚠️ Breadcrumb non trouvé")
             
             # 3. DESCRIPTION COURTE
             desc_short = soup.find('div', class_='product-description')
