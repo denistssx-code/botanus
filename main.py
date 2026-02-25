@@ -805,7 +805,8 @@ def add_to_library():
         'prix': data.get('prix', ''),
         'description': data.get('description', ''),
         'icon': data.get('icon', '🌿'),
-        'url': data.get('url', '')
+        'url': data.get('url', ''),
+        'details': data.get('details', {})
     }
     
     # Initialiser notes vides
