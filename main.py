@@ -899,7 +899,8 @@ def add_to_library():
         'description': data.get('description', ''),
         'icon': data.get('icon', '🌿'),
         'url': data.get('url', ''),
-        'details': data.get('details', {})
+        'details': data.get('details', {}),
+        'image_principale': data.get('image_principale', '')
     }
     
     # Initialiser notes vides
@@ -967,7 +968,8 @@ def get_or_create_plant_id():
         'url': data.get('url', ''),
         
         # Données détaillées (si disponibles)
-        'details': data.get('details', {})
+        'details': data.get('details', {}),
+        'image_principale': data.get('image_principale', '')
     }
     
     print(f"✅ Nouvelle plante créée - ID {plant_id}")
