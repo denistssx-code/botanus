@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 6.1 - FIX: Breadcrumb avec filtrage "home" + Extraction image principale haute résolution - 2026-02-24 -->
+    <!-- VERSION 6.2 - Image conservée bibliothèque + Zoom image + Fix type_plante + Logs graphique - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -2194,10 +2194,12 @@
                 const cardEl = document.createElement('div');
                 cardEl.className = 'library-card';
                 
-                // Utiliser photo personnalisée si disponible, sinon icône
+                // Priorité: photo personnalisée > image principale > icône
                 let imageHTML;
                 if (plant.custom_photo) {
-                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;" alt="${plant.nom_francais}">`;
+                } else if (plant.image_principale) {
+                    imageHTML = `<img src="${plant.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;" alt="${plant.nom_francais}">`;
                 } else {
                     imageHTML = plant.icon || '🌿';
                 }
@@ -2351,8 +2353,17 @@
              * @param periodeText - Texte comme "Mars à Mai, Septembre à Octobre"
              * @param containerId - ID du conteneur où insérer le graphique
              */
+            console.log(`📅 createMonthCalendar appelé:`, { periodeText, containerId });
+            
             const container = document.getElementById(containerId);
-            if (!container || !periodeText) return;
+            if (!container) {
+                console.error(`❌ Conteneur ${containerId} non trouvé`);
+                return;
+            }
+            if (!periodeText) {
+                console.warn(`⚠️ periodeText vide pour ${containerId}`);
+                return;
+            }
             
             const mois = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
             const moisComplets = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
@@ -2372,7 +2383,9 @@
             // Fonction pour trouver l'index d'un mois
             const getMoisIndex = (moisNom) => {
                 const moisNomLower = moisNom.toLowerCase().trim();
-                return moisComplets.findIndex(m => m.toLowerCase().startsWith(moisNomLower.substring(0, 3)));
+                const idx = moisComplets.findIndex(m => m.toLowerCase().startsWith(moisNomLower.substring(0, 3)));
+                console.log(`  Mois "${moisNom}" → index ${idx}`);
+                return idx;
             };
             
             // Parser les périodes type "Mars à Mai"
@@ -2380,6 +2393,8 @@
             for (const match of rangeMatches) {
                 const startIdx = getMoisIndex(match[1]);
                 const endIdx = getMoisIndex(match[2]);
+                
+                console.log(`  Période: ${match[1]} à ${match[2]} → ${startIdx} à ${endIdx}`);
                 
                 if (startIdx >= 0 && endIdx >= 0) {
                     if (startIdx <= endIdx) {
@@ -2401,6 +2416,8 @@
                 const idx = getMoisIndex(match[1]);
                 if (idx >= 0) moisActifs.add(idx);
             }
+            
+            console.log(`  ✅ Mois actifs:`, Array.from(moisActifs).map(i => moisComplets[i]));
             
             // Générer le graphique
             container.innerHTML = '';
@@ -2430,8 +2447,8 @@
             // Image principale (remplacer l'emoji)
             if (details.image_principale) {
                 const iconEl = document.getElementById('detail-plant-icon');
-                iconEl.innerHTML = `<img src="${details.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px;" alt="${details.nom_complet || 'Plante'}">`;
-                console.log('📸 Image principale affichée');
+                iconEl.innerHTML = `<img src="${details.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px; cursor: zoom-in;" alt="${details.nom_complet || 'Plante'}" onclick="openImageZoom('${details.image_principale}')">`;
+                console.log('📸 Image principale affichée avec zoom');
             }
             
             // Type de plante (depuis breadcrumb)
@@ -2700,6 +2717,7 @@
                 // Ajouter les détails s'ils sont disponibles dans currentPlantDetail
                 if (currentPlantDetail && currentPlantDetail.details) {
                     plantToSave.details = currentPlantDetail.details;
+                    plantToSave.image_principale = currentPlantDetail.details.image_principale || '';
                     console.log('📦 Envoi des détails avec periode_taille:', currentPlantDetail.details.periode_taille);
                 }
                 
@@ -2824,13 +2842,16 @@
                     nom_francais: currentPlantDetail.nom_francais,
                     nom_latin: currentPlantDetail.nom_latin,
                     exposition: currentPlantDetail.exposition,
-                    type_plante: currentPlantDetail.type_plante,
+                    // Prendre type_plante depuis details si disponible, sinon depuis currentPlantDetail
+                    type_plante: currentPlantDetail.details?.type_plante || currentPlantDetail.type_plante || 'Plante',
                     prix: currentPlantDetail.prix,
                     description: currentPlantDetail.description,
                     icon: currentPlantDetail.icon,
                     url: currentPlantDetail.url,
                     // Ajouter les détails complets si disponibles
-                    details: currentPlantDetail.details || {}
+                    details: currentPlantDetail.details || {},
+                    // Ajouter l'image principale si disponible
+                    image_principale: currentPlantDetail.details?.image_principale || ''
                 };
                 
                 console.log('📤 Envoi à API:', {
@@ -3025,6 +3046,23 @@
                 }, 2000);
             }
         }
+        
+        // Fonctions zoom image
+        function openImageZoom(imageUrl) {
+            document.getElementById('zoomed-image').src = imageUrl;
+            document.getElementById('image-zoom-modal').style.display = 'block';
+        }
+        
+        function closeImageZoom() {
+            document.getElementById('image-zoom-modal').style.display = 'none';
+        }
     </script>
+    
+    <!-- Modal Zoom Image -->
+    <div id="image-zoom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; padding: 20px; box-sizing: border-box;" onclick="closeImageZoom()">
+        <div style="position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; cursor: pointer; z-index: 10001;" onclick="closeImageZoom()">×</div>
+        <img id="zoomed-image" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="event.stopPropagation()">
+    </div>
+    
 </body>
 </html>
