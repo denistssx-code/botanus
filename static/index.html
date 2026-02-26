@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 6.0 - Extraction type plante depuis breadcrumb + Sous-catégorie - 2026-02-24 -->
+    <!-- VERSION 6.1 - FIX: Breadcrumb avec filtrage "home" + Extraction image principale haute résolution - 2026-02-24 -->
     <style>
         * {
             margin: 0;
@@ -2426,6 +2426,13 @@
         
         function displayDetailedInfo(details) {
             // ONGLET INFO
+            
+            // Image principale (remplacer l'emoji)
+            if (details.image_principale) {
+                const iconEl = document.getElementById('detail-plant-icon');
+                iconEl.innerHTML = `<img src="${details.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px;" alt="${details.nom_complet || 'Plante'}">`;
+                console.log('📸 Image principale affichée');
+            }
             
             // Type de plante (depuis breadcrumb)
             if (details.type_plante) {
