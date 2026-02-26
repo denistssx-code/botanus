@@ -365,30 +365,39 @@ class PromesseDeFleursScraper:
             breadcrumb = soup.find('ol', class_='items')
             if breadcrumb:
                 # Trouver tous les items du breadcrumb
-                items = breadcrumb.find_all('li', class_='item')
-                print(f"🍞 Breadcrumb: {len(items)} niveaux trouvés")
+                all_items = breadcrumb.find_all('li', class_='item')
+                print(f"🍞 Breadcrumb: {len(all_items)} niveaux trouvés")
                 
-                # Le niveau 1 (après "Plantes de jardin") contient le type
-                # Structure: [0] = Accueil, [1] = Type (Vivaces/Arbustes/etc), [2] = Sous-catégorie
-                if len(items) >= 2:
-                    # Prendre le 2ème élément (index 1)
-                    type_item = items[1]
+                # Afficher tous les niveaux pour debug
+                for idx, item in enumerate(all_items):
+                    link = item.find('a')
+                    if link:
+                        print(f"  [{idx}] {self.clean_text(link.get_text())} (classes: {item.get('class', [])})")
+                
+                # Filtrer les items (ignorer "home" qui est l'accueil)
+                items = [item for item in all_items if 'home' not in item.get('class', [])]
+                print(f"  → {len(items)} niveaux après filtrage 'home'")
+                
+                # Structure après filtrage: [0] = Type (Vivaces/Arbustes/etc), [1] = Sous-catégorie, [2] = Détail
+                if len(items) >= 1:
+                    # Prendre le 1er élément après "home" = le type
+                    type_item = items[0]
                     type_link = type_item.find('a')
                     if type_link:
                         type_text = self.clean_text(type_link.get_text())
                         detail.type_plante = type_text
                         print(f"  ✅ Type extrait: {type_text}")
                     
-                    # Bonus: extraire aussi la sous-catégorie si elle existe
-                    if len(items) >= 3:
-                        subcat_item = items[2]
+                    # Bonus: extraire la sous-catégorie si elle existe
+                    if len(items) >= 2:
+                        subcat_item = items[1]
                         subcat_link = subcat_item.find('a')
                         if subcat_link:
                             subcat_text = self.clean_text(subcat_link.get_text())
                             detail.sous_categorie = subcat_text
                             print(f"  📂 Sous-catégorie: {subcat_text}")
                 else:
-                    print(f"  ⚠️ Breadcrumb trop court, utilisation fallback")
+                    print(f"  ⚠️ Breadcrumb vide après filtrage, utilisation fallback")
             else:
                 print(f"  ⚠️ Breadcrumb non trouvé")
             
@@ -644,9 +653,58 @@ class PromesseDeFleursScraper:
             #             break
             
             # 10. IMAGE PRINCIPALE
-            main_img = soup.find('img', alt=re.compile(detail.nom_complet or 'Magnolia'))
+            # Stratégie 1: Chercher par alt contenant le nom
+            main_img = None
+            if detail.nom_complet:
+                main_img = soup.find('img', alt=re.compile(re.escape(detail.nom_complet), re.IGNORECASE))
+            
+            # Stratégie 2: Chercher l'image principale du produit (première image large)
+            if not main_img:
+                # Chercher dans la zone galerie/carousel
+                gallery_img = soup.find('img', class_=re.compile(r'w-full|product-image'))
+                if gallery_img:
+                    main_img = gallery_img
+            
+            # Stratégie 3: Chercher toute image avec srcset (format haute qualité)
+            if not main_img:
+                imgs_with_srcset = soup.find_all('img', srcset=True)
+                if imgs_with_srcset:
+                    # Prendre la première image avec srcset qui n'est pas un logo
+                    for img in imgs_with_srcset:
+                        src = img.get('src', '')
+                        if 'media/catalog/product' in src or 'media/ri' in src:
+                            main_img = img
+                            break
+            
             if main_img:
-                detail.image_principale = main_img.get('src', '')
+                # Prendre le src ou la plus haute résolution du srcset
+                src = main_img.get('src', '')
+                srcset = main_img.get('srcset', '')
+                
+                if srcset:
+                    # Parser le srcset pour trouver la plus haute résolution
+                    # Format: "url1 320w, url2 640w, url3 1200w"
+                    srcset_parts = srcset.split(',')
+                    max_width = 0
+                    best_url = src
+                    for part in srcset_parts:
+                        part = part.strip()
+                        if ' ' in part:
+                            url, width_str = part.rsplit(' ', 1)
+                            try:
+                                width = int(width_str.replace('w', ''))
+                                if width > max_width:
+                                    max_width = width
+                                    best_url = url
+                            except:
+                                pass
+                    detail.image_principale = best_url
+                    print(f"  📸 Image trouvée (srcset {max_width}w): {best_url[:80]}...")
+                else:
+                    detail.image_principale = src
+                    print(f"  📸 Image trouvée (src): {src[:80]}...")
+            else:
+                print(f"  ⚠️ Image principale non trouvée")
             
             print(f"✅ Extraction réussie: {len(detail.formats)} formats trouvés")
             return detail
