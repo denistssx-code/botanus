@@ -60,12 +60,22 @@ class RusticaPlantData:
 class RusticaScraper:
     """Scraper pour extraire les données d'entretien depuis Rustica.fr"""
     
+    # URLs connues pour plantes courantes (fallback)
+    KNOWN_URLS = {
+        'lavandula angustifolia': 'https://www.rustica.fr/plantes-jardin/lavande-lavandula-angustifolia,3886.html',
+        'olea europaea': 'https://www.rustica.fr/plantes-jardin/olivier-olea-europaea,3907.html',
+        'rosa': 'https://www.rustica.fr/plantes-jardin/rosier-rosa,3918.html',
+        'prunus avium': 'https://www.rustica.fr/plantes-jardin/cerisier-prunus-avium,3880.html',
+        'malus domestica': 'https://www.rustica.fr/plantes-jardin/pommier-malus-domestica,3910.html',
+    }
+    
     def __init__(self):
         self.base_url = "https://www.rustica.fr"
         self.headers = {
-            'User-Agent': 'Ma Bibliothèque Végétale - Bot d\'agrégation de données botaniques',
-            'Accept': 'text/html,application/xhtml+xml',
-            'Accept-Language': 'fr-FR,fr;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+            'Referer': 'https://www.rustica.fr/',
         }
         self.session = requests.Session()
         self.session.headers.update(self.headers)
@@ -83,49 +93,91 @@ class RusticaScraper:
         """
         print(f"🔍 Recherche Rustica: {nom_latin}")
         
+        # Normaliser le nom pour la recherche
+        nom_normalized = nom_latin.lower().strip()
+        
+        # Stratégie 0 : URLs connues (base de données locale)
+        for known_name, known_url in self.KNOWN_URLS.items():
+            if known_name in nom_normalized or nom_normalized.startswith(known_name.split()[0]):
+                print(f"  ✅ Trouvé dans URLs connues!")
+                return known_url
+        
+        # Stratégie 1 : URL directe construite (pattern connu)
+        url_slug = nom_latin.lower().replace(' ', '-')
+        direct_url = f"{self.base_url}/plantes-jardin/{url_slug}.html"
+        
+        print(f"  → Tentative URL directe: {direct_url}")
         try:
-            # URL de recherche
-            search_url = f"{self.base_url}/recherche"
-            params = {'q': nom_latin}
+            response = self.session.head(direct_url, timeout=5, allow_redirects=True)
+            if response.status_code == 200:
+                print(f"  ✅ Trouvé via URL directe!")
+                return direct_url
+        except:
+            pass
+        
+        # Stratégie 2 : Recherche Google sur Rustica
+        try:
+            google_query = f"site:rustica.fr {nom_latin}"
+            google_url = f"https://www.google.com/search?q={quote(google_query)}"
             
-            response = self.session.get(search_url, params=params, timeout=10)
-            response.raise_for_status()
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(google_url, headers=headers, timeout=10)
             
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Chercher les résultats de recherche
-            # Structure peut varier, chercher plusieurs patterns
-            result_links = []
-            
-            # Pattern 1: Articles de plantes
-            articles = soup.find_all('article', class_=re.compile('plant|result'))
-            for article in articles:
-                link = article.find('a', href=re.compile(r'/plantes?[/-]'))
-                if link:
-                    result_links.append(link)
-            
-            # Pattern 2: Liens directs vers plantes
-            if not result_links:
-                result_links = soup.find_all('a', href=re.compile(r'/plantes?[/-]'))
-            
-            # Vérifier chaque résultat
-            nom_latin_lower = nom_latin.lower()
-            for link in result_links:
-                href = link.get('href', '')
-                text = self._clean_text(link.get_text()).lower()
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Vérifier que le nom latin est dans le texte ou l'URL
-                if nom_latin_lower in text or nom_latin_lower.replace(' ', '-') in href:
-                    url = urljoin(self.base_url, href)
-                    print(f"  ✅ Trouvé: {url}")
-                    return url
-            
-            print(f"  ❌ Pas trouvé sur Rustica")
-            return None
-            
+                # Chercher les liens rustica.fr dans les résultats
+                for link in soup.find_all('a'):
+                    href = link.get('href', '')
+                    if 'rustica.fr/plantes' in href or 'rustica.fr/jardin' in href:
+                        # Extraire l'URL propre
+                        if '/url?q=' in href:
+                            url = href.split('/url?q=')[1].split('&')[0]
+                        else:
+                            url = href
+                        
+                        if url.startswith('http'):
+                            print(f"  ✅ Trouvé via Google: {url}")
+                            return url
         except Exception as e:
-            print(f"  ❌ Erreur recherche: {e}")
-            return None
+            print(f"  ⚠️ Recherche Google échouée: {e}")
+        
+        # Stratégie 3 : Patterns alternatifs d'URL
+        # Rustica utilise parfois des patterns différents
+        patterns = [
+            f"{self.base_url}/articles/{url_slug}",
+            f"{self.base_url}/jardin/{url_slug}.html",
+            f"{self.base_url}/plante/{url_slug}",
+        ]
+        
+        for pattern in patterns:
+            print(f"  → Tentative: {pattern}")
+            try:
+                response = self.session.head(pattern, timeout=5, allow_redirects=True)
+                if response.status_code == 200:
+                    print(f"  ✅ Trouvé via pattern alternatif!")
+                    return pattern
+            except:
+                continue
+        
+        # Stratégie 4 : Recherche par nom de genre seulement
+        # Parfois Rustica n'a pas la variété spécifique mais le genre
+        genre = nom_latin.split()[0] if ' ' in nom_latin else nom_latin
+        if genre != nom_latin:
+            print(f"  → Tentative avec genre uniquement: {genre}")
+            genre_url = f"{self.base_url}/plantes-jardin/{genre.lower()}.html"
+            try:
+                response = self.session.head(genre_url, timeout=5, allow_redirects=True)
+                if response.status_code == 200:
+                    print(f"  ✅ Trouvé via genre: {genre_url}")
+                    return genre_url
+            except:
+                pass
+        
+        print(f"  ❌ Pas trouvé sur Rustica après toutes les stratégies")
+        return None
     
     def extract_plant_data(self, url: str) -> Optional[RusticaPlantData]:
         """Extrait toutes les données d'entretien d'une page Rustica"""
