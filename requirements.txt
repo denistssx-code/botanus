@@ -3,4 +3,4 @@ flask-cors==4.0.0
 requests==2.31.0
 beautifulsoup4==4.12.3
 fuzzywuzzy==0.18.0
-python-Levenshtein==0.25.0
+rapidfuzz==3.14.3
