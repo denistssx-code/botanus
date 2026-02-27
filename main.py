@@ -8,6 +8,16 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+# Imports des modules d'agrégation de données
+try:
+    from plant_matcher import plant_matcher
+    from rustica_scraper import rustica_scraper
+    ENRICHMENT_ENABLED = True
+    print("✅ Modules d'enrichissement chargés")
+except ImportError as e:
+    print(f"⚠️ Modules d'enrichissement non disponibles: {e}")
+    ENRICHMENT_ENABLED = False
+
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
@@ -785,6 +795,81 @@ def get_plant_detail():
         })
     else:
         return jsonify({'error': 'Échec extraction'}), 500
+
+@app.route('/api/plant/enrichment', methods=['GET'])
+def get_plant_enrichment():
+    """
+    Récupère les données d'entretien enrichies depuis Rustica
+    Query params:
+        - nom_latin: Nom latin de la plante (requis)
+        - force_refresh: Boolean pour forcer le refresh (optionnel)
+    """
+    if not ENRICHMENT_ENABLED:
+        return jsonify({
+            'success': False,
+            'error': 'Module d\'enrichissement non disponible'
+        }), 503
+    
+    nom_latin = request.args.get('nom_latin', '').strip()
+    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+    
+    if not nom_latin:
+        return jsonify({'error': 'nom_latin requis'}), 400
+    
+    print(f"\n{'='*60}")
+    print(f"🌿 ENRICHISSEMENT: {nom_latin}")
+    print(f"{'='*60}\n")
+    
+    try:
+        # Vérifier le cache d'abord (sauf si force_refresh)
+        if not force_refresh:
+            cached_url = plant_matcher.get_from_cache(nom_latin, 'rustica')
+            if cached_url:
+                print(f"💾 Cache hit: {cached_url}")
+                rustica_data = rustica_scraper.extract_plant_data(cached_url)
+                if rustica_data:
+                    return jsonify({
+                        'success': True,
+                        'source': 'cache',
+                        'data': asdict(rustica_data)
+                    })
+        
+        # Sinon, scraper Rustica
+        rustica_data = rustica_scraper.get_plant_data(nom_latin)
+        
+        if rustica_data:
+            # Sauvegarder dans le cache
+            plant_matcher.add_to_cache(nom_latin, 'rustica', rustica_data.url)
+            
+            print(f"✅ Enrichissement réussi")
+            print(f"  • Arrosage: {rustica_data.arrosage_frequence}")
+            print(f"  • Fertilisation: {rustica_data.fertilisation_periode}")
+            print(f"  • Maladies: {len(rustica_data.maladies)}")
+            print(f"  • Parasites: {len(rustica_data.parasites)}")
+            print(f"{'='*60}\n")
+            
+            return jsonify({
+                'success': True,
+                'source': 'rustica',
+                'data': asdict(rustica_data)
+            })
+        else:
+            print(f"⚠️ Pas de données Rustica trouvées")
+            print(f"{'='*60}\n")
+            return jsonify({
+                'success': False,
+                'error': 'Plante non trouvée sur Rustica'
+            }), 404
+            
+    except Exception as e:
+        print(f"❌ Erreur enrichissement: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
