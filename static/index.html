@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 7.1 - FIX Recherche Rustica (5 stratégies + URLs connues) - 2026-02-27 -->
+    <!-- VERSION 10.0 - Affichage données enrichies AuJardin dans frontend (arrosage, taille, maladies, ravageurs) - 2026-03-01 -->
     <style>
         * {
             margin: 0;
@@ -1037,6 +1037,72 @@
                     <div class="info-group" id="detail-produits-group" style="display: none;">
                         <div class="info-title">🌿 Produits recommandés</div>
                         <div id="detail-produits-liste" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+                    </div>
+
+                    <!-- SECTION DONNÉES ENRICHIES AUJARDIN.INFO -->
+                    <div id="enrichment-section" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
+                        <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🌿 Entretien Détaillé</h3>
+                            <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;" id="enrichment-source">Source: AuJardin.info</div>
+                        </div>
+
+                        <!-- Arrosage enrichi -->
+                        <div class="info-group" id="enrichment-arrosage-group" style="display: none;">
+                            <div class="info-title">💧 Arrosage</div>
+                            <div class="info-badge" id="enrichment-arrosage-frequence" style="background: linear-gradient(135deg, #2196F3, #42A5F5);"></div>
+                            <div class="info-text" id="enrichment-arrosage-detail" style="margin-top: 8px; line-height: 1.6;"></div>
+                        </div>
+
+                        <!-- Fertilisation enrichie -->
+                        <div class="info-group" id="enrichment-fertilisation-group" style="display: none;">
+                            <div class="info-title">🌱 Fertilisation</div>
+                            <div class="info-text" id="enrichment-fertilisation-detail" style="line-height: 1.6;"></div>
+                        </div>
+
+                        <!-- Taille enrichie -->
+                        <div class="info-group" id="enrichment-taille-group" style="display: none;">
+                            <div class="info-title">✂️ Taille Technique</div>
+                            <div class="info-badge" id="enrichment-taille-periode" style="background: linear-gradient(135deg, #FF9800, #FFB74D);"></div>
+                            <div class="info-text" id="enrichment-taille-technique" style="margin-top: 8px; line-height: 1.6; white-space: pre-line;"></div>
+                        </div>
+
+                        <!-- Multiplication enrichie -->
+                        <div class="info-group" id="enrichment-multiplication-group" style="display: none;">
+                            <div class="info-title">🌿 Multiplication</div>
+                            <div class="info-text" style="margin-bottom: 8px;">
+                                <strong>Méthodes :</strong> <span id="enrichment-multiplication-methodes"></span>
+                            </div>
+                            <div class="info-text" id="enrichment-multiplication-detail" style="line-height: 1.6; font-size: 14px;"></div>
+                        </div>
+
+                        <!-- Maladies enrichies -->
+                        <div class="info-group" id="enrichment-maladies-group" style="display: none;">
+                            <div class="info-title">🦠 Maladies Communes</div>
+                            <ul id="enrichment-maladies-liste" style="margin: 8px 0; padding-left: 20px; line-height: 1.8;"></ul>
+                        </div>
+
+                        <!-- Ravageurs enrichis -->
+                        <div class="info-group" id="enrichment-ravageurs-group" style="display: none;">
+                            <div class="info-title">🐛 Ravageurs</div>
+                            <ul id="enrichment-ravageurs-liste" style="margin: 8px 0; padding-left: 20px; line-height: 1.8;"></ul>
+                        </div>
+
+                        <!-- Variétés intéressantes -->
+                        <div class="info-group" id="enrichment-varietes-group" style="display: none;">
+                            <div class="info-title">🎨 Variétés Intéressantes</div>
+                            <div id="enrichment-varietes-liste" style="margin-top: 8px;"></div>
+                        </div>
+
+                        <!-- Loader pendant chargement -->
+                        <div id="enrichment-loading" style="text-align: center; padding: 40px 20px; display: none;">
+                            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                            <div style="color: #666;">Chargement des données d'entretien...</div>
+                        </div>
+
+                        <!-- Message si pas de données -->
+                        <div id="enrichment-not-found" style="text-align: center; padding: 20px; background: #FFF3CD; border-radius: 8px; color: #856404; display: none;">
+                            <div style="font-size: 14px;">ℹ️ Données d'entretien détaillées non disponibles pour cette plante</div>
+                        </div>
                     </div>
 
                     <div class="info-group" id="no-entretien-info" style="text-align: center; padding: 40px 20px; color: #999;">
@@ -2344,6 +2410,18 @@
             document.getElementById('detail-hivernage-group').style.display = 'none';
             document.getElementById('detail-conseils-group').style.display = 'none';
             document.getElementById('detail-produits-group').style.display = 'none';
+            
+            // Réinitialiser la section enrichissement
+            document.getElementById('enrichment-section').style.display = 'none';
+            document.getElementById('enrichment-arrosage-group').style.display = 'none';
+            document.getElementById('enrichment-fertilisation-group').style.display = 'none';
+            document.getElementById('enrichment-taille-group').style.display = 'none';
+            document.getElementById('enrichment-multiplication-group').style.display = 'none';
+            document.getElementById('enrichment-maladies-group').style.display = 'none';
+            document.getElementById('enrichment-ravageurs-group').style.display = 'none';
+            document.getElementById('enrichment-varietes-group').style.display = 'none';
+            document.getElementById('enrichment-loading').style.display = 'none';
+            document.getElementById('enrichment-not-found').style.display = 'none';
         }
         
         
@@ -2696,6 +2774,151 @@
             // Masquer "non disponible" si on a des infos
             if (hasEntretienInfo) {
                 document.getElementById('no-entretien-info').style.display = 'none';
+            }
+            
+            // Charger les données enrichies en arrière-plan
+            if (details.nom_latin) {
+                loadEnrichmentData(details.nom_latin);
+            }
+        }
+
+        async function loadEnrichmentData(nom_latin) {
+            console.log(`🌿 Chargement données enrichies pour: ${nom_latin}`);
+            
+            // Afficher le loader
+            document.getElementById('enrichment-loading').style.display = 'block';
+            document.getElementById('enrichment-section').style.display = 'block';
+            document.getElementById('enrichment-not-found').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/plant/aujardin-enrichment?nom_latin=${encodeURIComponent(nom_latin)}`);
+                const result = await response.json();
+                
+                // Masquer le loader
+                document.getElementById('enrichment-loading').style.display = 'none';
+                
+                if (result.success && result.data) {
+                    displayEnrichmentData(result.data);
+                } else {
+                    // Pas de données trouvées
+                    document.getElementById('enrichment-not-found').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur chargement données enrichies:', error);
+                document.getElementById('enrichment-loading').style.display = 'none';
+                document.getElementById('enrichment-not-found').style.display = 'block';
+            }
+        }
+
+        function displayEnrichmentData(data) {
+            console.log('📊 Affichage données enrichies:', data);
+            
+            let hasEnrichmentData = false;
+            
+            // Arrosage
+            if (data.arrosage || data.arrosage_detail) {
+                if (data.arrosage) {
+                    document.getElementById('enrichment-arrosage-frequence').textContent = data.arrosage;
+                    document.getElementById('enrichment-arrosage-frequence').style.display = 'inline-block';
+                }
+                if (data.arrosage_detail) {
+                    document.getElementById('enrichment-arrosage-detail').textContent = data.arrosage_detail;
+                }
+                document.getElementById('enrichment-arrosage-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Fertilisation
+            if (data.fertilisation_detail) {
+                document.getElementById('enrichment-fertilisation-detail').textContent = data.fertilisation_detail;
+                document.getElementById('enrichment-fertilisation-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Taille
+            if (data.taille_periode || data.taille_technique) {
+                if (data.taille_periode) {
+                    document.getElementById('enrichment-taille-periode').textContent = data.taille_periode;
+                    document.getElementById('enrichment-taille-periode').style.display = 'inline-block';
+                }
+                if (data.taille_technique) {
+                    document.getElementById('enrichment-taille-technique').textContent = data.taille_technique;
+                }
+                document.getElementById('enrichment-taille-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Multiplication
+            if (data.multiplication || data.multiplication_detail) {
+                if (data.multiplication) {
+                    document.getElementById('enrichment-multiplication-methodes').textContent = data.multiplication;
+                }
+                if (data.multiplication_detail) {
+                    document.getElementById('enrichment-multiplication-detail').textContent = data.multiplication_detail;
+                }
+                document.getElementById('enrichment-multiplication-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Maladies
+            if (data.maladies && data.maladies.length > 0) {
+                const maladiesliste = document.getElementById('enrichment-maladies-liste');
+                maladiesliste.innerHTML = '';
+                
+                data.maladies.forEach(maladie => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '4px';
+                    li.innerHTML = `<strong>${maladie}</strong>`;
+                    maladiesliste.appendChild(li);
+                });
+                
+                document.getElementById('enrichment-maladies-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Ravageurs
+            if (data.ravageurs && data.ravageurs.length > 0) {
+                const ravageursliste = document.getElementById('enrichment-ravageurs-liste');
+                ravageursliste.innerHTML = '';
+                
+                data.ravageurs.forEach(ravageur => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '4px';
+                    li.innerHTML = `<strong>${ravageur}</strong>`;
+                    ravageursliste.appendChild(li);
+                });
+                
+                document.getElementById('enrichment-ravageurs-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Variétés
+            if (data.varietes && data.varietes.length > 0) {
+                const varietesliste = document.getElementById('enrichment-varietes-liste');
+                varietesliste.innerHTML = '';
+                
+                data.varietes.slice(0, 5).forEach(variete => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '12px';
+                    div.style.paddingBottom = '12px';
+                    div.style.borderBottom = '1px solid #e0e0e0';
+                    
+                    div.innerHTML = `
+                        <div style="font-weight: 600; color: #4CAF50; margin-bottom: 4px;">${variete.nom}</div>
+                        ${variete.description ? `<div style="font-size: 14px; color: #666;">${variete.description}</div>` : ''}
+                    `;
+                    
+                    varietesliste.appendChild(div);
+                });
+                
+                document.getElementById('enrichment-varietes-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Si aucune donnée enrichie, afficher le message
+            if (!hasEnrichmentData) {
+                document.getElementById('enrichment-not-found').style.display = 'block';
             }
         }
 
