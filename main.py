@@ -12,11 +12,24 @@ import re
 try:
     from plant_matcher import plant_matcher
     from rustica_scraper import rustica_scraper
+    from aujardin_scraper import aujardin_scraper
     ENRICHMENT_ENABLED = True
     print("✅ Modules d'enrichissement chargés")
 except ImportError as e:
     print(f"⚠️ Modules d'enrichissement non disponibles: {e}")
     ENRICHMENT_ENABLED = False
+    aujardin_scraper = None
+
+# Import du client Airtable
+try:
+    from airtable_client import airtable_client
+    AIRTABLE_ENABLED = airtable_client.enabled
+    if AIRTABLE_ENABLED:
+        print("✅ Airtable activé")
+except ImportError as e:
+    print(f"⚠️ Airtable non disponible: {e}")
+    AIRTABLE_ENABLED = False
+    airtable_client = None
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -871,6 +884,66 @@ def get_plant_enrichment():
             'error': str(e)
         }), 500
 
+@app.route('/api/plant/aujardin-enrichment', methods=['GET'])
+def get_aujardin_enrichment():
+    """
+    Récupère les données d'entretien depuis AuJardin.info
+    Query params:
+        - nom_latin: Nom latin de la plante (requis)
+    """
+    if not ENRICHMENT_ENABLED or not aujardin_scraper:
+        return jsonify({
+            'success': False,
+            'error': 'Module AuJardin non disponible'
+        }), 503
+    
+    nom_latin = request.args.get('nom_latin', '').strip()
+    
+    if not nom_latin:
+        return jsonify({'error': 'nom_latin requis'}), 400
+    
+    print(f"\n{'='*60}")
+    print(f"🌿 ENRICHISSEMENT AUJARDIN: {nom_latin}")
+    print(f"{'='*60}\n")
+    
+    try:
+        # Scraper AuJardin.info
+        aujardin_data = aujardin_scraper.get_plant_data(nom_latin)
+        
+        if aujardin_data:
+            print(f"✅ Enrichissement AuJardin réussi")
+            print(f"  • Arrosage: {aujardin_data.arrosage or 'Non'}")
+            print(f"  • Taille: {aujardin_data.taille_periode or 'Non'}")
+            print(f"  • Multiplication: {aujardin_data.multiplication or 'Non'}")
+            print(f"  • Maladies: {len(aujardin_data.maladies)}")
+            print(f"  • Ravageurs: {len(aujardin_data.ravageurs)}")
+            print(f"{'='*60}\n")
+            
+            # Convertir en dict pour JSON
+            from dataclasses import asdict
+            return jsonify({
+                'success': True,
+                'source': 'aujardin.info',
+                'data': asdict(aujardin_data)
+            })
+        else:
+            print(f"⚠️ Pas de données AuJardin trouvées")
+            print(f"{'='*60}\n")
+            return jsonify({
+                'success': False,
+                'error': 'Plante non trouvée sur AuJardin.info'
+            }), 404
+            
+    except Exception as e:
+        print(f"❌ Erreur enrichissement AuJardin: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
     """Suggestions de plantes populaires"""
@@ -974,7 +1047,7 @@ def add_to_library():
     # Générer un nouvel ID
     plant_id = get_next_plant_id()
     
-    # Stocker la plante
+    # Stocker la plante localement
     library_db[plant_id] = {
         'nom_francais': data.get('nom_francais', ''),
         'nom_latin': data.get('nom_latin', ''),
@@ -994,9 +1067,21 @@ def add_to_library():
         'quantity': 0
     }
     
+    # Synchroniser avec Airtable si activé
+    airtable_record_id = None
+    if AIRTABLE_ENABLED and airtable_client:
+        try:
+            airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
+            if airtable_record_id:
+                print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
+        except Exception as e:
+            print(f"⚠️ Erreur sync Airtable: {e}")
+            # Continue quand même (stockage local fonctionne)
+    
     return jsonify({
         'success': True,
         'plant_id': plant_id,
+        'airtable_record_id': airtable_record_id,
         'message': 'Plante ajoutée avec succès'
     })
 
@@ -1032,6 +1117,14 @@ def get_or_create_plant_id():
             if 'details' in data and data['details']:
                 plant_data['details'] = data['details']
                 print(f"✅ Plante existe - Détails mis à jour pour ID {plant_id}")
+                
+                # Synchroniser avec Airtable si activé
+                if AIRTABLE_ENABLED and airtable_client:
+                    try:
+                        airtable_client.upsert_plant(plant_data)
+                    except Exception as e:
+                        print(f"⚠️ Erreur sync Airtable: {e}")
+            
             return jsonify({
                 'plant_id': plant_id,
                 'exists': True
@@ -1061,6 +1154,14 @@ def get_or_create_plant_id():
     print(f"   Details stockés: {bool(library_db[plant_id]['details'])}")
     if library_db[plant_id]['details']:
         print(f"   periode_taille: {library_db[plant_id]['details'].get('periode_taille', 'NON')}")
+    
+    # Synchroniser avec Airtable si activé
+    if AIRTABLE_ENABLED and airtable_client:
+        try:
+            airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
+            print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
+        except Exception as e:
+            print(f"⚠️ Erreur sync Airtable: {e}")
     
     # Initialiser notes vides
     notes_db[plant_id] = {
