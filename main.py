@@ -1156,14 +1156,13 @@ def get_or_create_plant_id():
         print(f"   periode_taille: {library_db[plant_id]['details'].get('periode_taille', 'NON')}")
     
     # Synchroniser avec Airtable si activé
-
     if AIRTABLE_ENABLED and airtable_client:
         try:
             airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
             print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
         except Exception as e:
             print(f"⚠️ Erreur sync Airtable: {e}")
-            
+    
     # Initialiser notes vides
     notes_db[plant_id] = {
         'notes': '',
