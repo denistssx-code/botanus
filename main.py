@@ -1157,19 +1157,13 @@ def get_or_create_plant_id():
     
     # Synchroniser avec Airtable si activé
 
-
-if AIRTABLE_ENABLED and airtable_client:
-    try:
-        payload = library_db[plant_id]
-        print("📤 Payload envoyé à Airtable :")
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
-
-        airtable_record_id = airtable_client.upsert_plant(payload)
-        print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
-
-    except Exception as e:
-        print(f"⚠️ Erreur sync Airtable: {e}")
-
+    if AIRTABLE_ENABLED and airtable_client:
+        try:
+            airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
+            print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
+        except Exception as e:
+            print(f"⚠️ Erreur sync Airtable: {e}")
+            
     # Initialiser notes vides
     notes_db[plant_id] = {
         'notes': '',
