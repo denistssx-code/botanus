@@ -214,7 +214,9 @@ class AirtableClient:
         data = {
             'fields': fields
         }
-        
+        print("📤 JSON envoyé à Airtable (CREATE) :")
+print(json.dumps(data, indent=2, ensure_ascii=False))
+
         response = self._request('POST', self.table_plantes, data)
         
         if response and response.get('id'):
@@ -237,7 +239,9 @@ class AirtableClient:
         data = {
             'fields': fields
         }
-        
+        print("📤 JSON envoyé à Airtable (UPDATE) :")
+print(json.dumps(data, indent=2, ensure_ascii=False))
+
         response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
         
         if response and response.get('id'):
