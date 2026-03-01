@@ -253,13 +253,18 @@ class AirtableClient:
         """
         if not self.enabled:
             return None
+            print("📤 Payload reçu par upsert_plant() :")
+print(json.dumps(plant_data, indent=2, ensure_ascii=False))
+
         
         nom_latin = plant_data.get('nom_latin')
         
         if not nom_latin:
             print("⚠️ Pas de nom latin, impossible de faire un upsert")
             return self.create_plant(plant_data)
-        
+
+record_id = self.find_plant_by_latin_name(nom_latin) if record_id: print(f"🔄 Mise à jour Airtable record {record_id}") self.update_plant(record_id, plant_data) return record_id else: print("➕ Création d'une nouvelle plante dans Airtable") return self.create_plant(plant_data)
+
         # Chercher si la plante existe déjà
         record_id = self.find_plant_by_latin_name(nom_latin)
         
