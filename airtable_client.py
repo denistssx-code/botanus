@@ -200,59 +200,60 @@ class AirtableClient:
         return None
     
     def create_plant(self, plant_data: Dict) -> Optional[str]:
-        """
-        Crée une nouvelle plante dans Airtable
-        Retourne le record ID si succès
-        """
-        if not self.enabled:
-            return None
-        
-        # Transformer les données
-        fields = self.transform_plant_data(plant_data)
-        
-        # Créer le record
-        data = {
-    'fields': fields
-}
-
-print("📤 JSON envoyé à Airtable (CREATE) :")
-print(json.dumps(data, indent=2, ensure_ascii=False))
-
-response = self._request('POST', self.table_plantes, data)
-
-        
-        if response and response.get('id'):
-            print(f"✅ Plante créée dans Airtable: {fields.get('nom_francais')} (ID: {response['id']})")
-            return response['id']
-        
+    """
+    Crée une nouvelle plante dans Airtable
+    Retourne le record ID si succès
+    """
+    if not self.enabled:
         return None
+
+    # Transformer les données
+    fields = self.transform_plant_data(plant_data)
+
+    # Créer le record
+    data = {
+        'fields': fields
+    }
+
+    # LOG IMPORTANT
+    print("📤 JSON envoyé à Airtable (CREATE) :")
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+    # Requête Airtable
+    response = self._request('POST', self.table_plantes, data)
+
+    if response and response.get('id'):
+        print(f"✅ Plante créée dans Airtable: {fields.get('nom_francais')} (ID: {response['id']})")
+        return response['id']
+
+    return None
+
     
     def update_plant(self, record_id: str, plant_data: Dict) -> bool:
-        """
-        Met à jour une plante existante dans Airtable
-        """
-        if not self.enabled:
-            return False
-        
-        # Transformer les données
-        fields = self.transform_plant_data(plant_data)
-        
-        # Mettre à jour le record
-        data = {
-    'fields': fields
-}
-
-print("📤 JSON envoyé à Airtable (UPDATE) :")
-print(json.dumps(data, indent=2, ensure_ascii=False))
-
-response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
-
-        
-        if response and response.get('id'):
-            print(f"✅ Plante mise à jour dans Airtable: {fields.get('nom_francais')}")
-            return True
-        
+    """
+    Met à jour une plante existante dans Airtable
+    """
+    if not self.enabled:
         return False
+
+    fields = self.transform_plant_data(plant_data)
+
+    data = {
+        'fields': fields
+    }
+
+    # LOG IMPORTANT
+    print("📤 JSON envoyé à Airtable (UPDATE) :")
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+    response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+
+    if response and response.get('id'):
+        print(f"✅ Plante mise à jour dans Airtable: {fields.get('nom_francais')}")
+        return True
+
+    return False
+
     
     def upsert_plant(self, plant_data: Dict) -> Optional[str]:
         """
