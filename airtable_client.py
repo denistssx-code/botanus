@@ -212,10 +212,14 @@ class AirtableClient:
         
         # Créer le record
         data = {
-            'fields': fields
-        }
-        
-        response = self._request('POST', self.table_plantes, data)
+    'fields': fields
+}
+
+print("📤 JSON envoyé à Airtable (CREATE) :")
+print(json.dumps(data, indent=2, ensure_ascii=False))
+
+response = self._request('POST', self.table_plantes, data)
+
         
         if response and response.get('id'):
             print(f"✅ Plante créée dans Airtable: {fields.get('nom_francais')} (ID: {response['id']})")
@@ -235,10 +239,14 @@ class AirtableClient:
         
         # Mettre à jour le record
         data = {
-            'fields': fields
-        }
-        
-        response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+    'fields': fields
+}
+
+print("📤 JSON envoyé à Airtable (UPDATE) :")
+print(json.dumps(data, indent=2, ensure_ascii=False))
+
+response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+
         
         if response and response.get('id'):
             print(f"✅ Plante mise à jour dans Airtable: {fields.get('nom_francais')}")
