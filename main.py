@@ -1204,6 +1204,20 @@ def save_notes(plant_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/library/<int:plant_id>/notes', methods=['PUT'])
+def update_plant_notes_put(plant_id):
+    """Mettre à jour notes et quantité (PUT)"""
+    data = request.json
+    library_db = load_library_db()
+    
+    if str(plant_id) in library_db:
+        library_db[str(plant_id)]['notes'] = data.get('notes', '')
+        library_db[str(plant_id)]['quantity'] = data.get('quantity', 0)
+        save_library_db(library_db)
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Non trouvée'}), 404
+
 @app.route('/api/library/plant/<int:plant_id>/photo', methods=['POST'])
 def save_custom_photo(plant_id):
     """Sauvegarde une photo personnalisée pour une plante"""
