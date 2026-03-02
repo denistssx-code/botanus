@@ -2662,6 +2662,9 @@
                 case 'quantity':
                     sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
                     break;
+                case 'date_asc':
+                    sorted.sort((a, b) => a.id - b.id);  // Ancien d'abord
+                    break;
             }
             
             return sorted;
