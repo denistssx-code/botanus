@@ -483,20 +483,21 @@
         /* Actions rapides sur cartes */
         .card-quick-actions {
             display: flex;
-            gap: 4px;
-            padding: 8px 12px;
+            gap: 3px;
+            padding: 6px 8px;
             border-top: 1px solid #f0f0f0;
             background: #fafafa;
         }
         
         .quick-action-btn {
             flex: 1;
-            padding: 6px;
+            min-width: 0;
+            padding: 4px 2px;
             border: 1px solid #ddd;
             background: white;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 13px;
             transition: all 0.2s;
             display: flex;
             align-items: center;
@@ -1144,6 +1145,9 @@
                     </button>
                     <button class="sort-btn" onclick="sortLibrary('date_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
                         📅 Récent
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('date_asc')">
+                        📅 Ancien
                     </button>
                     <button class="sort-btn" onclick="sortLibrary('type')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
                         🌿 Type
