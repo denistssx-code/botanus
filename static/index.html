@@ -1101,7 +1101,7 @@
                             <!-- Tags chips générés dynamiquement -->
                         </div>
                     </div>
-                    <button id="selection-mode-btn" onclick="toggleSelectionMode()" style="padding: 6px 12px; border: 1px solid #FF9800; background: white; color: #FF9800; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                    <button id="selection-mode-btn" onclick="toggleSelectionMode()" style="display: none; padding: 6px 12px; border: 1px solid #FF9800; background: white; color: #FF9800; border-radius: 8px; cursor: pointer; font-size: 13px; align-items: center; gap: 4px;">
                         <span>☑️</span> Sélectionner
                     </button>
                 </div>
@@ -2526,11 +2526,16 @@
                 // Charger les notes pour récupérer les tags des plantes
                 for (const plant of allLibraryPlants) {
                     try {
-                        const notesResp = await fetch(`${API_URL}/library/${plant.id}/notes`);
+                        const plantId = plant.plant_id || plant.id;
+                        if (!plantId) {
+                            console.log(`⚠️ Plante sans ID:`, plant);
+                            continue;
+                        }
+                        const notesResp = await fetch(`${API_URL}/library/${plantId}/notes`);
                         const notesData = await notesResp.json();
-                        notes_db_local[plant.id] = notesData;
+                        notes_db_local[plantId] = notesData;
                     } catch (err) {
-                        console.log(`Notes non disponibles pour plante ${plant.id}`);
+                        console.log(`Notes non disponibles pour plante ${plant.plant_id || plant.id}`);
                     }
                 }
                 
@@ -2736,10 +2741,12 @@
         // NOUVEAU: Afficher vue grille avec actions rapides, tags et checkboxes
         function displayGridView(plants, container) {
             plants.forEach(plant => {
+                const plantId = plant.plant_id || plant.id;  // Support les deux formats
+                
                 const cardEl = document.createElement('div');
                 cardEl.className = 'library-card';
                 if (selectionMode) cardEl.classList.add('selection-mode');
-                if (selectedPlantIds.has(plant.id)) cardEl.classList.add('selected');
+                if (selectedPlants.has(plantId)) cardEl.classList.add('selected');
                 
                 // Priorité: photo personnalisée > image principale > icône
                 let imageHTML;
@@ -2752,14 +2759,14 @@
                 }
                 
                 // Récupérer les tags de la plante
-                const plantTags = getPlantTags(plant.id);
+                const plantTags = getPlantTags(plantId);
                 const tagsHTML = plantTags.length > 0 ? 
                     `<div style="display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px;">
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
                 cardEl.innerHTML = `
-                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" ${selectedPlantIds.has(plant.id) ? 'checked' : ''} onchange="togglePlantSelection(${plant.id}, this.checked)">` : ''}
+                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
                     <div class="library-card-image">${imageHTML}</div>
                     <div class="library-card-content" style="cursor: pointer;">
                         <div class="library-card-name">${plant.nom_francais}</div>
@@ -2767,11 +2774,10 @@
                         ${tagsHTML}
                     </div>
                     <div class="card-quick-actions">
-                        <button class="quick-action-btn" title="Diminuer quantité" onclick="event.stopPropagation(); changeQuantity(${plant.id}, -1)">−</button>
-                        <button class="quick-action-btn" title="Augmenter quantité" onclick="event.stopPropagation(); changeQuantity(${plant.id}, 1)">+</button>
-                        <button class="quick-action-btn" title="Gérer tags" onclick="event.stopPropagation(); managePlantTags(${plant.id})">🏷️</button>
-                        <button class="quick-action-btn" title="Voir détails" onclick="event.stopPropagation(); showPlantDetailById(${plant.id})">👁️</button>
-                        <button class="quick-action-btn" title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plant.id})" style="color: #d32f2f;">🗑️</button>
+                        <button class="quick-action-btn" title="Diminuer quantité" onclick="event.stopPropagation(); changeQuantity(${plantId}, -1)">−</button>
+                        <button class="quick-action-btn" title="Augmenter quantité" onclick="event.stopPropagation(); changeQuantity(${plantId}, 1)">+</button>
+                        <button class="quick-action-btn" title="Voir détails" onclick="event.stopPropagation(); showPlantDetailById(${plantId})">👁️</button>
+                        <button class="quick-action-btn" title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plantId})" style="color: #d32f2f;">🗑️</button>
                     </div>
                 `;
                 
@@ -2789,22 +2795,24 @@
         // NOUVEAU: Afficher vue liste compacte
         function displayListView(plants, container) {
             plants.forEach(plant => {
+                const plantId = plant.plant_id || plant.id;  // Support les deux formats
+                
                 const itemEl = document.createElement('div');
                 itemEl.className = 'library-list-item';
                 if (selectionMode) itemEl.classList.add('selection-mode');
-                if (selectedPlantIds.has(plant.id)) itemEl.classList.add('selected');
+                if (selectedPlants.has(plantId)) itemEl.classList.add('selected');
                 
                 const icon = plant.icon || '🌿';
-                const plantTags = getPlantTags(plant.id);
+                const plantTags = getPlantTags(plantId);
                 const tagsHTML = plantTags.length > 0 ?
                     `<div style="display: flex; gap: 4px; margin-top: 2px;">
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
                 itemEl.innerHTML = `
-                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlantIds.has(plant.id) ? 'checked' : ''} onchange="togglePlantSelection(${plant.id}, this.checked)">` : ''}
+                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
                     <div class="library-list-icon">${icon}</div>
-                    <div class="library-list-content" onclick="${selectionMode ? '' : `showPlantDetailById(${plant.id})`}">
+                    <div class="library-list-content" onclick="${selectionMode ? '' : `showPlantDetailById(${plantId})`}">
                         <div class="library-list-name">${plant.nom_francais}</div>
                         <div class="library-list-meta">
                             <span>${plant.type_plante || 'Plante'}</span>
@@ -2816,10 +2824,9 @@
                         ${tagsHTML}
                     </div>
                     <div class="library-list-actions">
-                        <button title="Diminuer" onclick="event.stopPropagation(); changeQuantity(${plant.id}, -1)">−</button>
-                        <button title="Augmenter" onclick="event.stopPropagation(); changeQuantity(${plant.id}, 1)">+</button>
-                        <button title="Tags" onclick="event.stopPropagation(); managePlantTags(${plant.id})">🏷️</button>
-                        <button title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plant.id})" style="color: #d32f2f;">🗑️</button>
+                        <button title="Diminuer" onclick="event.stopPropagation(); changeQuantity(${plantId}, -1)">−</button>
+                        <button title="Augmenter" onclick="event.stopPropagation(); changeQuantity(${plantId}, 1)">+</button>
+                        <button title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plantId})" style="color: #d32f2f;">🗑️</button>
                     </div>
                 `;
                 
@@ -3049,7 +3056,7 @@
         
         function toggleSelectionMode() {
             selectionMode = !selectionMode;
-            selectedPlantIds.clear();
+            selectedPlants.clear();
             const btn = document.getElementById('selection-mode-btn');
             const actionsBar = document.getElementById('selection-actions-bar');
             if (selectionMode) {
@@ -3068,7 +3075,7 @@
         }
         
         function togglePlantSelection(plantId, checked) {
-            if (checked) { selectedPlantIds.add(plantId); } else { selectedPlantIds.delete(plantId); }
+            if (checked) { selectedPlants.add(plantId); } else { selectedPlants.delete(plantId); }
             updateSelectionCount();
             const cards = document.querySelectorAll('.library-card, .library-list-item');
             cards.forEach(card => {
@@ -3083,11 +3090,11 @@
         }
         
         function updateSelectionCount() {
-            document.getElementById('selection-count').textContent = selectedPlantIds.size;
+            document.getElementById('selection-count').textContent = selectedPlants.size;
         }
         
         async function bulkAddTag() {
-            if (selectedPlantIds.size === 0) { alert('Aucune plante sélectionnée'); return; }
+            if (selectedPlants.size === 0) { alert('Aucune plante sélectionnée'); return; }
             if (allTags.length === 0) { alert('Créez d\'abord des tags'); return; }
             let message = 'Choisir un tag :\n\n';
             allTags.forEach((tag, i) => { message += `${i + 1}. ${tag.name}\n`; });
@@ -3100,12 +3107,12 @@
                 const response = await fetch(`${API_URL}/library/bulk-action`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plant_ids: Array.from(selectedPlantIds), action: 'add_tag', tag_id: tagId })
+                    body: JSON.stringify({ plant_ids: Array.from(selectedPlants), action: 'add_tag', tag_id: tagId })
                 });
                 const data = await response.json();
                 if (data.success) {
                     alert(`Tag ajouté à ${data.affected} plante(s)`);
-                    selectedPlantIds.forEach(plantId => {
+                    selectedPlants.forEach(plantId => {
                         if (!notes_db_local[plantId]) notes_db_local[plantId] = { tags: [] };
                         if (!notes_db_local[plantId].tags) notes_db_local[plantId].tags = [];
                         if (!notes_db_local[plantId].tags.includes(tagId)) notes_db_local[plantId].tags.push(tagId);
@@ -3119,18 +3126,18 @@
         }
         
         async function bulkDelete() {
-            if (selectedPlantIds.size === 0) { alert('Aucune plante sélectionnée'); return; }
-            if (!confirm(`Supprimer ${selectedPlantIds.size} plante(s) ?`)) return;
+            if (selectedPlants.size === 0) { alert('Aucune plante sélectionnée'); return; }
+            if (!confirm(`Supprimer ${selectedPlants.size} plante(s) ?`)) return;
             try {
                 const response = await fetch(`${API_URL}/library/bulk-action`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plant_ids: Array.from(selectedPlantIds), action: 'delete' })
+                    body: JSON.stringify({ plant_ids: Array.from(selectedPlants), action: 'delete' })
                 });
                 const data = await response.json();
                 if (data.success) {
                     alert(`${data.deleted} plante(s) supprimée(s)`);
-                    selectedPlantIds.forEach(plantId => {
+                    selectedPlants.forEach(plantId => {
                         allLibraryPlants = allLibraryPlants.filter(p => p.id !== plantId);
                     });
                     cancelSelection();
@@ -3143,7 +3150,7 @@
         }
         
         function cancelSelection() {
-            selectedPlantIds.clear();
+            selectedPlants.clear();
             toggleSelectionMode();
         }
 
