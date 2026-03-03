@@ -2500,10 +2500,6 @@
         let selectionMode = false;  // Mode sélection activé/désactivé
         let selectedPlants = new Set();  // IDs des plantes sélectionnées
         let allTags = [];  // Liste de tous les tags disponibles
-        let allTags = [];
-        let selectedTagFilter = null;  // null = tous, number = tag_id spécifique
-        let selectionMode = false;
-        let selectedPlantIds = new Set();
         
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
