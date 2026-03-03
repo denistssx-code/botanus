@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 12.0 - Tags personnalisés + Sélection multiple + Actions groupées - 2026-03-01 -->
+    <!-- VERSION 11.1 - Corrections: corbeille visible, quantité fonctionne, tri date bidirectionnel, type plante amélioré, fiche structurée - 2026-03-01 -->
     <style>
         * {
             margin: 0;
@@ -497,7 +497,7 @@
             background: white;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             transition: all 0.2s;
             display: flex;
             align-items: center;
@@ -600,6 +600,27 @@
         
         .sort-btn:hover {
             background: #f5f5f5;
+        }
+        
+        /* Sections structurées dans fiche détails */
+        .detail-section {
+            padding: 16px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .detail-section.alternate {
+            background: #f9fafb;
+        }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2E7D32;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8f5e9;
         }
         
         /* Tags */
@@ -1146,7 +1167,7 @@
                     <button class="sort-btn" onclick="sortLibrary('date_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
                         📅 Récent
                     </button>
-                    <button class="sort-btn" onclick="sortLibrary('date_asc')">
+                    <button class="sort-btn" onclick="sortLibrary('date_asc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
                         📅 Ancien
                     </button>
                     <button class="sort-btn" onclick="sortLibrary('type')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
@@ -1207,79 +1228,92 @@
 
                 <!-- Tab Infos -->
                 <div class="tab-content" id="tab-info">
-                    <div class="price-box" id="detail-price-box">
-                        <div class="price-label">Prix</div>
-                        <div class="price-value" id="detail-price">8,90 €</div>
+                    
+                    <!-- SECTION : Prix et type -->
+                    <div class="detail-section">
+                        <h3 class="section-title">💰 Prix et type</h3>
+                        <div class="price-box" id="detail-price-box">
+                            <div class="price-label">Prix</div>
+                            <div class="price-value" id="detail-price">8,90 €</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-title">Type de plante</div>
+                            <span class="info-badge" id="detail-type">Vivace</span>
+                        </div>
+                        <div class="info-group" id="detail-sous-categorie-group" style="display: none;">
+                            <div class="info-title">📂 Catégorie</div>
+                            <div class="info-text" id="detail-sous-categorie">Vivaces aromatiques</div>
+                        </div>
                     </div>
 
-                    <div class="info-group">
-                        <div class="info-title">Type de plante</div>
-                        <span class="info-badge" id="detail-type">Vivace</span>
+                    <!-- SECTION : Conditions de culture -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">☀️ Conditions de culture</h3>
+                        <div class="info-group" id="detail-exposition-group" style="display: none;">
+                            <div class="info-title">Exposition</div>
+                            <div class="info-text" id="detail-exposition">Plein soleil</div>
+                        </div>
+                        <div class="info-group" id="detail-rusticite-group" style="display: none;">
+                            <div class="info-title">❄️ Rusticité</div>
+                            <div class="info-text" id="detail-rusticite">Jusqu'à -15°C</div>
+                        </div>
+                        <div class="info-group" id="detail-sol-group" style="display: none;">
+                            <div class="info-title">🌍 Type de sol</div>
+                            <div class="info-text" id="detail-sol">Bien drainé</div>
+                        </div>
+                        <div class="info-group" id="detail-ph-group" style="display: none;">
+                            <div class="info-title">⚗️ pH du sol</div>
+                            <div class="info-text" id="detail-ph">Acide, Neutre</div>
+                        </div>
                     </div>
 
-                    <div class="info-group" id="detail-sous-categorie-group" style="display: none;">
-                        <div class="info-title">📂 Catégorie</div>
-                        <div class="info-text" id="detail-sous-categorie">Vivaces aromatiques</div>
+                    <!-- SECTION : Dimensions et aspect -->
+                    <div class="detail-section">
+                        <h3 class="section-title">📏 Dimensions et aspect</h3>
+                        <div class="info-group" id="detail-dimensions-group" style="display: none;">
+                            <div class="info-title">Dimensions</div>
+                            <div class="info-text" id="detail-dimensions">H: 60cm × L: 40cm</div>
+                        </div>
+                        <div class="info-group" id="detail-feuillage-group" style="display: none;">
+                            <div class="info-title">🍃 Feuillage</div>
+                            <div class="info-text" id="detail-feuillage">Caduc - Vert</div>
+                        </div>
                     </div>
 
-                    <div class="info-group" id="detail-exposition-group" style="display: none;">
-                        <div class="info-title">☀️ Exposition</div>
-                        <div class="info-text" id="detail-exposition">Plein soleil</div>
+                    <!-- SECTION : Floraison et utilisation -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">🌺 Floraison et utilisation</h3>
+                        <div class="info-group" id="detail-floraison-group" style="display: none;">
+                            <div class="info-title">Période de floraison</div>
+                            <div class="info-text" id="detail-floraison">Juin à Septembre - Rose</div>
+                        </div>
+                        <div class="info-group" id="detail-utilisation-group" style="display: none;">
+                            <div class="info-title">🏡 Type d'utilisation</div>
+                            <div class="info-text" id="detail-utilisation">Massif, Bordure, Pot</div>
+                        </div>
                     </div>
 
-                    <div class="info-group" id="detail-rusticite-group" style="display: none;">
-                        <div class="info-title">❄️ Rusticité</div>
-                        <div class="info-text" id="detail-rusticite">Jusqu'à -15°C</div>
+                    <!-- SECTION : Description -->
+                    <div class="detail-section">
+                        <h3 class="section-title">📖 Description</h3>
+                        <div class="info-group" id="detail-description-group">
+                            <div class="info-text" id="detail-description">Description de la plante...</div>
+                        </div>
+                        <div class="info-group" id="detail-botanique-group" style="display: none;">
+                            <div class="info-title">🔬 Détails botaniques</div>
+                            <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px;"></div>
+                        </div>
                     </div>
 
-                    <div class="info-group" id="detail-dimensions-group" style="display: none;">
-                        <div class="info-title">📏 Dimensions</div>
-                        <div class="info-text" id="detail-dimensions">H: 60cm × L: 40cm</div>
-                    </div>
-
-                    <div class="info-group" id="detail-floraison-group" style="display: none;">
-                        <div class="info-title">🌸 Floraison</div>
-                        <div class="info-text" id="detail-floraison">Juin à Septembre - Rose</div>
-                    </div>
-
-                    <div class="info-group" id="detail-feuillage-group" style="display: none;">
-                        <div class="info-title">🍃 Feuillage</div>
-                        <div class="info-text" id="detail-feuillage">Caduc - Vert</div>
-                    </div>
-
-                    <div class="info-group" id="detail-utilisation-group" style="display: none;">
-                        <div class="info-title">🏡 Type d'utilisation</div>
-                        <div class="info-text" id="detail-utilisation">Massif, Bordure, Pot</div>
-                    </div>
-
-                    <div class="info-group" id="detail-sol-group" style="display: none;">
-                        <div class="info-title">🌍 Type de sol</div>
-                        <div class="info-text" id="detail-sol">Bien drainé</div>
-                    </div>
-
-                    <div class="info-group" id="detail-ph-group" style="display: none;">
-                        <div class="info-title">⚗️ pH du sol</div>
-                        <div class="info-text" id="detail-ph">Acide, Neutre</div>
-                    </div>
-
-                    <div class="info-group" id="detail-description-group">
-                        <div class="info-title">📝 Description</div>
-                        <div class="info-text" id="detail-description">Description de la plante...</div>
-                    </div>
-
-                    <div class="info-group" id="detail-botanique-group" style="display: none;">
-                        <div class="info-title">🔬 Botanique</div>
-                        <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px;"></div>
-                    </div>
-
-                    <div class="info-group" id="detail-formats-group" style="display: none;">
-                        <div class="info-title">💰 Formats disponibles</div>
-                        <div id="detail-formats-liste" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
-                    </div>
-
-                    <div class="info-group" id="detail-url-group" style="display: none;">
-                        <div class="info-title">🔗 En savoir plus</div>
-                        <a href="#" id="detail-url" class="url-link" target="_blank">Voir les détails complets →</a>
+                    <!-- SECTION : Achat -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">🛒 Formats disponibles</h3>
+                        <div class="info-group" id="detail-formats-group" style="display: none;">
+                            <div id="detail-formats-liste" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                        </div>
+                        <div class="info-group" id="detail-url-group" style="display: none; margin-top: 12px;">
+                            <a href="#" id="detail-url" class="url-link" target="_blank">🔗 Voir les détails complets →</a>
+                        </div>
                     </div>
                 </div>
 
@@ -2462,6 +2496,10 @@
         let currentLibraryFilter = 'Tous';
         let currentSortMode = 'name_asc';
         let currentViewMode = 'grid';  // 'grid' ou 'list'
+        let currentTagFilter = null;  // Tag actif
+        let selectionMode = false;  // Mode sélection activé/désactivé
+        let selectedPlants = new Set();  // IDs des plantes sélectionnées
+        let allTags = [];  // Liste de tous les tags disponibles
         let allTags = [];
         let selectedTagFilter = null;  // null = tous, number = tag_id spécifique
         let selectionMode = false;
@@ -2653,6 +2691,10 @@
                     // Plus récent en premier (ID plus grand = plus récent)
                     sorted.sort((a, b) => b.id - a.id);
                     break;
+                case 'date_asc':
+                    // Plus ancien en premier (ID plus petit = plus ancien)
+                    sorted.sort((a, b) => a.id - b.id);
+                    break;
                 case 'type':
                     sorted.sort((a, b) => {
                         const typeCompare = a.type_plante.localeCompare(b.type_plante);
@@ -2661,9 +2703,6 @@
                     break;
                 case 'quantity':
                     sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
-                    break;
-                case 'date_asc':
-                    sorted.sort((a, b) => a.id - b.id);  // Ancien d'abord
                     break;
             }
             
