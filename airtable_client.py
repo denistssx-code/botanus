@@ -67,6 +67,13 @@ class AirtableClient:
         """
         fields = {}
         
+        # DEBUG: Afficher ce qui est reçu
+        print(f"📥 transform_plant_data - Données reçues:")
+        print(f"   - Champs racine: {list(plant_data.keys())}")
+        if plant_data.get('details'):
+            print(f"   - Champs dans details: {len(plant_data['details'].keys())} champs")
+            print(f"   - Liste: {list(plant_data['details'].keys())}")
+        
         # Champs basiques
         if plant_data.get('nom_francais'):
             fields['nom_francais'] = plant_data['nom_francais']
