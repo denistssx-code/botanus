@@ -408,8 +408,28 @@ class PromesseDeFleursScraper:
                     type_link = type_item.find('a')
                     if type_link:
                         type_text = self.clean_text(type_link.get_text())
-                        detail.type_plante = type_text
-                        print(f"  ✅ Type extrait: {type_text}")
+                        
+                        # Mapping pour normaliser les types
+                        type_mapping = {
+                            'Arbustes': 'Arbuste',
+                            'Arbres': 'Arbre',
+                            'Arbre': 'Arbre',
+                            'Vivaces': 'Vivace',
+                            'Grimpantes': 'Grimpante',
+                            'Annuelles': 'Annuelle',
+                            'Bulbes': 'Bulbe',
+                            'Bulbe': 'Bulbe',
+                            'Rosiers': 'Rosier',
+                            'Arbustes par variété': 'Arbuste',
+                            'Vivaces par variété': 'Vivace',
+                            'Graminées': 'Graminée',
+                            'Plantes de jardin': 'Non défini',
+                            'Plantes': 'Non défini',
+                            'Plante': 'Non défini'
+                        }
+                        
+                        detail.type_plante = type_mapping.get(type_text, type_text)
+                        print(f"  ✅ Type extrait: {type_text} → {detail.type_plante}")
                     
                     # Bonus: extraire la sous-catégorie si elle existe
                     if len(items) >= 2:
@@ -421,6 +441,7 @@ class PromesseDeFleursScraper:
                             print(f"  📂 Sous-catégorie: {subcat_text}")
                 else:
                     print(f"  ⚠️ Breadcrumb vide après filtrage, utilisation fallback")
+                    detail.type_plante = 'Non défini'
             else:
                 print(f"  ⚠️ Breadcrumb non trouvé")
             
@@ -744,6 +765,15 @@ scraper = PromesseDeFleursScraper()
 # Stockage simple en mémoire (à remplacer par DB en production)
 library_db = {}
 notes_db = {}
+tags_db = {
+    # Structure: { 'tag_id': { 'name': 'Massif Nord', 'color': '#4CAF50', 'created_at': '...' } }
+}
+
+def get_next_tag_id():
+    """Génère un ID unique pour un tag"""
+    if not tags_db:
+        return 1
+    return max(tags_db.keys()) + 1
 
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
@@ -1185,7 +1215,7 @@ def delete_from_library(plant_id):
     
     return jsonify({'error': 'Plante non trouvée'}), 404
 
-@app.route('/api/library/<int:plant_id>/notes', methods=['POST'])
+@app.route('/api/library/<int:plant_id>/notes', methods=['POST', 'PUT'])
 def save_notes(plant_id):
     """Sauvegarde les notes et la quantité d'une plante"""
     data = request.json
@@ -1202,21 +1232,9 @@ def save_notes(plant_id):
         'custom_photo': existing_photo
     }
     
+    save_notes_db()  # Sauvegarder dans le fichier
+    
     return jsonify({'success': True})
-
-@app.route('/api/library/<int:plant_id>/notes', methods=['PUT'])
-def update_plant_notes_put(plant_id):
-    """Mettre à jour notes et quantité (PUT)"""
-    data = request.json
-    library_db = load_library_db()
-    
-    if str(plant_id) in library_db:
-        library_db[str(plant_id)]['notes'] = data.get('notes', '')
-        library_db[str(plant_id)]['quantity'] = data.get('quantity', 0)
-        save_library_db(library_db)
-        return jsonify({'success': True})
-    
-    return jsonify({'error': 'Non trouvée'}), 404
 
 @app.route('/api/library/plant/<int:plant_id>/photo', methods=['POST'])
 def save_custom_photo(plant_id):
@@ -1267,6 +1285,114 @@ def get_plant_info(plant_id):
         'quantity': notes_data.get('quantity', 0),
         'custom_photo': notes_data.get('custom_photo')
     })
+
+# ====== ENDPOINTS TAGS ======
+
+@app.route('/api/tags', methods=['GET'])
+def get_tags():
+    """Récupère tous les tags"""
+    return jsonify({
+        'success': True,
+        'tags': [{'id': tag_id, **tag_data} for tag_id, tag_data in tags_db.items()]
+    })
+
+@app.route('/api/tags', methods=['POST'])
+def create_tag():
+    """Crée un nouveau tag"""
+    data = request.json
+    
+    if not data or 'name' not in data:
+        return jsonify({'error': 'Nom du tag requis'}), 400
+    
+    tag_id = get_next_tag_id()
+    
+    tags_db[tag_id] = {
+        'name': data['name'],
+        'color': data.get('color', '#4CAF50'),
+        'created_at': str(data.get('created_at', ''))
+    }
+    
+    return jsonify({
+        'success': True,
+        'tag': {'id': tag_id, **tags_db[tag_id]}
+    })
+
+@app.route('/api/tags/<int:tag_id>', methods=['DELETE'])
+def delete_tag(tag_id):
+    """Supprime un tag"""
+    if tag_id in tags_db:
+        # Retirer le tag de toutes les plantes
+        for plant_notes in notes_db.values():
+            if 'tags' in plant_notes and tag_id in plant_notes['tags']:
+                plant_notes['tags'].remove(tag_id)
+        
+        del tags_db[tag_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Tag non trouvé'}), 404
+
+@app.route('/api/library/<int:plant_id>/tags', methods=['POST'])
+def add_tag_to_plant(plant_id):
+    """Ajoute un tag à une plante"""
+    data = request.json
+    tag_id = data.get('tag_id')
+    
+    if tag_id not in tags_db:
+        return jsonify({'error': 'Tag non trouvé'}), 404
+    
+    if plant_id not in notes_db:
+        notes_db[plant_id] = {'notes': '', 'quantity': 0, 'tags': []}
+    
+    if 'tags' not in notes_db[plant_id]:
+        notes_db[plant_id]['tags'] = []
+    
+    if tag_id not in notes_db[plant_id]['tags']:
+        notes_db[plant_id]['tags'].append(tag_id)
+    
+    return jsonify({'success': True, 'tags': notes_db[plant_id]['tags']})
+
+@app.route('/api/library/<int:plant_id>/tags/<int:tag_id>', methods=['DELETE'])
+def remove_tag_from_plant(plant_id, tag_id):
+    """Retire un tag d'une plante"""
+    if plant_id in notes_db and 'tags' in notes_db[plant_id]:
+        if tag_id in notes_db[plant_id]['tags']:
+            notes_db[plant_id]['tags'].remove(tag_id)
+            return jsonify({'success': True})
+    
+    return jsonify({'error': 'Tag ou plante non trouvé'}), 404
+
+@app.route('/api/library/bulk-action', methods=['POST'])
+def bulk_action():
+    """Actions groupées sur plusieurs plantes"""
+    data = request.json
+    plant_ids = data.get('plant_ids', [])
+    action = data.get('action')
+    
+    if action == 'add_tag':
+        tag_id = data.get('tag_id')
+        if tag_id not in tags_db:
+            return jsonify({'error': 'Tag non trouvé'}), 404
+        
+        for plant_id in plant_ids:
+            if plant_id not in notes_db:
+                notes_db[plant_id] = {'notes': '', 'quantity': 0, 'tags': []}
+            if 'tags' not in notes_db[plant_id]:
+                notes_db[plant_id]['tags'] = []
+            if tag_id not in notes_db[plant_id]['tags']:
+                notes_db[plant_id]['tags'].append(tag_id)
+        
+        return jsonify({'success': True, 'affected': len(plant_ids)})
+    
+    elif action == 'delete':
+        for plant_id in plant_ids:
+            if plant_id in library_db:
+                del library_db[plant_id]
+            if plant_id in notes_db:
+                del notes_db[plant_id]
+        
+        return jsonify({'success': True, 'deleted': len(plant_ids)})
+    
+    return jsonify({'error': 'Action non supportée'}), 400
 
 @app.after_request
 def add_no_cache_headers(response):
