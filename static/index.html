@@ -2838,10 +2838,15 @@
         async function changeQuantity(plantId, delta) {
             try {
                 // Trouver la plante
-                const plant = allLibraryPlants.find(p => p.id === plantId);
-                if (!plant) return;
+                const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
+                if (!plant) {
+                    console.error(`Plante ${plantId} non trouvée`);
+                    return;
+                }
                 
                 const newQuantity = Math.max(0, (plant.quantity || 0) + delta);
+                
+                console.log(`Changement quantité: plante ${plantId}, ${plant.quantity || 0} → ${newQuantity}`);
                 
                 // Mettre à jour via API
                 const response = await fetch(`${API_URL}/library/${plantId}/notes`, {
@@ -2862,6 +2867,10 @@
                     
                     // Recharger stats
                     loadStats();
+                    
+                    console.log('✅ Quantité mise à jour');
+                } else {
+                    console.error('❌ Erreur serveur:', response.status);
                 }
             } catch (error) {
                 console.error('Erreur changement quantité:', error);
@@ -2875,13 +2884,15 @@
             }
             
             try {
+                console.log(`Suppression plante ${plantId}`);
+                
                 const response = await fetch(`${API_URL}/library/${plantId}`, {
                     method: 'DELETE'
                 });
                 
                 if (response.ok) {
                     // Retirer de la liste locale
-                    allLibraryPlants = allLibraryPlants.filter(p => p.id !== plantId);
+                    allLibraryPlants = allLibraryPlants.filter(p => (p.plant_id || p.id) !== plantId);
                     
                     // Réafficher
                     filterLibrary(currentLibraryFilter);
@@ -2889,6 +2900,11 @@
                     // Recharger stats
                     loadStats();
                     loadRecentPlants();
+                    
+                    console.log('✅ Plante supprimée');
+                } else {
+                    console.error('❌ Erreur serveur:', response.status);
+                    alert('Erreur lors de la suppression');
                 }
             } catch (error) {
                 console.error('Erreur suppression plante:', error);
@@ -2898,9 +2914,11 @@
         
         // NOUVEAU: Voir détails par ID
         function showPlantDetailById(plantId) {
-            const plant = allLibraryPlants.find(p => p.id === plantId);
+            const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
             if (plant) {
                 showPlantDetail(plant, 'library');
+            } else {
+                console.error(`Plante ${plantId} non trouvée dans allLibraryPlants`);
             }
         }
 
@@ -3170,15 +3188,21 @@
             // Remplir les informations DE BASE
             document.getElementById('detail-plant-name').textContent = plantData.nom_francais;
             document.getElementById('detail-plant-latin').textContent = plantData.nom_latin || 'Nom latin non disponible';
-            document.getElementById('detail-plant-icon').innerHTML = `
-                ${plantData.icon || '🌿'}
-                <div class="plant-actions">
-                    <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
-                        <span>➕</span>
-                        <span>Ajouter</span>
-                    </button>
-                </div>
-            `;
+            
+            // Afficher le bouton "Ajouter" seulement si la plante ne vient pas de la bibliothèque
+            if (fromScreen === 'library') {
+                document.getElementById('detail-plant-icon').innerHTML = `${plantData.icon || '🌿'}`;
+            } else {
+                document.getElementById('detail-plant-icon').innerHTML = `
+                    ${plantData.icon || '🌿'}
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            }
             
             document.getElementById('detail-price').textContent = plantData.prix || 'Prix non disponible';
             document.getElementById('detail-type').textContent = plantData.type_plante || 'Plante';
