@@ -1215,9 +1215,22 @@ def delete_from_library(plant_id):
     
     return jsonify({'error': 'Plante non trouvée'}), 404
 
-@app.route('/api/library/<int:plant_id>/notes', methods=['POST', 'PUT'])
+@app.route('/api/library/<int:plant_id>/notes', methods=['GET', 'POST', 'PUT'])
 def save_notes(plant_id):
-    """Sauvegarde les notes et la quantité d'une plante"""
+    """Sauvegarde ou récupère les notes et la quantité d'une plante"""
+    
+    # GET - Récupérer les notes
+    if request.method == 'GET':
+        if plant_id in notes_db:
+            return jsonify(notes_db[plant_id])
+        else:
+            return jsonify({
+                'notes': '',
+                'quantity': 0,
+                'custom_photo': None
+            })
+    
+    # POST/PUT - Sauvegarder les notes
     data = request.json
     
     if plant_id not in library_db:
