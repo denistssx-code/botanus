@@ -56,6 +56,18 @@ class AirtableClient:
             response.raise_for_status()
             return response.json()
             
+        except requests.exceptions.HTTPError as e:
+            print(f"❌ Erreur Airtable HTTP {e.response.status_code}: {e}")
+            # Afficher le détail de l'erreur pour 422
+            if e.response.status_code == 422:
+                try:
+                    error_detail = e.response.json()
+                    print(f"📋 Détail erreur 422:")
+                    import json
+                    print(json.dumps(error_detail, indent=2, ensure_ascii=False))
+                except:
+                    print(f"📋 Réponse brute: {e.response.text}")
+            return None
         except requests.exceptions.RequestException as e:
             print(f"❌ Erreur Airtable API: {e}")
             return None
