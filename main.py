@@ -1207,12 +1207,19 @@ def get_or_create_plant_id():
 @app.route('/api/library/<int:plant_id>', methods=['DELETE'])
 def delete_from_library(plant_id):
     """Supprime une plante de la bibliothèque"""
-    if plant_id in library_db:
-        del library_db[plant_id]
+    plant_id_str = str(plant_id)
+    
+    if plant_id_str in library_db:
+        del library_db[plant_id_str]
+        save_library_db()
+        
         if plant_id in notes_db:
             del notes_db[plant_id]
+            save_notes_db()
+        
         return jsonify({'success': True})
     
+    print(f"❌ Plante {plant_id} non trouvée. IDs disponibles: {list(library_db.keys())}")
     return jsonify({'error': 'Plante non trouvée'}), 404
 
 @app.route('/api/library/<int:plant_id>/notes', methods=['GET', 'POST', 'PUT'])
@@ -1232,8 +1239,10 @@ def save_notes(plant_id):
     
     # POST/PUT - Sauvegarder les notes
     data = request.json
+    plant_id_str = str(plant_id)
     
-    if plant_id not in library_db:
+    if plant_id_str not in library_db:
+        print(f"❌ Plante {plant_id} non trouvée pour notes. IDs disponibles: {list(library_db.keys())}")
         return jsonify({'error': 'Plante non trouvée'}), 404
     
     # Conserver la photo personnalisée si elle existe
@@ -1246,6 +1255,8 @@ def save_notes(plant_id):
     }
     
     save_notes_db()  # Sauvegarder dans le fichier
+    
+    print(f"✅ Notes/quantité sauvegardées pour plante {plant_id}: quantity={data.get('quantity', 0)}")
     
     return jsonify({'success': True})
 
