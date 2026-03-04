@@ -974,6 +974,73 @@ def get_aujardin_enrichment():
             'error': str(e)
         }), 500
 
+@app.route('/api/plant/aujardin-scrape-manual', methods=['POST'])
+def scrape_aujardin_manual():
+    """
+    Scrape manuellement une URL AuJardin.info fournie par l'utilisateur
+    Body: { "url": "https://www.aujardin.info/plantes/lavandula-angustifolia.php" }
+    """
+    if not ENRICHMENT_ENABLED or not aujardin_scraper:
+        return jsonify({
+            'success': False,
+            'error': 'Module AuJardin non disponible'
+        }), 503
+    
+    data = request.json
+    url = data.get('url', '').strip()
+    
+    if not url:
+        return jsonify({'error': 'URL requise'}), 400
+    
+    # Normaliser l'URL
+    if not url.startswith('http'):
+        url = 'https://' + url
+    
+    if 'aujardin.info' not in url:
+        return jsonify({'error': 'URL doit être un lien aujardin.info'}), 400
+    
+    print(f"\n{'='*60}")
+    print(f"🔍 SCRAPING MANUEL AUJARDIN: {url}")
+    print(f"{'='*60}\n")
+    
+    try:
+        # Scraper directement l'URL
+        aujardin_data = aujardin_scraper.scrape_url_direct(url)
+        
+        if aujardin_data:
+            print(f"✅ Scraping manuel réussi")
+            print(f"  • Arrosage: {aujardin_data.arrosage or 'Non'}")
+            print(f"  • Taille: {aujardin_data.taille_periode or 'Non'}")
+            print(f"  • Multiplication: {aujardin_data.multiplication or 'Non'}")
+            print(f"  • Maladies: {len(aujardin_data.maladies)}")
+            print(f"  • Ravageurs: {len(aujardin_data.ravageurs)}")
+            print(f"{'='*60}\n")
+            
+            # Convertir en dict pour JSON
+            from dataclasses import asdict
+            return jsonify({
+                'success': True,
+                'source': 'aujardin.info (manuel)',
+                'data': asdict(aujardin_data)
+            })
+        else:
+            print(f"⚠️ Impossible de scraper cette URL")
+            print(f"{'='*60}\n")
+            return jsonify({
+                'success': False,
+                'error': 'Impossible de scraper cette URL'
+            }), 404
+            
+    except Exception as e:
+        print(f"❌ Erreur scraping manuel: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
     """Suggestions de plantes populaires"""
