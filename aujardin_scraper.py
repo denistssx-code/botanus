@@ -347,6 +347,15 @@ class AuJardinScraper:
         
         # Extraire les données
         return self.extract_plant_data(url)
+    
+    def scrape_url_direct(self, url: str) -> Optional[AuJardinPlantData]:
+        """
+        Scrape directement une URL fournie (pour scraping manuel)
+        """
+        print(f"🔍 Scraping URL directe: {url}")
+        
+        # Extraire les données
+        return self.extract_plant_data(url)
 
 
 # Instance globale
