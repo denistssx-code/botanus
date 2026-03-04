@@ -126,11 +126,11 @@ class AirtableClient:
         # Détails si disponibles
         details = plant_data.get('details', {})
         if details:
-            # Dimensions
-            if details.get('hauteur_maturite'):
+            # Dimensions (priorité aux details)
+            if details.get('hauteur_maturite') and not fields.get('hauteur_maturite'):
                 fields['hauteur_maturite'] = details['hauteur_maturite']
             
-            if details.get('largeur_maturite'):
+            if details.get('largeur_maturite') and not fields.get('largeur_maturite'):
                 fields['largeur_maturite'] = details['largeur_maturite']
             
             # Exposition (peut être écrasée par details)
@@ -138,6 +138,8 @@ class AirtableClient:
                 expo = details['exposition']
                 if isinstance(expo, str):
                     fields['exposition'] = [e.strip() for e in expo.split(',')]
+                elif isinstance(expo, list):
+                    fields['exposition'] = expo
                 else:
                     fields['exposition'] = [expo]
             
@@ -145,28 +147,38 @@ class AirtableClient:
             if details.get('periode_floraison'):
                 fields['periode_floraison'] = details['periode_floraison']
             
-            if details.get('couleur_fleurs'):
-                fields['couleur_fleurs'] = details['couleur_fleurs']
+            # couleur_fleur (pas couleur_fleurs !)
+            if details.get('couleur_fleur'):
+                fields['couleur_fleurs'] = details['couleur_fleur']
             
             if details.get('duree_floraison'):
                 fields['duree_floraison'] = details['duree_floraison']
             
             # Feuillage et port
-            if details.get('feuillage'):
-                fields['feuillage'] = details['feuillage']
+            # persistance_feuillage (pas feuillage !)
+            if details.get('persistance_feuillage'):
+                fields['feuillage'] = details['persistance_feuillage']
+            
+            if details.get('couleur_feuillage'):
+                if fields.get('feuillage'):
+                    fields['feuillage'] += f" - {details['couleur_feuillage']}"
+                else:
+                    fields['feuillage'] = details['couleur_feuillage']
             
             if details.get('port'):
                 fields['port'] = details['port']
             
-            # Sol
-            if details.get('sol_type'):
-                fields['sol_type'] = details['sol_type']
+            # Sol (ATTENTION : noms inversés !)
+            # details a type_sol, ph_sol, humidite_sol
+            # Airtable veut sol_type, sol_ph, sol_humidite
+            if details.get('type_sol'):
+                fields['sol_type'] = details['type_sol']
             
-            if details.get('sol_ph'):
-                fields['sol_ph'] = details['sol_ph']
+            if details.get('ph_sol'):
+                fields['sol_ph'] = details['ph_sol']
             
-            if details.get('sol_humidite'):
-                fields['sol_humidite'] = details['sol_humidite']
+            if details.get('humidite_sol'):
+                fields['sol_humidite'] = details['humidite_sol']
             
             if details.get('sol_drainage'):
                 fields['sol_drainage'] = details['sol_drainage']
@@ -176,15 +188,17 @@ class AirtableClient:
                 fields['type_plante'] = details['type_plante']
             
             # Descriptions
-            if details.get('description_complete'):
-                fields['description_complete'] = details['description_complete']
+            if details.get('description_detaillee'):
+                fields['description_complete'] = details['description_detaillee']
             
-            if details.get('description_courte'):
+            if details.get('description_courte') and not fields.get('description_courte'):
                 fields['description_courte'] = details['description_courte']
             
             # Utilisations
-            if details.get('utilisations'):
-                fields['utilisations'] = details['utilisations']
+            if details.get('type_utilisation'):
+                fields['utilisations'] = details['type_utilisation']
+            elif details.get('convient_pour'):
+                fields['utilisations'] = details['convient_pour']
             
             # Plantation
             if details.get('meilleure_periode_plantation'):
@@ -210,6 +224,12 @@ class AirtableClient:
             if details.get('rusticite'):
                 fields['rusticite_zone'] = details['rusticite']
             
+            if details.get('zone_usda'):
+                if fields.get('rusticite_zone'):
+                    fields['rusticite_zone'] += f" (Zone USDA: {details['zone_usda']})"
+                else:
+                    fields['rusticite_zone'] = f"Zone USDA: {details['zone_usda']}"
+            
             if details.get('rusticite_min_celsius'):
                 fields['rusticite_min_celsius'] = details['rusticite_min_celsius']
             
@@ -217,11 +237,25 @@ class AirtableClient:
             if details.get('famille'):
                 fields['famille'] = details['famille']
             
-            if details.get('autres_noms'):
-                fields['autres_noms'] = details['autres_noms']
+            if details.get('genre'):
+                if not fields.get('autres_noms'):
+                    fields['autres_noms'] = f"Genre: {details['genre']}"
+            
+            if details.get('espece'):
+                if fields.get('autres_noms'):
+                    fields['autres_noms'] += f", Espèce: {details['espece']}"
+                else:
+                    fields['autres_noms'] = f"Espèce: {details['espece']}"
+            
+            # Sous-catégorie
+            if details.get('sous_categorie'):
+                if fields.get('autres_noms'):
+                    fields['autres_noms'] += f", {details['sous_categorie']}"
+                else:
+                    fields['autres_noms'] = details['sous_categorie']
             
             # Image (peut être écrasée par details)
-            if details.get('image_principale'):
+            if details.get('image_principale') and not fields.get('image_principale'):
                 fields['image_principale'] = details['image_principale']
         
         # Données enrichies AuJardin.info
