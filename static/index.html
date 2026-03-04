@@ -2628,10 +2628,10 @@
             let filtered = (type === 'Tous') ? allLibraryPlants : allLibraryPlants.filter(p => p.type_plante === type);
             
             // Filtrer par tag si actif
-            if (selectedTagFilter !== null) {
+            if (currentTagFilter !== null) {
                 filtered = filtered.filter(p => {
                     const plantNotes = notes_db_local[p.id] || {};
-                    return plantNotes.tags && plantNotes.tags.includes(selectedTagFilter);
+                    return plantNotes.tags && plantNotes.tags.includes(currentTagFilter);
                 });
             }
             
@@ -2946,7 +2946,7 @@
             allTags.forEach(tag => {
                 const chip = document.createElement('div');
                 chip.className = 'tag-filter-chip';
-                if (selectedTagFilter === tag.id) chip.classList.add('active');
+                if (currentTagFilter === tag.id) chip.classList.add('active');
                 chip.style.background = tag.color;
                 chip.textContent = tag.name;
                 chip.onclick = () => filterByTag(tag.id);
@@ -2955,7 +2955,7 @@
         }
         
         function filterByTag(tagId) {
-            selectedTagFilter = (selectedTagFilter === tagId) ? null : tagId;
+            currentTagFilter = (currentTagFilter === tagId) ? null : tagId;
             displayTagsFilter();
             filterLibrary(currentLibraryFilter);
         }
@@ -3021,7 +3021,7 @@
                 const response = await fetch(`${API_URL}/tags/${tagId}`, { method: 'DELETE' });
                 if (response.ok) {
                     allTags = allTags.filter(t => t.id !== tagId);
-                    if (selectedTagFilter === tagId) selectedTagFilter = null;
+                    if (currentTagFilter === tagId) currentTagFilter = null;
                     displayTagsList();
                     displayTagsFilter();
                     filterLibrary(currentLibraryFilter);
@@ -3189,8 +3189,12 @@
             document.getElementById('detail-plant-name').textContent = plantData.nom_francais;
             document.getElementById('detail-plant-latin').textContent = plantData.nom_latin || 'Nom latin non disponible';
             
-            // Afficher le bouton "Ajouter" seulement si la plante ne vient pas de la bibliothèque
-            if (fromScreen === 'library') {
+            // Vérifier si la plante est déjà dans la bibliothèque
+            const isInLibrary = fromScreen === 'library' || 
+                               allLibraryPlants.some(p => p.nom_latin === plantData.nom_latin || p.nom_francais === plantData.nom_francais);
+            
+            // Afficher le bouton "Ajouter" seulement si pas déjà dans la bibliothèque
+            if (isInLibrary) {
                 document.getElementById('detail-plant-icon').innerHTML = `${plantData.icon || '🌿'}`;
             } else {
                 document.getElementById('detail-plant-icon').innerHTML = `
