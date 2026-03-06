@@ -4200,13 +4200,12 @@
                 const notes = document.getElementById('detail-notes').value;
                 const quantity = parseInt(document.getElementById('detail-quantity').textContent);
                 
-                const response = await fetch(`${API_URL}/library/update`, {
-                    method: 'POST',
+                const response = await fetch(`${API_URL}/library/${currentPlantDetail.plant_id}/notes`, {
+                    method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        plant_id: currentPlantDetail.plant_id,
                         notes: notes,
                         quantity: quantity
                     })
