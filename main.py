@@ -781,6 +781,16 @@ def get_next_plant_id():
         return 1
     return max(library_db.keys()) + 1
 
+def save_library_db():
+    """Sauvegarde library_db (no-op pour l'instant, données en mémoire)"""
+    # TODO: Implémenter sauvegarde fichier JSON si nécessaire
+    pass
+
+def save_notes_db():
+    """Sauvegarde notes_db (no-op pour l'instant, données en mémoire)"""
+    # TODO: Implémenter sauvegarde fichier JSON si nécessaire
+    pass
+
 @app.route('/')
 def index():
     """Page d'accueil"""
@@ -1274,16 +1284,20 @@ def get_or_create_plant_id():
 @app.route('/api/library/<int:plant_id>', methods=['DELETE'])
 def delete_from_library(plant_id):
     """Supprime une plante de la bibliothèque"""
-    plant_id_str = str(plant_id)
     
-    if plant_id_str in library_db:
-        del library_db[plant_id_str]
+    print(f"\n🗑️ DELETE plant_id: {plant_id} (type: {type(plant_id).__name__})")
+    print(f"   library_db keys: {list(library_db.keys())}")
+    print(f"   notes_db keys: {list(notes_db.keys())}")
+    
+    if plant_id in library_db:
+        del library_db[plant_id]
         save_library_db()
         
         if plant_id in notes_db:
             del notes_db[plant_id]
             save_notes_db()
         
+        print(f"✅ Plante {plant_id} supprimée")
         return jsonify({'success': True})
     
     print(f"❌ Plante {plant_id} non trouvée. IDs disponibles: {list(library_db.keys())}")
@@ -1293,11 +1307,19 @@ def delete_from_library(plant_id):
 def save_notes(plant_id):
     """Sauvegarde ou récupère les notes et la quantité d'une plante"""
     
+    print(f"\n{'='*60}")
+    print(f"📝 ENDPOINT NOTES - Method: {request.method}, plant_id: {plant_id} (type: {type(plant_id).__name__})")
+    print(f"   library_db keys: {list(library_db.keys())} (types: {[type(k).__name__ for k in list(library_db.keys())[:3]]})")
+    print(f"   notes_db keys: {list(notes_db.keys())} (types: {[type(k).__name__ for k in list(notes_db.keys())[:3]]})")
+    print(f"{'='*60}\n")
+    
     # GET - Récupérer les notes
     if request.method == 'GET':
         if plant_id in notes_db:
+            print(f"✅ Notes trouvées pour plant_id {plant_id}")
             return jsonify(notes_db[plant_id])
         else:
+            print(f"⚠️ Pas de notes pour plant_id {plant_id}, retour valeurs par défaut")
             return jsonify({
                 'notes': '',
                 'quantity': 0,
@@ -1308,7 +1330,13 @@ def save_notes(plant_id):
     data = request.json
     plant_id_str = str(plant_id)
     
-    if plant_id_str not in library_db:
+    print(f"📥 Données reçues: {data}")
+    print(f"🔍 Vérification library_db:")
+    print(f"   - plant_id (int) {plant_id} in library_db? {plant_id in library_db}")
+    print(f"   - plant_id_str (str) '{plant_id_str}' in library_db? {plant_id_str in library_db}")
+    
+    # Vérifier avec INT d'abord
+    if plant_id not in library_db and plant_id_str not in library_db:
         print(f"❌ Plante {plant_id} non trouvée pour notes. IDs disponibles: {list(library_db.keys())}")
         return jsonify({'error': 'Plante non trouvée'}), 404
     
@@ -1321,9 +1349,8 @@ def save_notes(plant_id):
         'custom_photo': existing_photo
     }
     
-    save_notes_db()  # Sauvegarder dans le fichier
-    
     print(f"✅ Notes/quantité sauvegardées pour plante {plant_id}: quantity={data.get('quantity', 0)}")
+    print(f"📊 notes_db[{plant_id}] = {notes_db[plant_id]}")
     
     return jsonify({'success': True})
 
