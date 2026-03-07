@@ -2478,12 +2478,32 @@
                 // Envoyer à l'API (avec détails si disponibles)
                 button.textContent = '💾';  // Icône sauvegarde
                 
+                // Construire l'objet à envoyer (comme dans addFromDetail)
+                const plantToSend = {
+                    nom_francais: plantData.nom_francais,
+                    nom_latin: plantData.nom_latin || plantData.details?.nom_latin || '',
+                    exposition: plantData.exposition || plantData.details?.exposition || '',
+                    type_plante: plantData.details?.type_plante || plantData.type_plante || 'Plante',
+                    prix: plantData.prix || '',
+                    description: plantData.description || '',
+                    icon: plantData.icon || '🌿',
+                    url: plantData.url || '',
+                    details: plantData.details || {},
+                    image_principale: plantData.details?.image_principale || plantData.image_principale || ''
+                };
+                
+                console.log('📤 addToLibrary - Envoi:', {
+                    nom_francais: plantToSend.nom_francais,
+                    nom_latin: plantToSend.nom_latin,
+                    has_details: !!plantToSend.details
+                });
+                
                 const response = await fetch(`${API_URL}/library/get-or-create-id`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(plantData)
+                    body: JSON.stringify(plantToSend)
                 });
                 
                 if (response.ok) {
@@ -2792,10 +2812,10 @@
                         ${tagsHTML}
                     </div>
                     <div class="card-quick-actions">
-                        <button class="quick-action-btn" title="Diminuer quantité" onclick="event.stopPropagation(); changeQuantity(${plantId}, -1)">−</button>
-                        <button class="quick-action-btn" title="Augmenter quantité" onclick="event.stopPropagation(); changeQuantity(${plantId}, 1)">+</button>
-                        <button class="quick-action-btn" title="Voir détails" onclick="event.stopPropagation(); showPlantDetailById(${plantId})">👁️</button>
-                        <button class="quick-action-btn" title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plantId})" style="color: #d32f2f;">🗑️</button>
+                        <button class="quick-action-btn" title="Diminuer quantité" onclick="changeQuantity(${plantId}, -1); return false;">−</button>
+                        <button class="quick-action-btn" title="Augmenter quantité" onclick="changeQuantity(${plantId}, 1); return false;">+</button>
+                        <button class="quick-action-btn" title="Voir détails" onclick="showPlantDetailById(${plantId}); return false;">👁️</button>
+                        <button class="quick-action-btn" title="Supprimer" onclick="deletePlant(${plantId}); return false;" style="color: #d32f2f;">🗑️</button>
                     </div>
                 `;
                 
