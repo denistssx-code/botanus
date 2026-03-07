@@ -1290,12 +1290,26 @@ def delete_from_library(plant_id):
     print(f"   notes_db keys: {list(notes_db.keys())}")
     
     if plant_id in library_db:
+        plant_data = library_db[plant_id]
+        
+        # Supprimer de la base locale
         del library_db[plant_id]
         save_library_db()
         
         if plant_id in notes_db:
             del notes_db[plant_id]
             save_notes_db()
+        
+        # Supprimer dans Airtable si activé
+        if AIRTABLE_ENABLED and airtable_client:
+            try:
+                nom_latin = plant_data.get('nom_latin', '').strip()
+                if nom_latin:
+                    airtable_client.delete_plant_by_latin_name(nom_latin)
+                else:
+                    print(f"⚠️ Pas de nom latin, impossible de supprimer dans Airtable")
+            except Exception as e:
+                print(f"⚠️ Erreur suppression Airtable: {e}")
         
         print(f"✅ Plante {plant_id} supprimée")
         return jsonify({'success': True})
