@@ -1491,9 +1491,9 @@
                     <div class="info-group">
                         <div class="info-title">Quantité</div>
                         <div class="quantity-control">
-                            <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
+                            <button class="quantity-btn" onclick="changeDetailQuantity(-1)">−</button>
                             <span class="quantity-value" id="detail-quantity">1</span>
-                            <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
+                            <button class="quantity-btn" onclick="changeDetailQuantity(1)">+</button>
                             <span class="info-text" style="margin-left: 8px;">plant(s)</span>
                         </div>
                     </div>
@@ -2862,9 +2862,9 @@
                         ${tagsHTML}
                     </div>
                     <div class="library-list-actions">
-                        <button title="Diminuer" onclick="event.stopPropagation(); changeQuantity(${plantId}, -1)">−</button>
-                        <button title="Augmenter" onclick="event.stopPropagation(); changeQuantity(${plantId}, 1)">+</button>
-                        <button title="Supprimer" onclick="event.stopPropagation(); deletePlant(${plantId})" style="color: #d32f2f;">🗑️</button>
+                        <button title="Diminuer" onclick="changeQuantity(${plantId}, -1); return false;">−</button>
+                        <button title="Augmenter" onclick="changeQuantity(${plantId}, 1); return false;">+</button>
+                        <button title="Supprimer" onclick="deletePlant(${plantId}); return false;" style="color: #d32f2f;">🗑️</button>
                     </div>
                 `;
                 
@@ -4120,7 +4120,7 @@
             }
         }
 
-        function changeQuantity(delta) {
+        function changeDetailQuantity(delta) {
             const quantityEl = document.getElementById('detail-quantity');
             let current = parseInt(quantityEl.textContent) || 1;
             current = Math.max(1, current + delta);
