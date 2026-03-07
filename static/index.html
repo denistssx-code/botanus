@@ -2885,14 +2885,16 @@
                 if (!plant) {
                     console.error(`❌ Plante ${plantId} non trouvée dans allLibraryPlants`);
                     console.error(`   IDs disponibles:`, allLibraryPlants.map(p => p.plant_id || p.id));
+                    alert('❌ Plante non trouvée');
                     return;
                 }
                 
                 console.log(`✅ Plante trouvée:`, plant.nom_francais);
                 
-                const newQuantity = Math.max(0, (plant.quantity || 0) + delta);
+                const oldQuantity = plant.quantity || 0;
+                const newQuantity = Math.max(0, oldQuantity + delta);
                 
-                console.log(`Changement quantité: plante ${plantId}, ${plant.quantity || 0} → ${newQuantity}`);
+                console.log(`Changement quantité: plante ${plantId}, ${oldQuantity} → ${newQuantity}`);
                 
                 // Mettre à jour via API
                 const response = await fetch(`${API_URL}/library/${plantId}/notes`, {
@@ -2908,18 +2910,30 @@
                     // Mettre à jour localement
                     plant.quantity = newQuantity;
                     
-                    // Réafficher
+                    console.log(`✅ Quantité mise à jour: ${oldQuantity} → ${newQuantity}`);
+                    console.log(`   plant.quantity après mise à jour: ${plant.quantity}`);
+                    
+                    // Réafficher IMMÉDIATEMENT
+                    console.log('🔄 Appel filterLibrary pour rafraîchir affichage...');
                     filterLibrary(currentLibraryFilter);
+                    console.log('✅ Affichage rafraîchi');
                     
                     // Recharger stats
                     loadStats();
                     
-                    console.log('✅ Quantité mise à jour');
+                    // Feedback visuel temporaire
+                    const msg = document.createElement('div');
+                    msg.textContent = `${delta > 0 ? '➕' : '➖'} Quantité: ${newQuantity}`;
+                    msg.style.cssText = 'position: fixed; top: 80px; right: 20px; background: #4CAF50; color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+                    document.body.appendChild(msg);
+                    setTimeout(() => msg.remove(), 1500);
                 } else {
                     console.error('❌ Erreur serveur:', response.status);
+                    alert('❌ Erreur lors de la mise à jour');
                 }
             } catch (error) {
                 console.error('Erreur changement quantité:', error);
+                alert('❌ Erreur: ' + error.message);
             }
         }
         
