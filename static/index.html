@@ -2854,6 +2854,8 @@
         
         // NOUVEAU: Changer quantité d'une plante
         async function changeQuantity(plantId, delta) {
+            console.log('🚨 changeQuantity APPELÉE !', { plantId, delta, typeof_plantId: typeof plantId });
+            
             console.log(`🔢 changeQuantity appelée: plantId=${plantId} (type: ${typeof plantId}), delta=${delta}`);
             console.log(`📚 allLibraryPlants:`, allLibraryPlants.map(p => ({ id: p.plant_id || p.id, nom: p.nom_francais })));
             
