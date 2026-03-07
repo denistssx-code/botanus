@@ -106,8 +106,8 @@ class AirtableClient:
         if plant_data.get('largeur_maturite'):
             fields['largeur_maturite'] = plant_data['largeur_maturite']
         
-        if plant_data.get('type_plante'):
-            fields['type_plante'] = plant_data['type_plante']
+# DÉSACTIVÉ (erreur 422) -         if plant_data.get('type_plante'):
+# DÉSACTIVÉ (erreur 422) -             fields['type_plante'] = plant_data['type_plante']
         
         # Exposition
         if plant_data.get('exposition'):
@@ -159,9 +159,9 @@ class AirtableClient:
             if details.get('periode_floraison'):
                 fields['periode_floraison'] = details['periode_floraison']
             
-            # couleur_fleur (pas couleur_fleurs !)
-            if details.get('couleur_fleur'):
-                fields['couleur_fleurs'] = details['couleur_fleur']
+# DÉSACTIVÉ (erreur 422) -             # couleur_fleur (pas couleur_fleurs !)
+# DÉSACTIVÉ (erreur 422) -             if details.get('couleur_fleur'):
+# DÉSACTIVÉ (erreur 422) -                 fields['couleur_fleurs'] = details['couleur_fleur']
             
             if details.get('duree_floraison'):
                 fields['duree_floraison'] = details['duree_floraison']
@@ -196,8 +196,8 @@ class AirtableClient:
                 fields['sol_drainage'] = details['sol_drainage']
             
             # Type de plante (peut être écrasé par details)
-            if details.get('type_plante'):
-                fields['type_plante'] = details['type_plante']
+# DÉSACTIVÉ (erreur 422) -             if details.get('type_plante'):
+# DÉSACTIVÉ (erreur 422) -                 fields['type_plante'] = details['type_plante']
             
             # Descriptions
             if details.get('description_detaillee'):
@@ -312,8 +312,8 @@ class AirtableClient:
         # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
         ALLOWED_FIELDS = {
             'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'url_source',
-            'hauteur_maturite', 'largeur_maturite', 'type_plante', 'feuillage', 'port',
-            'periode_floraison', 'couleur_fleurs', 'duree_floraison', 
+            'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',  # 'type_plante' retiré (erreur 422)
+            'periode_floraison', 'duree_floraison',  # 'couleur_fleurs' retiré (erreur 422) 
             'exposition', 'rusticite_zone', 'rusticite_min_celsius',
             'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
             'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
@@ -323,6 +323,16 @@ class AirtableClient:
             'description_courte', 'description_complete', 'utilisations',
             'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes'
         }
+        
+        
+        # ATTENTION : Champs désactivés car causent erreur 422 Airtable
+        # Ces champs sont définis comme "Sélection unique/multiple" dans Airtable
+        # au lieu de "Texte long", et Airtable refuse de créer de nouvelles options.
+        # 
+        # CHAMPS DÉSACTIVÉS : type_plante, couleur_fleurs
+        # 
+        # SOLUTION : Dans Airtable, changer ces champs en "Texte long" pour les réactiver
+        # Ou : Ajouter manuellement toutes les valeurs possibles dans la Sélection
         
         # Filtrer pour ne garder que les champs autorisés
         cleaned_fields = {k: v for k, v in fields.items() if k in ALLOWED_FIELDS}
@@ -444,6 +454,33 @@ class AirtableClient:
             return response.get('fields', {})
         
         return None
+    
+    def delete_plant(self, record_id: str) -> bool:
+        """Supprime une plante par son record ID Airtable"""
+        if not self.enabled:
+            return False
+        
+        response = self._request('DELETE', f"{self.table_plantes}/{record_id}")
+        
+        if response and response.get('deleted'):
+            print(f"✅ Plante supprimée dans Airtable: {record_id}")
+            return True
+        
+        return False
+    
+    def delete_plant_by_latin_name(self, nom_latin: str) -> bool:
+        """Supprime une plante par son nom latin"""
+        if not self.enabled:
+            return False
+        
+        # Trouver le record ID
+        record_id = self.find_plant_by_latin_name(nom_latin)
+        
+        if record_id:
+            return self.delete_plant(record_id)
+        else:
+            print(f"⚠️ Plante non trouvée dans Airtable pour suppression: {nom_latin}")
+            return False
     
     def get_all_plants(self, view: Optional[str] = None) -> List[Dict]:
         """
