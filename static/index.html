@@ -2854,13 +2854,19 @@
         
         // NOUVEAU: Changer quantité d'une plante
         async function changeQuantity(plantId, delta) {
+            console.log(`🔢 changeQuantity appelée: plantId=${plantId} (type: ${typeof plantId}), delta=${delta}`);
+            console.log(`📚 allLibraryPlants:`, allLibraryPlants.map(p => ({ id: p.plant_id || p.id, nom: p.nom_francais })));
+            
             try {
                 // Trouver la plante
                 const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
                 if (!plant) {
-                    console.error(`Plante ${plantId} non trouvée`);
+                    console.error(`❌ Plante ${plantId} non trouvée dans allLibraryPlants`);
+                    console.error(`   IDs disponibles:`, allLibraryPlants.map(p => p.plant_id || p.id));
                     return;
                 }
+                
+                console.log(`✅ Plante trouvée:`, plant.nom_francais);
                 
                 const newQuantity = Math.max(0, (plant.quantity || 0) + delta);
                 
