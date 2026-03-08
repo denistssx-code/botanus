@@ -984,6 +984,45 @@
             min-width: 30px;
             text-align: center;
         }
+
+        /* Calculators styles */
+        .shape-btn {
+            padding: 12px 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .shape-btn:hover {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .shape-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .calc-result {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1555,6 +1594,197 @@
         </div>
 
         <!-- Profil Screen -->
+        <!-- Écran Calculateurs -->
+        <div class="screen" id="calculators-screen">
+            <div class="app-header">
+                <div class="app-title">📐 Calculateurs</div>
+                <div class="app-subtitle">Outils pratiques pour le jardinage</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                
+                <!-- CALCULATEUR 1: VOLUMES & MATÉRIAUX -->
+                <div class="recent-section">
+                    <div class="section-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">📦 Volume & Matériaux</span>
+                    </div>
+                    
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Forme de la surface</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <button class="shape-btn active" data-shape="rectangle" onclick="selectShape('rectangle')">
+                                    <div style="font-size: 20px;">▭</div>
+                                    <div style="font-size: 11px;">Rectangle</div>
+                                </button>
+                                <button class="shape-btn" data-shape="circle" onclick="selectShape('circle')">
+                                    <div style="font-size: 20px;">●</div>
+                                    <div style="font-size: 11px;">Cercle</div>
+                                </button>
+                                <button class="shape-btn" data-shape="border" onclick="selectShape('border')">
+                                    <div style="font-size: 20px;">◯</div>
+                                    <div style="font-size: 11px;">Bordure</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Rectangle inputs -->
+                        <div id="rect-inputs-calc">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Longueur (m)</label>
+                                    <input type="number" id="calc-rect-length" step="0.1" min="0" value="5" placeholder="5" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Largeur (m)</label>
+                                    <input type="number" id="calc-rect-width" step="0.1" min="0" value="3" placeholder="3" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Circle inputs -->
+                        <div id="circle-inputs-calc" class="hidden">
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Diamètre (m)</label>
+                                <input type="number" id="calc-circle-diameter" step="0.1" min="0" value="4" placeholder="4" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <!-- Border inputs -->
+                        <div id="border-inputs-calc" class="hidden">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Ø extérieur (m)</label>
+                                    <input type="number" id="calc-border-outer" step="0.1" min="0" value="5" placeholder="5" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Ø intérieur (m)</label>
+                                    <input type="number" id="calc-border-inner" step="0.1" min="0" value="4" placeholder="4" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Profondeur (cm)</label>
+                            <input type="number" id="calc-depth" step="1" min="0" value="10" placeholder="10" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Type de matériau</label>
+                            <select id="calc-material" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                <option value="terre:1400">Terre végétale (1400 kg/m³)</option>
+                                <option value="terreau:700">Terreau (700 kg/m³)</option>
+                                <option value="gravier:1600">Gravier (1600 kg/m³)</option>
+                                <option value="cailloux:1500">Cailloux décoratifs (1500 kg/m³)</option>
+                                <option value="sable:1550">Sable (1550 kg/m³)</option>
+                                <option value="pouzzolane:850">Pouzzolane (850 kg/m³)</option>
+                                <option value="compost:650">Compost (650 kg/m³)</option>
+                                <option value="ecorce:350">Écorce de pin (350 kg/m³)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Poids/sac (kg)</label>
+                                <input type="number" id="calc-bag-weight" step="1" min="1" value="40" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Prix/sac (€)</label>
+                                <input type="number" id="calc-bag-price" step="0.01" min="0" value="5.90" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <button onclick="calculateVolume()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            🧮 Calculer
+                        </button>
+
+                        <div id="volume-result-calc" class="calc-result" style="display: none; margin-top: 16px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 16px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Surface</span>
+                                <span id="result-surface-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Volume</span>
+                                <span id="result-volume-calc" style="color: #4CAF50; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Poids</span>
+                                <span id="result-weight-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Sacs</span>
+                                <span id="result-bags-calc" style="color: #4CAF50; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Coût</span>
+                                <span id="result-cost-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; color: #1976D2;">
+                            💡 Prévoyez 10% de matériau en plus pour le tassement
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CALCULATEUR 2: DENSITÉ PLANTATION -->
+                <div class="recent-section">
+                    <div class="section-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">🌱 Densité de plantation</span>
+                    </div>
+                    
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Surface (m²)</label>
+                                <input type="number" id="calc-plant-surface" step="0.1" min="0" value="10" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Espacement (cm)</label>
+                                <input type="number" id="calc-plant-spacing" step="1" min="1" value="40" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Disposition</label>
+                            <select id="calc-plant-pattern" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                <option value="square">En carré</option>
+                                <option value="triangle">En quinconce (+15%)</option>
+                            </select>
+                        </div>
+
+                        <button onclick="calculatePlanting()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            🧮 Calculer
+                        </button>
+
+                        <div id="planting-result-calc" class="calc-result" style="display: none; margin-top: 16px; background: linear-gradient(135deg, #E8F5E9, #C8E6C9); padding: 16px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Nombre de plants</span>
+                                <span id="result-plants-calc" style="color: #2E7D32; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Densité</span>
+                                <span id="result-density-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; color: #1976D2;">
+                            💡 Le quinconce optimise l'espace et donne un aspect plus naturel
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lien vers profil -->
+                <div class="recent-section">
+                    <button onclick="showProfilScreen()" style="width: 100%; padding: 14px; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        ⚙️ Voir mon profil et paramètres
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Écran Profil (gardé pour accès via calculateurs) -->
         <div class="screen" id="profil-screen">
             <div class="detail-container">
                 <div class="detail-header">
@@ -1604,6 +1834,19 @@
                         </div>
                     </div>
 
+                    <!-- Outils -->
+                    <div class="info-group">
+                        <div class="info-title">🛠️ Outils de jardinage</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button onclick="showCalculatorsScreen()" style="padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📐 Calculateurs (volumes, densité, arrosage...)
+                            </button>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 8px; padding: 8px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid #2196F3;">
+                            💡 Calculez les quantités de terre, gravier, nombre de plants nécessaires, besoins en eau, etc.
+                        </div>
+                    </div>
+
                     <!-- Préférences -->
                     <div class="info-group">
                         <div class="info-title">🔔 Préférences</div>
@@ -1649,7 +1892,7 @@
                         <div class="info-title">ℹ️ À propos</div>
                         <div style="font-size: 13px; color: #666; line-height: 1.6;">
                             <p><strong>Ma Bibliothèque Végétale</strong></p>
-                            <p>Version 5.5</p>
+                            <p>Version 11.2</p>
                             <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
                             <p style="margin-top: 12px;">
                                 <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
@@ -1681,9 +1924,9 @@
                 <div class="nav-icon">🔔</div>
                 <div class="nav-label">Rappels</div>
             </div>
-            <div class="nav-item" onclick="showProfilScreen()" id="nav-profil">
-                <div class="nav-icon">⚙️</div>
-                <div class="nav-label">Profil</div>
+            <div class="nav-item" onclick="showCalculatorsScreen()" id="nav-calculators">
+                <div class="nav-icon">📐</div>
+                <div class="nav-label">Outils</div>
             </div>
         </div>
 
@@ -1824,6 +2067,14 @@
             document.getElementById('profil-screen').classList.add('active');
             updateBottomNav('profil');
             loadProfilStats();
+        }
+
+        function showCalculatorsScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('calculators-screen').classList.add('active');
+            updateBottomNav('calculators');
         }
         
         function goBackFromProfil() {
@@ -4283,6 +4534,102 @@
         
         function closeImageZoom() {
             document.getElementById('image-zoom-modal').style.display = 'none';
+        }
+
+        // ====== FONCTIONS CALCULATEURS ======
+        
+        let currentCalcShape = 'rectangle';
+
+        function selectShape(shape) {
+            currentCalcShape = shape;
+            
+            // Update button styles
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.shape === shape) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show/hide inputs
+            document.getElementById('rect-inputs-calc').classList.toggle('hidden', shape !== 'rectangle');
+            document.getElementById('circle-inputs-calc').classList.toggle('hidden', shape !== 'circle');
+            document.getElementById('border-inputs-calc').classList.toggle('hidden', shape !== 'border');
+        }
+
+        function calculateVolume() {
+            let surface = 0;
+            const depth = parseFloat(document.getElementById('calc-depth').value) / 100; // Convert cm to m
+
+            // Calculate surface based on shape
+            if (currentCalcShape === 'rectangle') {
+                const length = parseFloat(document.getElementById('calc-rect-length').value);
+                const width = parseFloat(document.getElementById('calc-rect-width').value);
+                surface = length * width;
+            } else if (currentCalcShape === 'circle') {
+                const diameter = parseFloat(document.getElementById('calc-circle-diameter').value);
+                const radius = diameter / 2;
+                surface = Math.PI * radius * radius;
+            } else if (currentCalcShape === 'border') {
+                const outerDiameter = parseFloat(document.getElementById('calc-border-outer').value);
+                const innerDiameter = parseFloat(document.getElementById('calc-border-inner').value);
+                const outerRadius = outerDiameter / 2;
+                const innerRadius = innerDiameter / 2;
+                surface = Math.PI * (outerRadius * outerRadius - innerRadius * innerRadius);
+            }
+
+            const volume = surface * depth;
+            
+            // Get material density
+            const materialSelect = document.getElementById('calc-material');
+            const density = parseFloat(materialSelect.value.split(':')[1]);
+            const weight = volume * density;
+
+            // Calculate bags
+            const bagWeight = parseFloat(document.getElementById('calc-bag-weight').value);
+            const bagPrice = parseFloat(document.getElementById('calc-bag-price').value);
+            const bags = Math.ceil(weight / bagWeight);
+            const cost = bags * bagPrice;
+
+            // Display results
+            document.getElementById('result-surface-calc').textContent = surface.toFixed(2) + ' m²';
+            document.getElementById('result-volume-calc').textContent = volume.toFixed(2) + ' m³';
+            document.getElementById('result-weight-calc').textContent = weight.toFixed(0) + ' kg';
+            document.getElementById('result-bags-calc').textContent = bags + ' sacs';
+            document.getElementById('result-cost-calc').textContent = cost.toFixed(2) + ' €';
+
+            document.getElementById('volume-result-calc').style.display = 'block';
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('volume-result-calc').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function calculatePlanting() {
+            const surface = parseFloat(document.getElementById('calc-plant-surface').value);
+            const spacing = parseFloat(document.getElementById('calc-plant-spacing').value) / 100; // Convert to meters
+            const pattern = document.getElementById('calc-plant-pattern').value;
+
+            let plantsPerM2;
+            if (pattern === 'square') {
+                plantsPerM2 = 1 / (spacing * spacing);
+            } else {
+                // Triangle/quinconce - approximately 15% more efficient
+                plantsPerM2 = 1.15 / (spacing * spacing);
+            }
+
+            const totalPlants = Math.ceil(surface * plantsPerM2);
+
+            document.getElementById('result-plants-calc').textContent = totalPlants + ' plants';
+            document.getElementById('result-density-calc').textContent = plantsPerM2.toFixed(1) + ' plants/m²';
+
+            document.getElementById('planting-result-calc').style.display = 'block';
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('planting-result-calc').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
         }
     </script>
     
