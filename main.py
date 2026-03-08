@@ -1542,6 +1542,108 @@ def add_no_cache_headers(response):
         response.headers['Expires'] = '0'
     return response
 
+def load_from_airtable():
+    """
+    Charge toutes les plantes depuis Airtable au démarrage de l'application
+    Évite la perte de données en cas de redémarrage
+    """
+    global library_db, notes_db
+    
+    print("\n" + "="*60)
+    print("🔄 CHARGEMENT DEPUIS AIRTABLE")
+    print("="*60)
+    
+    if not AIRTABLE_ENABLED or not airtable_client:
+        print("⚠️ Airtable désactivé - Démarrage avec base vide")
+        print("="*60 + "\n")
+        return
+    
+    try:
+        # Récupérer toutes les plantes depuis Airtable
+        airtable_plants = airtable_client.get_all_plants()
+        
+        if not airtable_plants:
+            print("⚠️ Aucune plante trouvée dans Airtable")
+            print("="*60 + "\n")
+            return
+        
+        print(f"📥 {len(airtable_plants)} plantes trouvées dans Airtable")
+        
+        # Réinitialiser les bases
+        library_db.clear()
+        notes_db.clear()
+        
+        # Compteurs
+        loaded = 0
+        errors = 0
+        
+        # Convertir chaque plante Airtable en format library_db
+        for idx, plant_fields in enumerate(airtable_plants, start=1):
+            try:
+                # Vérifier que les champs essentiels existent
+                nom_francais = plant_fields.get('nom_francais', '').strip()
+                nom_latin = plant_fields.get('nom_latin', '').strip()
+                
+                if not nom_francais and not nom_latin:
+                    print(f"⚠️ Plante #{idx} ignorée (pas de nom)")
+                    errors += 1
+                    continue
+                
+                # Utiliser l'index comme ID (séquentiel)
+                plant_id = idx
+                
+                # Construire l'objet plante au format library_db
+                library_db[plant_id] = {
+                    # Données de base
+                    'nom_francais': nom_francais or 'Nom inconnu',
+                    'nom_latin': nom_latin or '',
+                    'exposition': plant_fields.get('exposition', ''),
+                    'type_plante': plant_fields.get('type_plante', 'Plante'),
+                    'prix': plant_fields.get('prix', ''),
+                    'description': plant_fields.get('description_courte', plant_fields.get('description_detaillee', '')),
+                    'icon': '🌿',  # Icône par défaut
+                    'url': plant_fields.get('url_source', ''),
+                    'image_principale': plant_fields.get('image_principale', ''),
+                    
+                    # Détails (si disponibles)
+                    'details': {
+                        k: v for k, v in plant_fields.items()
+                        if k not in ['nom_francais', 'nom_latin', 'exposition', 'type_plante', 'prix', 'description_courte', 'url_source', 'image_principale']
+                        and v is not None and v != ''
+                    }
+                }
+                
+                # Initialiser notes vides
+                notes_db[plant_id] = {
+                    'notes': '',
+                    'quantity': 0,
+                    'custom_photo': None,
+                    'tags': []
+                }
+                
+                loaded += 1
+                
+            except Exception as e:
+                print(f"❌ Erreur plante #{idx}: {e}")
+                errors += 1
+        
+        print(f"✅ {loaded} plantes chargées avec succès")
+        if errors > 0:
+            print(f"⚠️ {errors} erreurs lors du chargement")
+        
+        print(f"📊 État final:")
+        print(f"   - library_db: {len(library_db)} plantes")
+        print(f"   - notes_db: {len(notes_db)} entrées")
+        print("="*60 + "\n")
+        
+    except Exception as e:
+        print(f"❌ ERREUR CRITIQUE lors du chargement Airtable: {e}")
+        print("⚠️ Démarrage avec base vide")
+        print("="*60 + "\n")
+
 if __name__ == '__main__':
+    # Charger les données depuis Airtable au démarrage
+    load_from_airtable()
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
