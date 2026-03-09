@@ -106,8 +106,13 @@ class AirtableClient:
         if plant_data.get('largeur_maturite'):
             fields['largeur_maturite'] = plant_data['largeur_maturite']
         
-# DÉSACTIVÉ (erreur 422) -         if plant_data.get('type_plante'):
-# DÉSACTIVÉ (erreur 422) -             fields['type_plante'] = plant_data['type_plante']
+        # Type de plante (IMPORTANT: doit être "Texte long" dans Airtable, pas "Sélection unique")
+        if plant_data.get('type_plante'):
+            try:
+                fields['type_plante'] = plant_data['type_plante']
+            except Exception as e:
+                print(f"⚠️ Erreur type_plante: {e}")
+                print(f"   💡 Dans Airtable, change le type du champ 'type_plante' en 'Texte long'")
         
         # Exposition
         if plant_data.get('exposition'):
@@ -130,6 +135,10 @@ class AirtableClient:
         # Prix
         if plant_data.get('prix'):
             fields['prix'] = plant_data['prix']
+        
+        # Disponibilité
+        if plant_data.get('disponibilite'):
+            fields['disponibilite'] = plant_data['disponibilite']
         
         # Image
         if plant_data.get('image_principale'):
@@ -159,9 +168,18 @@ class AirtableClient:
             if details.get('periode_floraison'):
                 fields['periode_floraison'] = details['periode_floraison']
             
-# DÉSACTIVÉ (erreur 422) -             # couleur_fleur (pas couleur_fleurs !)
-# DÉSACTIVÉ (erreur 422) -             if details.get('couleur_fleur'):
-# DÉSACTIVÉ (erreur 422) -                 fields['couleur_fleurs'] = details['couleur_fleur']
+            # Couleur fleurs (IMPORTANT: doit être "Texte long" dans Airtable)
+            if details.get('couleur_fleur'):
+                try:
+                    fields['couleur_fleurs'] = details['couleur_fleur']
+                except Exception as e:
+                    print(f"⚠️ Erreur couleur_fleurs: {e}")
+                    print(f"   💡 Dans Airtable, change le type du champ 'couleur_fleurs' en 'Texte long'")
+            elif details.get('couleur_fleurs'):
+                try:
+                    fields['couleur_fleurs'] = details['couleur_fleurs']
+                except Exception as e:
+                    print(f"⚠️ Erreur couleur_fleurs: {e}")
             
             if details.get('duree_floraison'):
                 fields['duree_floraison'] = details['duree_floraison']
@@ -196,8 +214,11 @@ class AirtableClient:
                 fields['sol_drainage'] = details['sol_drainage']
             
             # Type de plante (peut être écrasé par details)
-# DÉSACTIVÉ (erreur 422) -             if details.get('type_plante'):
-# DÉSACTIVÉ (erreur 422) -                 fields['type_plante'] = details['type_plante']
+            if details.get('type_plante'):
+                try:
+                    fields['type_plante'] = details['type_plante']
+                except Exception as e:
+                    print(f"⚠️ Erreur type_plante (details): {e}")
             
             # Descriptions
             if details.get('description_detaillee'):
@@ -225,12 +246,33 @@ class AirtableClient:
             # Taille
             if details.get('periode_taille'):
                 fields['taille_periode'] = details['periode_taille']
+                # Dupliquer dans periode_taille (autre champ) pour compatibilité
+                fields['periode_taille'] = details['periode_taille']
             
             if details.get('descriptif_taille_detaille'):
                 fields['taille_technique'] = details['descriptif_taille_detaille']
+            elif details.get('taille'):
+                fields['taille_technique'] = details['taille']
             
             if details.get('periode_raisonnable_taille'):
                 fields['periode_raisonnable_taille'] = details['periode_raisonnable_taille']
+            
+            if details.get('frequence_taille'):
+                # Ajouter à taille_technique si existe déjà
+                if fields.get('taille_technique'):
+                    fields['taille_technique'] = f"{details['frequence_taille']}. {fields['taille_technique']}"
+                else:
+                    fields['taille_technique'] = details['frequence_taille']
+            
+            # Entretien supplémentaire
+            if details.get('paillage'):
+                fields['paillage'] = details['paillage']
+            
+            if details.get('tuteurage'):
+                fields['tuteurage'] = details['tuteurage']
+            
+            if details.get('rabattage_periode'):
+                fields['rabattage_periode'] = details['rabattage_periode']
             
             # Rusticité
             if details.get('rusticite'):
@@ -311,9 +353,9 @@ class AirtableClient:
         # SÉCURITÉ: Liste blanche des champs Airtable autorisés
         # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
         ALLOWED_FIELDS = {
-            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'url_source',
-            'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',  # 'type_plante' retiré (erreur 422)
-            'periode_floraison', 'duree_floraison',  # 'couleur_fleurs' retiré (erreur 422) 
+            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'type_plante', 'url_source',
+            'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
+            'periode_floraison', 'couleur_fleurs', 'duree_floraison',
             'exposition', 'rusticite_zone', 'rusticite_min_celsius',
             'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
             'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
@@ -325,14 +367,13 @@ class AirtableClient:
         }
         
         
-        # ATTENTION : Champs désactivés car causent erreur 422 Airtable
-        # Ces champs sont définis comme "Sélection unique/multiple" dans Airtable
-        # au lieu de "Texte long", et Airtable refuse de créer de nouvelles options.
+        # IMPORTANT : type_plante et couleur_fleurs
+        # Si tu obtiens des erreurs 422 avec ces champs, c'est qu'ils sont définis
+        # comme "Sélection unique/multiple" dans Airtable.
         # 
-        # CHAMPS DÉSACTIVÉS : type_plante, couleur_fleurs
+        # SOLUTION : Dans Airtable, change le type de ces champs en "Texte long"
         # 
-        # SOLUTION : Dans Airtable, changer ces champs en "Texte long" pour les réactiver
-        # Ou : Ajouter manuellement toutes les valeurs possibles dans la Sélection
+        # Les erreurs s'afficheront dans les logs mais ne bloqueront pas l'insertion
         
         # Filtrer pour ne garder que les champs autorisés
         cleaned_fields = {k: v for k, v in fields.items() if k in ALLOWED_FIELDS}
