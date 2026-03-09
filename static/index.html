@@ -952,6 +952,29 @@
             background: #45a049;
         }
         
+        .rappel-filter-btn {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .rappel-filter-btn:hover {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .rappel-filter-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
         .quantity-control {
             display: flex;
             align-items: center;
@@ -1360,10 +1383,16 @@
                 <div class="tab-content" id="tab-entretien" style="display: none;">
                     <div class="info-group" id="detail-calendrier-group" style="display: none;">
                         <div class="info-title">📅 Calendrier de plantation</div>
+                        <div style="font-size: 12px; color: #888; margin-top: 4px; margin-bottom: 4px;">Meilleure période</div>
                         <div id="detail-calendrier-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
                             <!-- Graphique généré dynamiquement -->
                         </div>
-                        <div class="info-text" id="detail-calendrier-raisonnable" style="font-size: 13px; color: #666; margin-top: 8px;"></div>
+                        <div id="detail-calendrier-raisonnable-container" style="display: none; margin-top: 12px;">
+                            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">Période raisonnable</div>
+                            <div id="detail-calendrier-raisonnable-visuel" style="display: flex; gap: 4px;">
+                                <!-- Graphique période raisonnable -->
+                            </div>
+                        </div>
                     </div>
 
                     <div class="info-group" id="detail-floraison-calendrier-group" style="display: none;">
@@ -1564,6 +1593,24 @@
                     <div class="info-group" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
                         <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">Nous sommes en</div>
                         <div id="rappels-mois-actuel" style="font-size: 28px; font-weight: 700;">Février 2026</div>
+                    </div>
+
+                    <!-- Filtres rappels -->
+                    <div class="info-group" style="margin-bottom: 20px;">
+                        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                            <button class="rappel-filter-btn active" data-filter="tout" onclick="filterRappels('tout')">
+                                Tout
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="plantation" onclick="filterRappels('plantation')">
+                                🌱 Plantation
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="taille" onclick="filterRappels('taille')">
+                                ✂️ Taille
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="floraison" onclick="filterRappels('floraison')">
+                                🌺 Floraison
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Rappels du mois -->
@@ -2320,6 +2367,10 @@
                 console.log(`✅ ${rappelsMois.length} rappels ce mois-ci`);
                 console.log(`⏰ ${rappelsProchains.length} rappels prochainement`);
                 
+                // Stocker dans les variables globales
+                allRappelsMois = rappelsMois;
+                allRappelsProchains = rappelsProchains;
+                
                 // Mettre à jour le compteur global
                 totalReminders = rappelsMois.length + rappelsProchains.length;
                 console.log(`📊 Total rappels: ${totalReminders}`);
@@ -2330,9 +2381,8 @@
                     reminderCounter.textContent = totalReminders;
                 }
                 
-                // Afficher les rappels
-                displayRappels('rappels-mois', rappelsMois);
-                displayRappels('rappels-prochains', rappelsProchains);
+                // Afficher les rappels (avec filtre actif)
+                filterRappels(currentRappelFilter);
                 
                 if (rappelsMois.length === 0 && rappelsProchains.length === 0) {
                     console.log('📭 Aucun rappel trouvé');
@@ -2408,6 +2458,41 @@
                 
                 container.appendChild(rappelEl);
             });
+        }
+        
+        function filterRappels(filter) {
+            // Mettre à jour le filtre actif
+            currentRappelFilter = filter;
+            
+            // Mettre à jour les boutons
+            document.querySelectorAll('.rappel-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Filtrer les rappels
+            let filteredMois = allRappelsMois;
+            let filteredProchains = allRappelsProchains;
+            
+            if (filter !== 'tout') {
+                filteredMois = allRappelsMois.filter(r => r.action.toLowerCase().includes(filter));
+                filteredProchains = allRappelsProchains.filter(r => r.action.toLowerCase().includes(filter));
+            }
+            
+            // Afficher les rappels filtrés
+            displayRappels('rappels-mois', filteredMois);
+            displayRappels('rappels-prochains', filteredProchains);
+            
+            // Afficher message si vide
+            if (filteredMois.length === 0 && filteredProchains.length === 0) {
+                if (filter === 'tout') {
+                    document.getElementById('rappels-vide').style.display = 'block';
+                }
+            } else {
+                document.getElementById('rappels-vide').style.display = 'none';
+            }
         }
 
         // Statistiques
@@ -2801,6 +2886,11 @@
         let selectedPlants = new Set();  // IDs des plantes sélectionnées
         let allTags = [];  // Liste de tous les tags disponibles
         let totalReminders = 0; // Nombre total de rappels actifs
+        
+        // Variables globales pour filtrage rappels
+        let allRappelsMois = [];  // Tous les rappels du mois
+        let allRappelsProchains = [];  // Tous les rappels prochains
+        let currentRappelFilter = 'tout';  // Filtre actif : 'tout', 'plantation', 'taille', 'floraison'
         
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
@@ -3678,6 +3768,7 @@
             // Définir les gradients par couleur
             const colorGradients = {
                 'green': 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                'lightgreen': 'linear-gradient(135deg, #81C784, #A5D6A7)',  // Vert clair pour période raisonnable
                 'pink': 'linear-gradient(135deg, #E91E63, #F06292)',
                 'orange': 'linear-gradient(135deg, #FF9800, #FFB74D)',
                 'blue': 'linear-gradient(135deg, #2196F3, #42A5F5)',
@@ -3909,12 +4000,13 @@
             
             // Calendrier plantation
             if (details.meilleure_periode_plantation) {
-                // Créer le graphique visuel (vert)
+                // Créer le graphique visuel (vert foncé)
                 createMonthCalendar(details.meilleure_periode_plantation, 'detail-calendrier-visuel', 'green');
                 
+                // Calendrier période raisonnable (vert clair)
                 if (details.periode_raisonnable_plantation) {
-                    document.getElementById('detail-calendrier-raisonnable').textContent = 
-                        `Période raisonnable: ${details.periode_raisonnable_plantation}`;
+                    createMonthCalendar(details.periode_raisonnable_plantation, 'detail-calendrier-raisonnable-visuel', 'lightgreen');
+                    document.getElementById('detail-calendrier-raisonnable-container').style.display = 'block';
                 }
                 
                 document.getElementById('detail-calendrier-group').style.display = 'block';
