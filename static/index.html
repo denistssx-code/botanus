@@ -1438,7 +1438,7 @@
                     <div id="enrichment-section" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
                         <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px;">
                             <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🌿 Entretien Détaillé</h3>
-                            <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;" id="enrichment-source">Source: AuJardin.info</div>
+                            <a id="enrichment-source" href="#" target="_blank" style="font-size: 12px; opacity: 0.9; margin-top: 4px; color: white; text-decoration: underline; display: block;">Source: AuJardin.info →</a>
                         </div>
 
                         <!-- Arrosage enrichi -->
@@ -1551,7 +1551,7 @@
         <!-- Rappels Screen -->
         <div class="screen" id="rappels-screen">
             <div class="detail-container">
-                <div class="detail-header">
+                <div class="detail-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
                     <button class="back-btn" onclick="goBackFromRappels()">←</button>
                     <div class="detail-plant-info">
                         <h2 class="detail-plant-name">📅 Mes Rappels</h2>
@@ -1786,7 +1786,7 @@
         <!-- Écran Profil (gardé pour accès via calculateurs) -->
         <div class="screen" id="profil-screen">
             <div class="detail-container">
-                <div class="detail-header">
+                <div class="detail-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                     <button class="back-btn" onclick="goBackFromProfil()">←</button>
                     <div class="detail-plant-info">
                         <h2 class="detail-plant-name">⚙️ Mon Profil</h2>
@@ -2320,6 +2320,16 @@
                 console.log(`✅ ${rappelsMois.length} rappels ce mois-ci`);
                 console.log(`⏰ ${rappelsProchains.length} rappels prochainement`);
                 
+                // Mettre à jour le compteur global
+                totalReminders = rappelsMois.length + rappelsProchains.length;
+                console.log(`📊 Total rappels: ${totalReminders}`);
+                
+                // Mettre à jour le compteur dans l'accueil si l'élément existe
+                const reminderCounter = document.getElementById('total-reminders');
+                if (reminderCounter) {
+                    reminderCounter.textContent = totalReminders;
+                }
+                
                 // Afficher les rappels
                 displayRappels('rappels-mois', rappelsMois);
                 displayRappels('rappels-prochains', rappelsProchains);
@@ -2408,11 +2418,11 @@
                 
                 // L'API retourne {total: X, by_type: {...}}
                 document.getElementById('total-plants').textContent = stats.total || 0;
-                document.getElementById('total-reminders').textContent = '0'; // À implémenter plus tard
+                document.getElementById('total-reminders').textContent = totalReminders;
             } catch (error) {
                 console.error('Erreur chargement stats:', error);
                 document.getElementById('total-plants').textContent = '0';
-                document.getElementById('total-reminders').textContent = '0';
+                document.getElementById('total-reminders').textContent = totalReminders;
             }
         }
 
@@ -2443,6 +2453,8 @@
                 library.slice(0, 3).forEach(plant => {
                     const plantEl = document.createElement('div');
                     plantEl.className = 'plant-item';
+                    plantEl.style.cursor = 'pointer';
+                    plantEl.onclick = () => showPlantDetailById(plant.plant_id || plant.id);
                     plantEl.innerHTML = `
                         <div class="plant-image">${plant.icon || '🌿'}</div>
                         <div class="plant-info">
@@ -2788,6 +2800,7 @@
         let selectionMode = false;  // Mode sélection activé/désactivé
         let selectedPlants = new Set();  // IDs des plantes sélectionnées
         let allTags = [];  // Liste de tous les tags disponibles
+        let totalReminders = 0; // Nombre total de rappels actifs
         
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
@@ -3529,8 +3542,29 @@
                 document.getElementById('detail-description-group').style.display = 'none';
             }
             
-            // Essayer de charger les détails complets si URL disponible
-            if (plantData.url) {
+            // Si les détails sont déjà dans plantData (venant de la bibliothèque)
+            if (plantData.details && Object.keys(plantData.details).length > 0) {
+                console.log('✅ Détails déjà présents dans plantData, pas de rescan');
+                console.log('   - periode_taille:', plantData.details.periode_taille || 'NON PRÉSENT');
+                console.log('   - Nombre de champs:', Object.keys(plantData.details).length);
+                
+                // Stocker dans currentPlantDetail
+                currentPlantDetail.details = plantData.details;
+                
+                // Afficher les infos détaillées
+                displayDetailedInfo(plantData.details);
+                
+                // Afficher lien si URL disponible
+                if (plantData.url) {
+                    document.getElementById('detail-url').href = plantData.url;
+                    document.getElementById('detail-url-group').style.display = 'block';
+                } else {
+                    document.getElementById('detail-url-group').style.display = 'none';
+                }
+            }
+            // Sinon, essayer de charger les détails complets si URL disponible
+            else if (plantData.url) {
+                console.log('📥 Pas de détails en cache, chargement depuis URL...');
                 document.getElementById('detail-url').href = plantData.url;
                 document.getElementById('detail-url-group').style.display = 'block';
                 
@@ -3539,14 +3573,6 @@
             } else {
                 document.getElementById('detail-url-group').style.display = 'none';
                 // Afficher uniquement les infos de base
-                displayBasicInfo(plantData);
-            }
-            
-            // Si les détails sont déjà dans plantData (venant de la bibliothèque)
-            if (plantData.details) {
-                displayDetailedInfo(plantData.details);
-            } else {
-                // Afficher infos de base en attendant
                 displayBasicInfo(plantData);
             }
             
@@ -3630,13 +3656,14 @@
         }
         
         
-        function createMonthCalendar(periodeText, containerId) {
+        function createMonthCalendar(periodeText, containerId, color = 'green') {
             /**
-             * Crée un graphique visuel des mois avec les mois actifs en vert
+             * Crée un graphique visuel des mois avec les mois actifs colorés
              * @param periodeText - Texte comme "Mars à Mai, Septembre à Octobre"
              * @param containerId - ID du conteneur où insérer le graphique
+             * @param color - Couleur du graphique : 'green', 'pink', 'orange', 'blue'
              */
-            console.log(`📅 createMonthCalendar appelé:`, { periodeText, containerId });
+            console.log(`📅 createMonthCalendar appelé:`, { periodeText, containerId, color });
             
             const container = document.getElementById(containerId);
             if (!container) {
@@ -3647,6 +3674,17 @@
                 console.warn(`⚠️ periodeText vide pour ${containerId}`);
                 return;
             }
+            
+            // Définir les gradients par couleur
+            const colorGradients = {
+                'green': 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                'pink': 'linear-gradient(135deg, #E91E63, #F06292)',
+                'orange': 'linear-gradient(135deg, #FF9800, #FFB74D)',
+                'blue': 'linear-gradient(135deg, #2196F3, #42A5F5)',
+                'purple': 'linear-gradient(135deg, #9C27B0, #BA68C8)'
+            };
+            
+            const gradient = colorGradients[color] || colorGradients['green'];
             
             const mois = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
             const moisComplets = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
@@ -3715,7 +3753,7 @@
                     font-weight: 600;
                     transition: all 0.2s;
                     ${moisActifs.has(index) ? 
-                        'background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; box-shadow: 0 2px 4px rgba(76,175,80,0.3);' : 
+                        `background: ${gradient}; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);` : 
                         'background: #f5f5f5; color: #999;'}
                 `;
                 moisDiv.textContent = m;
@@ -3871,8 +3909,8 @@
             
             // Calendrier plantation
             if (details.meilleure_periode_plantation) {
-                // Créer le graphique visuel
-                createMonthCalendar(details.meilleure_periode_plantation, 'detail-calendrier-visuel');
+                // Créer le graphique visuel (vert)
+                createMonthCalendar(details.meilleure_periode_plantation, 'detail-calendrier-visuel', 'green');
                 
                 if (details.periode_raisonnable_plantation) {
                     document.getElementById('detail-calendrier-raisonnable').textContent = 
@@ -3885,8 +3923,8 @@
             
             // Période floraison avec graphique
             if (details.periode_floraison) {
-                // Créer le graphique visuel
-                createMonthCalendar(details.periode_floraison, 'detail-floraison-visuel');
+                // Créer le graphique visuel (rose)
+                createMonthCalendar(details.periode_floraison, 'detail-floraison-visuel', 'pink');
                 
                 document.getElementById('detail-floraison-calendrier-group').style.display = 'block';
                 hasEntretienInfo = true;
@@ -3901,8 +3939,8 @@
             
             // Taille avec graphique visuel
             if (details.periode_taille) {
-                // Créer le graphique visuel pour la période de taille
-                createMonthCalendar(details.periode_taille, 'detail-taille-visuel');
+                // Créer le graphique visuel pour la période de taille (orange)
+                createMonthCalendar(details.periode_taille, 'detail-taille-visuel', 'orange');
                 
                 // Afficher la technique de taille en dessous si disponible
                 if (details.taille || details.frequence_taille) {
@@ -4024,6 +4062,13 @@
             console.log('📊 Affichage données enrichies:', data);
             
             let hasEnrichmentData = false;
+            
+            // Mettre à jour le lien source si l'URL est disponible
+            if (data.url_source) {
+                const sourceLink = document.getElementById('enrichment-source');
+                sourceLink.href = data.url_source;
+                sourceLink.textContent = 'Source: AuJardin.info →';
+            }
             
             // Arrosage
             if (data.arrosage || data.arrosage_detail) {
