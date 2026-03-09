@@ -281,7 +281,9 @@ class AuJardinScraper:
             # Multiplication
             if any(keyword in text_lower for keyword in ['multiplication', 'semis', 'bouturage', 'division']):
                 if not data.multiplication_detail:
-                    data.multiplication_detail = text
+                    # Nettoyer le texte : enlever le titre "Multiplication" au début
+                    cleaned_text = re.sub(r'^Multiplication\s*:?\s*', '', text, flags=re.IGNORECASE).strip()
+                    data.multiplication_detail = cleaned_text
                 # Extraire les méthodes
                 methodes = []
                 if 'semis' in text_lower:
