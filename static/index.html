@@ -1579,23 +1579,19 @@
 
         <!-- Rappels Screen -->
         <div class="screen" id="rappels-screen">
-            <div class="detail-container">
-                <div class="detail-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
-                    <button class="back-btn" onclick="goBackFromRappels()">←</button>
-                    <div class="detail-plant-info">
-                        <h2 class="detail-plant-name">📅 Mes Rappels</h2>
-                        <p class="detail-plant-latin">Calendrier d'entretien de ma bibliothèque</p>
-                    </div>
+            <div class="app-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
+                <div class="app-title">📅 Mes Rappels</div>
+                <div class="app-subtitle">Calendrier d'entretien de ma bibliothèque</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                <!-- Mois actuel -->
+                <div class="info-group" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">Nous sommes en</div>
+                    <div id="rappels-mois-actuel" style="font-size: 28px; font-weight: 700;">Février 2026</div>
                 </div>
 
-                <div class="detail-content" style="padding-top: 100px; padding-bottom: 80px;">
-                    <!-- Mois actuel -->
-                    <div class="info-group" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">Nous sommes en</div>
-                        <div id="rappels-mois-actuel" style="font-size: 28px; font-weight: 700;">Février 2026</div>
-                    </div>
-
-                    <!-- Filtres rappels -->
+                <!-- Filtres rappels -->
                     <div class="info-group" style="margin-bottom: 20px;">
                         <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
                             <button class="rappel-filter-btn active" data-filter="tout" onclick="filterRappels('tout')">
@@ -1832,18 +1828,14 @@
 
         <!-- Écran Profil (gardé pour accès via calculateurs) -->
         <div class="screen" id="profil-screen">
-            <div class="detail-container">
-                <div class="detail-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                    <button class="back-btn" onclick="goBackFromProfil()">←</button>
-                    <div class="detail-plant-info">
-                        <h2 class="detail-plant-name">⚙️ Mon Profil</h2>
-                        <p class="detail-plant-latin">Paramètres et statistiques</p>
-                    </div>
-                </div>
+            <div class="app-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <div class="app-title">⚙️ Mon Profil</div>
+                <div class="app-subtitle">Paramètres et statistiques</div>
+            </div>
 
-                <div class="detail-content" style="padding-top: 100px; padding-bottom: 80px;">
-                    
-                    <!-- Statistiques -->
+            <div class="main-content" style="padding-bottom: 80px;">
+                
+                <!-- Statistiques -->
                     <div class="info-group">
                         <div class="info-title">📊 Mes Statistiques</div>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px;">
@@ -3142,9 +3134,9 @@
                 // Priorité: photo personnalisée > image principale > icône
                 let imageHTML;
                 if (plant.custom_photo) {
-                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover;" alt="${plant.nom_francais}">`;
+                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" alt="${plant.nom_francais}" onclick="openImageZoom('${plant.custom_photo}'); event.stopPropagation();">`;
                 } else if (plant.image_principale) {
-                    imageHTML = `<img src="${plant.image_principale}" style="width: 100%; height: 100%; object-fit: cover;" alt="${plant.nom_francais}">`;
+                    imageHTML = `<img src="${plant.image_principale}" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" alt="${plant.nom_francais}" onclick="openImageZoom('${plant.image_principale}'); event.stopPropagation();">`;
                 } else {
                     imageHTML = plant.icon || '🌿';
                 }
@@ -3624,13 +3616,12 @@
             document.getElementById('detail-price').textContent = plantData.prix || 'Prix non disponible';
             document.getElementById('detail-type').textContent = plantData.type_plante || 'Plante';
             
-            // Description de base
+            // Description de base (sera complétée par displayDetailedInfo si disponible)
             if (plantData.description) {
                 document.getElementById('detail-description').textContent = plantData.description;
                 document.getElementById('detail-description-group').style.display = 'block';
-            } else {
-                document.getElementById('detail-description-group').style.display = 'none';
             }
+            // Note: ne pas cacher ici, displayDetailedInfo peut avoir une description depuis details
             
             // Si les détails sont déjà dans plantData (venant de la bibliothèque)
             if (plantData.details && Object.keys(plantData.details).length > 0) {
@@ -3856,6 +3847,19 @@
         function displayDetailedInfo(details) {
             // ONGLET INFO
             
+            // Réinitialiser les groupes optionnels de l'onglet Info
+            document.getElementById('detail-description-group').style.display = 'none';
+            document.getElementById('detail-sous-categorie-group').style.display = 'none';
+            document.getElementById('detail-rusticite-group').style.display = 'none';
+            document.getElementById('detail-dimensions-group').style.display = 'none';
+            document.getElementById('detail-floraison-group').style.display = 'none';
+            document.getElementById('detail-feuillage-group').style.display = 'none';
+            document.getElementById('detail-utilisation-group').style.display = 'none';
+            document.getElementById('detail-sol-group').style.display = 'none';
+            document.getElementById('detail-ph-group').style.display = 'none';
+            document.getElementById('detail-botanique-group').style.display = 'none';
+            document.getElementById('detail-formats-group').style.display = 'none';
+            
             // Image principale (remplacer l'emoji)
             if (details.image_principale) {
                 const iconEl = document.getElementById('detail-plant-icon');
@@ -3923,6 +3927,13 @@
             if (details.type_utilisation) {
                 document.getElementById('detail-utilisation').textContent = details.type_utilisation;
                 document.getElementById('detail-utilisation-group').style.display = 'block';
+            }
+            
+            // Description (priorité: description > description_courte > description_complete)
+            const description = details.description || details.description_courte || details.description_complete;
+            if (description) {
+                document.getElementById('detail-description').textContent = description;
+                document.getElementById('detail-description-group').style.display = 'block';
             }
             
             // pH du sol (séparé)
