@@ -1600,7 +1600,7 @@ def load_from_airtable():
                     'exposition': plant_fields.get('exposition', ''),
                     'type_plante': plant_fields.get('type_plante', 'Plante'),
                     'prix': plant_fields.get('prix', ''),
-                    'description': plant_fields.get('description_courte', plant_fields.get('description_complete', '')),
+                    'description': plant_fields.get('description_courte', plant_fields.get('description_detaillee', '')),
                     'icon': '🌿',  # Icône par défaut
                     'url': plant_fields.get('url_source', ''),
                     'image_principale': plant_fields.get('image_principale', ''),
