@@ -1,10 +1,126 @@
-flask==3.0.0
-flask-cors==4.0.0
-requests==2.31.0
-beautifulsoup4==4.12.3
-fuzzywuzzy==0.18.0
-rapidfuzz==3.14.3
-python-dotenv==1.0.0
-gunicorn
-pyairtable
-lxml
+# 📦 BOTANUS v12.8 - DÉPLOIEMENT RAILWAY
+
+## 📁 CONTENU DU ZIP
+
+```
+botanus_v12.8/
+├── main.py                  ← Backend Flask
+├── airtable_client.py       ← Client Airtable (43 champs)
+├── aujardin_scraper.py      ← Scraper AuJardin
+├── requirements.txt         ← Dépendances Python (SANS gunicorn)
+└── static/
+    └── index.html           ← Interface v12.8
+```
+
+---
+
+## 🚀 DÉPLOIEMENT SUR RAILWAY
+
+### **Méthode 1 : Via GitHub (recommandé)**
+
+1. **Crée un nouveau repo GitHub** ou utilise l'existant
+2. **Upload tous les fichiers** du zip
+3. **Railway** redéploie automatiquement
+4. ✅ Terminé !
+
+---
+
+### **Méthode 2 : Railway CLI**
+
+```bash
+# 1. Décompresse le zip
+unzip botanus_v12.8.zip
+cd botanus_v12.8
+
+# 2. Initialise Railway
+railway login
+railway link
+
+# 3. Deploy
+railway up
+```
+
+---
+
+## ⚙️ VARIABLES D'ENVIRONNEMENT
+
+**Déjà configurées sur Railway :**
+- ✅ `AIRTABLE_API_KEY`
+- ✅ `AIRTABLE_BASE_ID`
+- ✅ `AIRTABLE_TABLE_NAME`
+
+**Si manquantes, ajoute-les dans Railway → Variables**
+
+---
+
+## 🧪 VÉRIFICATION APRÈS DÉPLOIEMENT
+
+1. **Ouvre l'URL Railway**
+2. **Teste ces fonctionnalités :**
+   - ✅ Page d'accueil s'affiche
+   - ✅ Bibliothèque charge les plantes
+   - ✅ Recherche fonctionne
+   - ✅ Rappels s'affichent avec filtres
+   - ✅ Fiche détail complète (Expo, Rusticité, Sol, etc.)
+
+---
+
+## 📋 NOUVEAUTÉS v12.8
+
+**Par rapport à v11.1 :**
+
+1. ✅ **Persistance Airtable** (v12.0)
+   - Plantes conservées après redémarrage
+   - 43 champs synchronisés
+
+2. ✅ **Calendriers visuels** (v12.1)
+   - Période plantation : vert foncé
+   - Période raisonnable : vert clair
+   - Période floraison : rose
+   - Période taille : orange
+
+3. ✅ **Filtres rappels** (v12.5)
+   - Tout / Plantation / Taille / Floraison
+   - Compteur rappels fonctionnel
+
+4. ✅ **Headers Android** (v12.7)
+   - Navigation uniformisée
+   - Scroll naturel (pas de header fixe)
+
+5. ✅ **Zoom images** (v12.8)
+   - Clic image → Plein écran
+   - Bibliothèque et fiche détail
+
+6. ✅ **Corrections multiples**
+   - Scraping multiplication nettoyé
+   - Plantes récentes cliquables
+   - Lien source AuJardin cliquable
+   - Rescan bibliothèque optimisé
+
+---
+
+## ⚠️ IMPORTANT
+
+**requirements.txt sans gunicorn**
+
+Ce fichier est spécifique à Railway (pas de gunicorn car Railway utilise son propre système).
+
+Pour Render/Fly.io, il faudrait ajouter `gunicorn==20.1.0`
+
+---
+
+## 📞 SUPPORT
+
+En cas de problème :
+
+1. **Vérifier les logs Railway** → Deployments → View Logs
+2. **Vérifier variables d'environnement** → Settings → Variables
+3. **Redéployer** → Deployments → Redeploy
+
+---
+
+**Bon déploiement ! 🚀**
+
+Version : v12.8  
+Date : 2026-03-10  
+Status : ✅ Stable

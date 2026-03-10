@@ -1,390 +1,640 @@
 """
-Scraper pour AuJardin.info - Extraction des données d'entretien complètes
-(arrosage, fertilisation, taille, maladies, parasites, multiplication)
+Module pour gérer l'intégration avec Airtable
+Permet de stocker et récupérer les données des plantes
 """
 
+import os
 import requests
-from bs4 import BeautifulSoup
-from typing import Optional, Dict, List
-from urllib.parse import quote
-import re
-import time
-from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from dataclasses import asdict
+import json
 
-@dataclass
-class AuJardinPlantData:
-    """Données complètes extraites d'AuJardin.info"""
-    # Identification
-    nom_francais: str = ""
-    nom_latin: str = ""
-    autres_noms: List[str] = field(default_factory=list)
-    famille: str = ""
-    url: str = ""
-    
-    # Dimensions
-    hauteur: str = ""
-    port: str = ""
-    feuillage: str = ""
-    
-    # Floraison
-    periode_floraison: str = ""
-    couleur_fleurs: str = ""
-    
-    # Plantation
-    exposition: str = ""
-    rusticite: str = ""
-    sol_type: str = ""
-    sol_acidite: str = ""
-    sol_humidite: str = ""
-    utilisation: str = ""
-    periode_plantation: str = ""
-    
-    # Entretien
-    arrosage: str = ""
-    arrosage_detail: str = ""
-    
-    fertilisation: str = ""
-    fertilisation_detail: str = ""
-    
-    taille_periode: str = ""
-    taille_technique: str = ""
-    
-    # Multiplication
-    multiplication: str = ""
-    multiplication_detail: str = ""
-    
-    # Maladies et ravageurs
-    maladies: List[str] = field(default_factory=list)
-    ravageurs: List[str] = field(default_factory=list)
-    
-    # Descriptions
-    description: str = ""
-    description_botanique: str = ""
-    
-    # Toxicité
-    toxicite: str = ""
-    
-    # Variétés
-    varietes: List[Dict] = field(default_factory=list)
-
-
-class AuJardinScraper:
-    """Scraper pour extraire les données depuis AuJardin.info"""
+class AirtableClient:
+    """Client pour interagir avec l'API Airtable"""
     
     def __init__(self):
-        self.base_url = "https://www.aujardin.info"
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-        }
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
-    
-    def _clean_text(self, text: str) -> str:
-        """Nettoie le texte extrait"""
-        if not text:
-            return ""
-        # Enlever les sauts de ligne multiples et espaces superflus
-        text = re.sub(r'\s+', ' ', text)
-        return text.strip()
-    
-    def construct_url(self, nom_latin: str) -> str:
-        """
-        Construit l'URL depuis le nom latin
-        Format: https://www.aujardin.info/plantes/genre_espece.php
-        """
-        # Nettoyer le nom latin (enlever variété/cultivar)
-        parts = nom_latin.lower().split()
-        if len(parts) >= 2:
-            # Garder seulement genre + espèce
-            genre_espece = f"{parts[0]}_{parts[1]}"
-        else:
-            genre_espece = parts[0]
+        # Récupérer les credentials depuis variables d'environnement
+        self.api_key = os.environ.get('AIRTABLE_API_KEY', '')
+        self.base_id = os.environ.get('AIRTABLE_BASE_ID', '')
+        self.table_plantes = os.environ.get('AIRTABLE_TABLE_PLANTES', 'Plantes')
+        self.table_maladies = os.environ.get('AIRTABLE_TABLE_MALADIES', 'Maladies')
+        self.table_parasites = os.environ.get('AIRTABLE_TABLE_PARASITES', 'Parasites')
+        self.table_formats = os.environ.get('AIRTABLE_TABLE_FORMATS', 'Formats')
         
-        return f"{self.base_url}/plantes/{genre_espece}.php"
+        self.base_url = f"https://api.airtable.com/v0/{self.base_id}"
+        self.headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        self.enabled = bool(self.api_key and self.base_id)
+        
+        if self.enabled:
+            print("✅ Airtable activé")
+        else:
+            print("⚠️ Airtable désactivé (credentials manquants)")
     
-    def extract_plant_data(self, url: str) -> Optional[AuJardinPlantData]:
-        """Extrait toutes les données d'une page AuJardin.info"""
-        print(f"📥 Extraction AuJardin: {url}")
+    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Optional[Dict]:
+        """Effectue une requête à l'API Airtable"""
+        if not self.enabled:
+            return None
+        
+        url = f"{self.base_url}/{endpoint}"
         
         try:
-            time.sleep(1)  # Rate limiting respectueux
+            if method == 'GET':
+                response = requests.get(url, headers=self.headers)
+            elif method == 'POST':
+                response = requests.post(url, headers=self.headers, json=data)
+            elif method == 'PATCH':
+                response = requests.patch(url, headers=self.headers, json=data)
+            elif method == 'DELETE':
+                response = requests.delete(url, headers=self.headers)
+            else:
+                return None
             
-            response = self.session.get(url, timeout=15)
             response.raise_for_status()
+            return response.json()
             
-            soup = BeautifulSoup(response.text, 'html.parser')
-            data = AuJardinPlantData(url=url)
-            
-            # Titre (nom français)
-            h1 = soup.find('h1')
-            if h1:
-                title = self._clean_text(h1.get_text())
-                # Souvent format: "Nom français, Autre nom, Nom latin"
-                if ',' in title:
-                    parts = [p.strip() for p in title.split(',')]
-                    data.nom_francais = parts[0]
-                    data.autres_noms = parts[1:-1]  # Entre premier et dernier
-                    data.nom_latin = parts[-1] if parts[-1] else ""
-                else:
-                    data.nom_francais = title
-            
-            # Nom scientifique (dans les métadonnées ou texte)
-            nom_sci = soup.find('strong', text=re.compile('Nom scientifique'))
-            if nom_sci:
-                data.nom_latin = self._clean_text(nom_sci.parent.get_text().replace('Nom scientifique :', ''))
-            
-            # Famille
-            famille = soup.find('strong', text=re.compile('Famille'))
-            if famille:
-                data.famille = self._clean_text(famille.parent.get_text().replace('Famille :', ''))
-            
-            # Description principale
-            self._extract_description(soup, data)
-            
-            # Bloc "La plante en bref" (tableau résumé)
-            self._extract_plant_summary(soup, data)
-            
-            # Sections détaillées
-            self._extract_plantation_section(soup, data)
-            self._extract_entretien_section(soup, data)
-            
-            # Variétés intéressantes
-            self._extract_varietes(soup, data)
-            
-            print(f"  ✅ Extraction réussie")
-            print(f"     - Arrosage: {'Oui' if data.arrosage else 'Non'}")
-            print(f"     - Taille: {'Oui' if data.taille_periode else 'Non'}")
-            print(f"     - Multiplication: {'Oui' if data.multiplication else 'Non'}")
-            
-            return data
-            
-        except Exception as e:
-            print(f"  ❌ Erreur extraction: {e}")
-            import traceback
-            traceback.print_exc()
+        except requests.exceptions.HTTPError as e:
+            print(f"❌ Erreur Airtable HTTP {e.response.status_code}: {e}")
+            # Afficher le détail de l'erreur pour 422
+            if e.response.status_code == 422:
+                try:
+                    error_detail = e.response.json()
+                    print(f"📋 Détail erreur 422:")
+                    import json
+                    print(json.dumps(error_detail, indent=2, ensure_ascii=False))
+                except:
+                    print(f"📋 Réponse brute: {e.response.text}")
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Erreur Airtable API: {e}")
             return None
     
-    def _extract_description(self, soup: BeautifulSoup, data: AuJardinPlantData):
-        """Extrait les descriptions"""
-        # Description principale (premier paragraphe après h1)
-        h1 = soup.find('h1')
-        if h1:
-            next_p = h1.find_next('p')
-            if next_p:
-                data.description = self._clean_text(next_p.get_text())
-    
-    def _extract_plant_summary(self, soup: BeautifulSoup, data: AuJardinPlantData):
+    def transform_plant_data(self, plant_data: Dict) -> Dict:
         """
-        Extrait le bloc 'La plante en bref' qui contient un tableau structuré
-        avec exposition, rusticité, sol, etc.
+        Transforme les données d'une plante pour Airtable
+        Adapte les noms de champs et les formats
         """
-        # Chercher les sections avec des labels spécifiques
-        labels_mapping = {
-            'Exposition': 'exposition',
-            'Rusticité': 'rusticite',
-            'Sol': 'sol_type',
-            'Acidité': 'sol_acidite',
-            'Humidité': 'sol_humidite',
-            'Utilisation': 'utilisation',
-            'Hauteur': 'hauteur',
-            'Type': 'port',
-            'Feuillage': 'feuillage',
-            'Période favorable': 'periode_plantation',
-            'Toxicité': 'toxicite',
-            'Arrosage': 'arrosage',
-        }
+        fields = {}
         
-        for label, attr in labels_mapping.items():
-            # Chercher le label
-            label_elem = soup.find(text=re.compile(f'^{label}\\s*$', re.IGNORECASE))
-            if label_elem:
-                # Le parent contient généralement le label, et le next sibling la valeur
-                parent = label_elem.find_parent(['dt', 'div', 'strong', 'th'])
-                if parent:
-                    # Chercher la valeur (souvent dans dd, next div, next td, etc.)
-                    value_elem = parent.find_next_sibling(['dd', 'td', 'div'])
-                    if value_elem:
-                        value = self._clean_text(value_elem.get_text())
-                        setattr(data, attr, value)
-    
-    def _extract_plantation_section(self, soup: BeautifulSoup, data: AuJardinPlantData):
-        """Extrait les informations de la section Plantation"""
-        # Chercher le titre de section
-        section_title = soup.find(['h2', 'h3'], text=re.compile('Plantation', re.IGNORECASE))
+        # DEBUG: Afficher ce qui est reçu
+        print(f"📥 transform_plant_data - Données reçues:")
+        print(f"   - Champs racine: {list(plant_data.keys())}")
+        if plant_data.get('details'):
+            print(f"   - Champs dans details: {len(plant_data['details'].keys())} champs")
+            print(f"   - Liste: {list(plant_data['details'].keys())}")
         
-        if not section_title:
-            return
+        # Champs basiques
+        if plant_data.get('nom_francais'):
+            fields['nom_francais'] = plant_data['nom_francais']
         
-        # Trouver tout le contenu jusqu'à la prochaine section
-        section_content = []
-        for sibling in section_title.find_next_siblings():
-            if sibling.name in ['h2', 'h3']:
-                break  # Prochaine section
-            section_content.append(sibling)
+        if plant_data.get('nom_latin'):
+            fields['nom_latin'] = plant_data['nom_latin']
         
-        # Extraire le texte complet
-        full_text = ' '.join([self._clean_text(elem.get_text()) for elem in section_content])
+        if plant_data.get('famille'):
+            fields['famille'] = plant_data['famille']
         
-        # Parser des infos spécifiques depuis le texte
-        if 'exposition' not in data.exposition or not data.exposition:
-            if 'soleil' in full_text.lower():
-                if 'plein soleil' in full_text.lower():
-                    data.exposition = 'Plein soleil'
-                elif 'mi-ombre' in full_text.lower():
-                    data.exposition = 'Mi-ombre'
+        if plant_data.get('url'):
+            fields['url_source'] = plant_data['url']
         
-        # Stocker le texte complet dans periode_plantation si vide
-        if not data.periode_plantation and section_content:
-            data.periode_plantation = full_text[:500]  # Premiers 500 caractères
-    
-    def _extract_entretien_section(self, soup: BeautifulSoup, data: AuJardinPlantData):
-        """Extrait les informations de la section Entretien & Multiplication"""
-        # Chercher le titre de section
-        section_title = soup.find(['h2', 'h3'], text=re.compile('Entretien|Multiplication', re.IGNORECASE))
+        # Dimensions
+        if plant_data.get('hauteur_maturite'):
+            fields['hauteur_maturite'] = plant_data['hauteur_maturite']
         
-        if not section_title:
-            return
+        if plant_data.get('largeur_maturite'):
+            fields['largeur_maturite'] = plant_data['largeur_maturite']
         
-        # Trouver tout le contenu jusqu'à la prochaine section
-        section_content = []
-        for sibling in section_title.find_next_siblings():
-            if sibling.name in ['h2', 'h3']:
-                break
-            section_content.append(sibling)
+        # Type de plante (IMPORTANT: doit être "Texte long" dans Airtable, pas "Sélection unique")
+        if plant_data.get('type_plante'):
+            try:
+                fields['type_plante'] = plant_data['type_plante']
+            except Exception as e:
+                print(f"⚠️ Erreur type_plante: {e}")
+                print(f"   💡 Dans Airtable, change le type du champ 'type_plante' en 'Texte long'")
         
-        # Chercher des sous-sections spécifiques
-        for elem in section_content:
-            text = self._clean_text(elem.get_text())
-            text_lower = text.lower()
+        # Exposition
+        if plant_data.get('exposition'):
+            # Convertir en liste si c'est une string
+            expo = plant_data['exposition']
+            if isinstance(expo, str):
+                # Essayer de parser les multiples expositions
+                fields['exposition'] = [e.strip() for e in expo.split(',')]
+            else:
+                fields['exposition'] = [expo]
+        
+        # Floraison
+        if plant_data.get('periode_floraison'):
+            fields['periode_floraison'] = plant_data['periode_floraison']
+        
+        # Description
+        if plant_data.get('description'):
+            fields['description_courte'] = plant_data['description']
+        
+        # Prix
+        if plant_data.get('prix'):
+            fields['prix'] = plant_data['prix']
+        
+        # Disponibilité
+        if plant_data.get('disponibilite'):
+            fields['disponibilite'] = plant_data['disponibilite']
+        
+        # Image
+        if plant_data.get('image_principale'):
+            fields['image_principale'] = plant_data['image_principale']
+        
+        # Détails si disponibles
+        details = plant_data.get('details', {})
+        if details:
+            # Dimensions (priorité aux details)
+            if details.get('hauteur_maturite') and not fields.get('hauteur_maturite'):
+                fields['hauteur_maturite'] = details['hauteur_maturite']
             
-            # Arrosage
-            if any(keyword in text_lower for keyword in ['arrosage', 'arroser', 'eau']):
-                if not data.arrosage_detail:
-                    data.arrosage_detail = text
+            if details.get('largeur_maturite') and not fields.get('largeur_maturite'):
+                fields['largeur_maturite'] = details['largeur_maturite']
             
-            # Fertilisation
-            if any(keyword in text_lower for keyword in ['fertilisation', 'engrais', 'fertiliser', 'apport']):
-                if not data.fertilisation_detail:
-                    data.fertilisation_detail = text
+            # Exposition (peut être écrasée par details)
+            if details.get('exposition'):
+                expo = details['exposition']
+                if isinstance(expo, str):
+                    fields['exposition'] = [e.strip() for e in expo.split(',')]
+                elif isinstance(expo, list):
+                    fields['exposition'] = expo
+                else:
+                    fields['exposition'] = [expo]
+            
+            # Floraison
+            if details.get('periode_floraison'):
+                fields['periode_floraison'] = details['periode_floraison']
+            
+            # Couleur fleurs (IMPORTANT: doit être "Texte long" dans Airtable)
+            if details.get('couleur_fleur'):
+                try:
+                    fields['couleur_fleurs'] = details['couleur_fleur']
+                except Exception as e:
+                    print(f"⚠️ Erreur couleur_fleurs: {e}")
+                    print(f"   💡 Dans Airtable, change le type du champ 'couleur_fleurs' en 'Texte long'")
+            elif details.get('couleur_fleurs'):
+                try:
+                    fields['couleur_fleurs'] = details['couleur_fleurs']
+                except Exception as e:
+                    print(f"⚠️ Erreur couleur_fleurs: {e}")
+            
+            if details.get('duree_floraison'):
+                fields['duree_floraison'] = details['duree_floraison']
+            
+            # Feuillage et port
+            # persistance_feuillage (pas feuillage !)
+            if details.get('persistance_feuillage'):
+                fields['feuillage'] = details['persistance_feuillage']
+            
+            if details.get('couleur_feuillage'):
+                if fields.get('feuillage'):
+                    fields['feuillage'] += f" - {details['couleur_feuillage']}"
+                else:
+                    fields['feuillage'] = details['couleur_feuillage']
+            
+            if details.get('port'):
+                fields['port'] = details['port']
+            
+            # Sol (ATTENTION : noms inversés !)
+            # details a type_sol, ph_sol, humidite_sol
+            # Airtable veut sol_type, sol_ph, sol_humidite
+            if details.get('type_sol'):
+                fields['sol_type'] = details['type_sol']
+            
+            if details.get('ph_sol'):
+                fields['sol_ph'] = details['ph_sol']
+            
+            if details.get('humidite_sol'):
+                fields['sol_humidite'] = details['humidite_sol']
+            
+            if details.get('sol_drainage'):
+                fields['sol_drainage'] = details['sol_drainage']
+            
+            # Type de plante (peut être écrasé par details)
+            if details.get('type_plante'):
+                try:
+                    fields['type_plante'] = details['type_plante']
+                except Exception as e:
+                    print(f"⚠️ Erreur type_plante (details): {e}")
+            
+            # Descriptions
+            if details.get('description_detaillee'):
+                fields['description_complete'] = details['description_detaillee']
+            
+            if details.get('description_courte') and not fields.get('description_courte'):
+                fields['description_courte'] = details['description_courte']
+            
+            # Utilisations
+            if details.get('type_utilisation'):
+                fields['utilisations'] = details['type_utilisation']
+            elif details.get('convient_pour'):
+                fields['utilisations'] = details['convient_pour']
+            
+            # Plantation
+            if details.get('meilleure_periode_plantation'):
+                fields['meilleure_periode_plantation'] = details['meilleure_periode_plantation']
+            
+            if details.get('periode_raisonnable_plantation'):
+                fields['periode_raisonnable_plantation'] = details['periode_raisonnable_plantation']
+            
+            if details.get('densite_plantation'):
+                fields['densite_plantation'] = details['densite_plantation']
             
             # Taille
-            if any(keyword in text_lower for keyword in ['taille', 'tailler', 'rabattre']):
-                if not data.taille_technique:
-                    data.taille_technique = text
-                # Extraire la période si possible
-                mois = re.findall(r'(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)', text_lower, re.IGNORECASE)
-                if mois and not data.taille_periode:
-                    data.taille_periode = ', '.join(mois).capitalize()
+            if details.get('periode_taille'):
+                fields['taille_periode'] = details['periode_taille']
+                # Dupliquer dans periode_taille (autre champ) pour compatibilité
+                fields['periode_taille'] = details['periode_taille']
             
-            # Multiplication
-            if any(keyword in text_lower for keyword in ['multiplication', 'semis', 'bouturage', 'division']):
-                if not data.multiplication_detail:
-                    # Nettoyer le texte : enlever le titre "Multiplication" au début
-                    cleaned_text = re.sub(r'^Multiplication\s*:?\s*', '', text, flags=re.IGNORECASE).strip()
-                    data.multiplication_detail = cleaned_text
-                # Extraire les méthodes
-                methodes = []
-                if 'semis' in text_lower:
-                    methodes.append('Semis')
-                if 'bouturage' in text_lower:
-                    methodes.append('Bouturage')
-                if 'division' in text_lower:
-                    methodes.append('Division')
-                if 'marcottage' in text_lower:
-                    methodes.append('Marcottage')
-                if methodes and not data.multiplication:
-                    data.multiplication = ', '.join(methodes)
+            if details.get('descriptif_taille_detaille'):
+                fields['taille_technique'] = details['descriptif_taille_detaille']
+            elif details.get('taille'):
+                fields['taille_technique'] = details['taille']
             
-            # Maladies et ravageurs
-            if any(keyword in text_lower for keyword in ['maladie', 'ravageur', 'parasite']):
-                # Chercher des noms spécifiques
-                maladies_courantes = ['oïdium', 'mildiou', 'rouille', 'botrytis', 'septoriose', 'tavelure']
-                for maladie in maladies_courantes:
-                    if maladie in text_lower and maladie not in [m.lower() for m in data.maladies]:
-                        data.maladies.append(maladie.capitalize())
-                
-                ravageurs_courants = ['puceron', 'cochenille', 'araignée rouge', 'thrips', 'aleurode', 'chenille']
-                for ravageur in ravageurs_courants:
-                    if ravageur in text_lower and ravageur not in [r.lower() for r in data.ravageurs]:
-                        data.ravageurs.append(ravageur.capitalize())
+            if details.get('periode_raisonnable_taille'):
+                fields['periode_raisonnable_taille'] = details['periode_raisonnable_taille']
+            
+            if details.get('frequence_taille'):
+                # Ajouter à taille_technique si existe déjà
+                if fields.get('taille_technique'):
+                    fields['taille_technique'] = f"{details['frequence_taille']}. {fields['taille_technique']}"
+                else:
+                    fields['taille_technique'] = details['frequence_taille']
+            
+            # Entretien supplémentaire
+            if details.get('paillage'):
+                fields['paillage'] = details['paillage']
+            
+            if details.get('tuteurage'):
+                fields['tuteurage'] = details['tuteurage']
+            
+            if details.get('rabattage_periode'):
+                fields['rabattage_periode'] = details['rabattage_periode']
+            
+            # Rusticité
+            if details.get('rusticite'):
+                fields['rusticite_zone'] = details['rusticite']
+            
+            if details.get('zone_usda'):
+                if fields.get('rusticite_zone'):
+                    fields['rusticite_zone'] += f" (Zone USDA: {details['zone_usda']})"
+                else:
+                    fields['rusticite_zone'] = f"Zone USDA: {details['zone_usda']}"
+            
+            if details.get('rusticite_min_celsius'):
+                fields['rusticite_min_celsius'] = details['rusticite_min_celsius']
+            
+            # Botanique
+            if details.get('famille'):
+                fields['famille'] = details['famille']
+            
+            if details.get('genre'):
+                if not fields.get('autres_noms'):
+                    fields['autres_noms'] = f"Genre: {details['genre']}"
+            
+            if details.get('espece'):
+                if fields.get('autres_noms'):
+                    fields['autres_noms'] += f", Espèce: {details['espece']}"
+                else:
+                    fields['autres_noms'] = f"Espèce: {details['espece']}"
+            
+            # Sous-catégorie
+            if details.get('sous_categorie'):
+                if fields.get('autres_noms'):
+                    fields['autres_noms'] += f", {details['sous_categorie']}"
+                else:
+                    fields['autres_noms'] = details['sous_categorie']
+            
+            # Image (peut être écrasée par details)
+            if details.get('image_principale') and not fields.get('image_principale'):
+                fields['image_principale'] = details['image_principale']
+        
+        # Données enrichies AuJardin.info
+        if plant_data.get('arrosage_detail'):
+            fields['arrosage_detail'] = plant_data['arrosage_detail']
+        
+        if plant_data.get('arrosage'):
+            fields['arrosage_frequence'] = plant_data['arrosage']
+        
+        if plant_data.get('fertilisation_detail'):
+            fields['fertilisation'] = plant_data['fertilisation_detail']
+        
+        if plant_data.get('taille_periode') and not fields.get('taille_periode'):
+            fields['taille_periode'] = plant_data['taille_periode']
+        
+        if plant_data.get('taille_technique') and not fields.get('taille_technique'):
+            fields['taille_technique'] = plant_data['taille_technique']
+        
+        if plant_data.get('multiplication'):
+            fields['multiplication'] = plant_data['multiplication']
+        
+        if plant_data.get('multiplication_detail'):
+            if 'multiplication' in fields:
+                fields['multiplication'] += f" - {plant_data['multiplication_detail']}"
+            else:
+                fields['multiplication'] = plant_data['multiplication_detail']
+        
+        if plant_data.get('rusticite') and not fields.get('rusticite_zone'):
+            fields['rusticite_zone'] = plant_data['rusticite']
+        
+        if plant_data.get('sol_type'):
+            fields['sol_type'] = plant_data['sol_type']
+        
+        if plant_data.get('sol_ph'):
+            fields['sol_ph'] = plant_data['sol_ph']
+        
+        # Source
+        fields['source'] = plant_data.get('source', 'Promesse de Fleurs')
+        fields['statut'] = 'Complet' if (details or plant_data.get('arrosage_detail')) else 'Partiel'
+        
+        # SÉCURITÉ: Liste blanche des champs Airtable autorisés
+        # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
+        ALLOWED_FIELDS = {
+            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'type_plante', 'url_source',
+            'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
+            'periode_floraison', 'couleur_fleurs', 'duree_floraison',
+            'exposition', 'rusticite_zone', 'rusticite_min_celsius',
+            'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
+            'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
+            'arrosage_frequence', 'arrosage_detail', 'fertilisation',
+            'taille_periode', 'taille_technique', 'multiplication',
+            'periode_taille', 'periode_raisonnable_taille', 'paillage', 'tuteurage', 'rabattage_periode',
+            'description_courte', 'description_complete', 'utilisations',
+            'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes'
+        }
+        
+        
+        # IMPORTANT : type_plante et couleur_fleurs
+        # Si tu obtiens des erreurs 422 avec ces champs, c'est qu'ils sont définis
+        # comme "Sélection unique/multiple" dans Airtable.
+        # 
+        # SOLUTION : Dans Airtable, change le type de ces champs en "Texte long"
+        # 
+        # Les erreurs s'afficheront dans les logs mais ne bloqueront pas l'insertion
+        
+        # Filtrer pour ne garder que les champs autorisés
+        cleaned_fields = {k: v for k, v in fields.items() if k in ALLOWED_FIELDS}
+        
+        # Debug: afficher les champs rejetés si on en a
+        rejected = set(fields.keys()) - set(cleaned_fields.keys())
+        if rejected:
+            print(f"⚠️ Champs rejetés (n'existent pas dans Airtable): {rejected}")
+        
+        return cleaned_fields
     
-    def _extract_varietes(self, soup: BeautifulSoup, data: AuJardinPlantData):
-        """Extrait les variétés intéressantes"""
-        # Chercher la section variétés
-        varietes_section = soup.find(['h2', 'h3'], text=re.compile('Espèces.*variétés|Variétés', re.IGNORECASE))
+    def find_plant_by_latin_name(self, nom_latin: str) -> Optional[str]:
+        """
+        Cherche une plante par son nom latin
+        Retourne le record ID si trouvée
+        """
+        if not self.enabled:
+            return None
         
-        if not varietes_section:
-            return
+        # Utiliser filterByFormula pour chercher
+        formula = f"{{nom_latin}}='{nom_latin}'"
+        params = {'filterByFormula': formula}
         
-        # Trouver les items de liste
-        liste = varietes_section.find_next(['ul', 'dl'])
-        if liste:
-            items = liste.find_all(['li', 'dt'])
-            for item in items[:10]:  # Max 10 variétés
-                text = self._clean_text(item.get_text())
-                if text:
-                    # Parser format: "Nom variété : description"
-                    if ':' in text:
-                        nom, desc = text.split(':', 1)
-                        data.varietes.append({
-                            'nom': nom.strip(),
-                            'description': desc.strip()
-                        })
-                    else:
-                        data.varietes.append({
-                            'nom': text,
-                            'description': ''
-                        })
+        response = self._request('GET', f"{self.table_plantes}?{requests.compat.urlencode(params)}")
+        
+        if response and response.get('records'):
+            return response['records'][0]['id']
+        
+        return None
     
-    def get_plant_data(self, nom_latin: str) -> Optional[AuJardinPlantData]:
+    def create_plant(self, plant_data: Dict) -> Optional[str]:
         """
-        Méthode principale: construit l'URL et extrait les données d'une plante
+        Crée une nouvelle plante dans Airtable
+        Retourne le record ID si succès
         """
-        # Construire l'URL
-        url = self.construct_url(nom_latin)
+        if not self.enabled:
+            return None
         
-        print(f"🔍 URL AuJardin: {url}")
+        # Transformer les données
+        fields = self.transform_plant_data(plant_data)
         
-        # Extraire les données
-        return self.extract_plant_data(url)
+        # DEBUG: Afficher les noms de champs envoyés
+        print(f"🔍 DEBUG Airtable - Champs envoyés: {list(fields.keys())}")
+        
+        # Créer le record
+        data = {
+            'fields': fields
+        }
+        
+        # DEBUG: Afficher le JSON complet
+        import json
+        print(f"📤 JSON complet envoyé:")
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+        
+        response = self._request('POST', self.table_plantes, data)
+        
+        if response and response.get('id'):
+            print(f"✅ Plante créée dans Airtable: {fields.get('nom_francais')} (ID: {response['id']})")
+            return response['id']
+        
+        return None
     
-    def scrape_url_direct(self, url: str) -> Optional[AuJardinPlantData]:
+    def update_plant(self, record_id: str, plant_data: Dict) -> bool:
         """
-        Scrape directement une URL fournie (pour scraping manuel)
+        Met à jour une plante existante dans Airtable
         """
-        print(f"🔍 Scraping URL directe: {url}")
+        if not self.enabled:
+            return False
         
-        # Extraire les données
-        return self.extract_plant_data(url)
+        # Transformer les données
+        fields = self.transform_plant_data(plant_data)
+        
+        # Mettre à jour le record
+        data = {
+            'fields': fields
+        }
+        
+        response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+        
+        if response and response.get('id'):
+            print(f"✅ Plante mise à jour dans Airtable: {fields.get('nom_francais')}")
+            return True
+        
+        return False
+    
+    def upsert_plant(self, plant_data: Dict) -> Optional[str]:
+        """
+        Crée ou met à jour une plante
+        (Upsert = Update or Insert)
+        """
+        if not self.enabled:
+            return None
+        
+        nom_latin = plant_data.get('nom_latin')
+        
+        if not nom_latin:
+            print("⚠️ Pas de nom latin, impossible de faire un upsert")
+            return self.create_plant(plant_data)
+        
+        # Chercher si la plante existe déjà
+        record_id = self.find_plant_by_latin_name(nom_latin)
+        
+        if record_id:
+            # Mise à jour
+            self.update_plant(record_id, plant_data)
+            return record_id
+        else:
+            # Création
+            return self.create_plant(plant_data)
+    
+    def get_plant(self, record_id: str) -> Optional[Dict]:
+        """Récupère une plante par son ID"""
+        if not self.enabled:
+            return None
+        
+        response = self._request('GET', f"{self.table_plantes}/{record_id}")
+        
+        if response:
+            return response.get('fields', {})
+        
+        return None
+    
+    def delete_plant(self, record_id: str) -> bool:
+        """Supprime une plante par son record ID Airtable"""
+        if not self.enabled:
+            return False
+        
+        response = self._request('DELETE', f"{self.table_plantes}/{record_id}")
+        
+        if response and response.get('deleted'):
+            print(f"✅ Plante supprimée dans Airtable: {record_id}")
+            return True
+        
+        return False
+    
+    def delete_plant_by_latin_name(self, nom_latin: str) -> bool:
+        """Supprime une plante par son nom latin"""
+        if not self.enabled:
+            return False
+        
+        # Trouver le record ID
+        record_id = self.find_plant_by_latin_name(nom_latin)
+        
+        if record_id:
+            return self.delete_plant(record_id)
+        else:
+            print(f"⚠️ Plante non trouvée dans Airtable pour suppression: {nom_latin}")
+            return False
+    
+    def get_all_plants(self, view: Optional[str] = None) -> List[Dict]:
+        """
+        Récupère toutes les plantes
+        Peut filtrer par vue Airtable
+        """
+        if not self.enabled:
+            return []
+        
+        endpoint = self.table_plantes
+        if view:
+            endpoint += f"?view={view}"
+        
+        all_records = []
+        offset = None
+        
+        while True:
+            url = endpoint
+            if offset:
+                url += f"{'&' if '?' in url else '?'}offset={offset}"
+            
+            response = self._request('GET', url)
+            
+            if not response:
+                break
+            
+            records = response.get('records', [])
+            all_records.extend([r['fields'] for r in records])
+            
+            # Pagination
+            offset = response.get('offset')
+            if not offset:
+                break
+        
+        print(f"✅ {len(all_records)} plantes récupérées depuis Airtable")
+        return all_records
+    
+    def sync_formats(self, nom_latin: str, formats: List[Dict]) -> bool:
+        """
+        Synchronise les formats de vente pour une plante
+        """
+        if not self.enabled or not formats:
+            return False
+        
+        # Trouver la plante
+        plant_record_id = self.find_plant_by_latin_name(nom_latin)
+        
+        if not plant_record_id:
+            print(f"⚠️ Plante {nom_latin} non trouvée pour sync formats")
+            return False
+        
+        # Créer les formats
+        for format_data in formats:
+            fields = {
+                'nom_format': format_data.get('format', 'Inconnu'),
+                'prix': format_data.get('prix', ''),
+                'disponibilite': format_data.get('disponibilite', 'Inconnu'),
+                'plante': [plant_record_id]  # Link to plant
+            }
+            
+            if format_data.get('url'):
+                fields['url_achat'] = format_data['url']
+            
+            data = {'fields': fields}
+            self._request('POST', self.table_formats, data)
+        
+        print(f"✅ {len(formats)} formats synchronisés pour {nom_latin}")
+        return True
+    
+    def test_connection(self) -> bool:
+        """Test la connexion à Airtable"""
+        if not self.enabled:
+            print("❌ Airtable désactivé")
+            return False
+        
+        response = self._request('GET', self.table_plantes + '?maxRecords=1')
+        
+        if response is not None:
+            print("✅ Connexion Airtable OK")
+            return True
+        else:
+            print("❌ Connexion Airtable échouée")
+            return False
 
 
 # Instance globale
-aujardin_scraper = AuJardinScraper()
+airtable_client = AirtableClient()
 
 
 if __name__ == "__main__":
     # Tests
-    print("=== Test scraper AuJardin.info ===\n")
+    print("=== Test Airtable Client ===\n")
     
-    scraper = AuJardinScraper()
-    
-    # Test avec Lilas des Indes
-    data = scraper.get_plant_data("Lagerstroemia indica")
-    
-    if data:
-        print("\n📊 Résultats:")
-        print(f"Nom: {data.nom_francais}")
-        print(f"Latin: {data.nom_latin}")
-        print(f"Famille: {data.famille}")
-        print(f"Exposition: {data.exposition}")
-        print(f"Rusticité: {data.rusticite}")
-        print(f"Arrosage: {data.arrosage}")
-        print(f"Taille période: {data.taille_periode}")
-        print(f"Multiplication: {data.multiplication}")
-        print(f"Maladies ({len(data.maladies)}): {data.maladies}")
-        print(f"Ravageurs ({len(data.ravageurs)}): {data.ravageurs}")
-        print(f"Variétés ({len(data.varietes)}): {[v['nom'] for v in data.varietes[:3]]}")
+    # Test connexion
+    if airtable_client.enabled:
+        airtable_client.test_connection()
+        
+        # Test création plante
+        test_plant = {
+            'nom_francais': 'Lavande vraie (TEST)',
+            'nom_latin': 'Lavandula angustifolia TEST',
+            'famille': 'Lamiacées',
+            'type_plante': 'Vivace',
+            'exposition': 'Plein soleil',
+            'description': 'Test depuis Python',
+            'prix': '8,90 €',
+            'url': 'https://example.com'
+        }
+        
+        record_id = airtable_client.create_plant(test_plant)
+        
+        if record_id:
+            print(f"\n✅ Test réussi ! Record ID: {record_id}")
+            print("⚠️ N'oubliez pas de supprimer ce record de test dans Airtable")
     else:
-        print("❌ Aucune donnée extraite")
+        print("⚠️ Configurez vos credentials Airtable pour tester")

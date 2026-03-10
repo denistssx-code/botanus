@@ -1,640 +1,4775 @@
-"""
-Module pour gérer l'intégration avec Airtable
-Permet de stocker et récupérer les données des plantes
-"""
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Bibliothèque Végétale</title>
+    <!-- VERSION 11.1 - Corrections: corbeille visible, quantité fonctionne, tri date bidirectionnel, type plante amélioré, fiche structurée - 2026-03-01 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .phone-container {
+            max-width: 375px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            height: 812px;
+            position: relative;
+        }
+        
+        .status-bar {
+            background: #2E7D32;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            color: white;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .app-title {
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .search-container {
+            padding: 16px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .search-bar {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        
+        .search-input:focus {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+        
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 16px;
+            overflow-x: auto;
+        }
+        
+        .chip {
+            background: #e8f5e8;
+            color: #2E7D32;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            white-space: nowrap;
+            border: 1px solid #4CAF50;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .chip.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            padding: 8px 0;
+            z-index: 1000;
+        }
+        
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.active {
+            color: #4CAF50;
+        }
+        
+        .nav-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+        
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .main-content {
+            padding-bottom: 100px;
+            min-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4CAF50;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .recent-section {
+            margin: 16px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .section-header {
+            padding: 16px 16px 8px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .see-all {
+            font-size: 14px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        
+        .plant-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .plant-item:last-child {
+            border-bottom: none;
+            margin-bottom: 8px;
+        }
+        
+        .plant-item:hover {
+            background: #f8f8f8;
+        }
+        
+        .plant-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .plant-info {
+            flex: 1;
+        }
+        
+        .plant-name {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .plant-details {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .notification-badge {
+            background: #ff4444;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .fab {
+            display: none; /* Caché car remplacé par la bottom nav */
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px;
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 12px;
+        }
+        
+        .nav-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .nav-btn.active {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
+        }
+        
+        .screen {
+            display: none;
+            animation: slideIn 0.3s ease;
+            height: calc(100% - 70px); /* Ajusté pour la bottom nav */
+            overflow-y: auto;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .search-results {
+            padding: 0;
+        }
+        
+        .search-suggestion {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .search-suggestion:hover {
+            background: #f8f8f8;
+        }
+        
+        .suggestion-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #E8F5E8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4CAF50;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+        
+        .suggestion-info {
+            flex: 1;
+        }
+        
+        .suggestion-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .suggestion-latin {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .add-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .add-btn:hover {
+            background: #45a049;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .no-results-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .library-header {
+            padding: 16px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .library-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .library-stat {
+            text-align: center;
+        }
+        
+        .library-stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #4CAF50;
+        }
+        
+        .library-stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .library-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        
+        .library-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .library-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .library-card-image {
+            height: 120px;
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+        }
+        
+        .library-card-content {
+            padding: 12px;
+        }
+        
+        .library-card-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        
+        .library-card-details {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        /* Actions rapides sur cartes */
+        .card-quick-actions {
+            display: flex;
+            gap: 3px;
+            padding: 6px 8px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+        
+        .quick-action-btn {
+            flex: 1;
+            min-width: 0;
+            padding: 4px 2px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-action-btn:hover {
+            background: #f5f5f5;
+            transform: scale(1.05);
+        }
+        
+        .quick-action-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Vue liste compacte */
+        .library-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+        }
+        
+        .library-list-item {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        
+        .library-list-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            transform: translateX(4px);
+        }
+        
+        .library-list-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .library-list-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .library-list-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .library-list-meta {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .library-list-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        
+        .library-list-actions button {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        /* Styles boutons contrôles */
+        .view-toggle-btn.active {
+            background: white !important;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .sort-btn.active {
+            background: #4CAF50 !important;
+            color: white !important;
+            border-color: #4CAF50 !important;
+        }
+        
+        .sort-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        /* Sections structurées dans fiche détails */
+        .detail-section {
+            padding: 16px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .detail-section.alternate {
+            background: #f9fafb;
+        }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2E7D32;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8f5e9;
+        }
+        
+        /* Tags */
+        .plant-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            color: white;
+            margin: 2px;
+        }
+        
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tag-chip:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .tag-chip-close {
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 4px;
+            opacity: 0.8;
+        }
+        
+        .tag-chip-close:hover {
+            opacity: 1;
+        }
+        
+        .tag-filter-chip {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+        
+        .tag-filter-chip:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        
+        .tag-filter-chip.active {
+            opacity: 1;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+        }
+        
+        /* Checkboxes sélection */
+        .selection-checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            z-index: 10;
+            accent-color: #FF9800;
+        }
+        
+        .library-card.selection-mode {
+            position: relative;
+        }
+        
+        .library-card.selected {
+            outline: 3px solid #FF9800;
+            outline-offset: -3px;
+        }
+        
+        .library-list-item.selection-mode {
+            position: relative;
+            padding-left: 44px;
+        }
+        
+        .library-list-item.selected {
+            background: #FFF3E0;
+            border-left: 4px solid #FF9800;
+        }
+        
+        .empty-library {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-library-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2E7D32;
+        }
+        
+        .info-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #666;
+        }
+        
+        .last-section {
+            margin-bottom: 30px;
+        }
+        
+        /* Page détail plante */
+        .plant-detail-screen {
+            background: white;
+            min-height: 100%;
+        }
+        
+        .plant-header {
+            background: linear-gradient(135deg, #2E7D32, #4CAF50);
+            color: white;
+            padding: 16px;
+            padding-top: 48px;
+            position: relative;
+        }
+        
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+            position: absolute;
+            top: 16px;
+            left: 16px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .plant-main-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: white;
+            position: relative;
+        }
+        
+        .plant-actions {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            background: white;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .action-btn.added {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .detail-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 14px 8px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        .tab-content {
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+        
+        .info-badge {
+            display: inline-block;
+            background: #E8F5E8;
+            color: #2E7D32;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .price-box {
+            background: linear-gradient(135deg, #E8F5E8, #C8E6C9);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .price-label {
+            font-size: 12px;
+            color: #2E7D32;
+            margin-bottom: 4px;
+        }
+        
+        .price-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #2E7D32;
+        }
+        
+        .url-link {
+            display: block;
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            color: #4CAF50;
+            text-decoration: none;
+            font-size: 12px;
+            text-align: center;
+            transition: background 0.2s ease;
+        }
+        
+        .url-link:hover {
+            background: #e8f5e8;
+        }
+        
+        .notes-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .save-notes-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background 0.2s ease;
+        }
+        
+        .save-notes-btn:hover {
+            background: #45a049;
+        }
+        
+        .rappel-filter-btn {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .rappel-filter-btn:hover {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .rappel-filter-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .quantity-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+        
+        .quantity-btn:hover {
+            background: #45a049;
+        }
+        
+        .quantity-value {
+            font-size: 18px;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+        }
 
-import os
-import requests
-from typing import Dict, List, Optional
-from dataclasses import asdict
-import json
+        /* Calculators styles */
+        .shape-btn {
+            padding: 12px 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            font-size: 12px;
+            color: #666;
+        }
 
-class AirtableClient:
-    """Client pour interagir avec l'API Airtable"""
-    
-    def __init__(self):
-        # Récupérer les credentials depuis variables d'environnement
-        self.api_key = os.environ.get('AIRTABLE_API_KEY', '')
-        self.base_id = os.environ.get('AIRTABLE_BASE_ID', '')
-        self.table_plantes = os.environ.get('AIRTABLE_TABLE_PLANTES', 'Plantes')
-        self.table_maladies = os.environ.get('AIRTABLE_TABLE_MALADIES', 'Maladies')
-        self.table_parasites = os.environ.get('AIRTABLE_TABLE_PARASITES', 'Parasites')
-        self.table_formats = os.environ.get('AIRTABLE_TABLE_FORMATS', 'Formats')
+        .shape-btn:hover {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .shape-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .calc-result {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="current-time">9:41</span>
+            <span>📶 📶 📶 🔋</span>
+        </div>
+
+        <!-- Écran d'accueil -->
+        <div class="screen" id="home-screen">
+            <div class="app-header">
+                <div class="app-title">Ma Bibliothèque Végétale</div>
+                <div class="app-subtitle">Gestionnaire de plantes professionnel</div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="Rechercher une plante..." id="search-input">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="stats-grid" id="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-plants">0</div>
+                        <div class="stat-label">Plantes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-reminders">0</div>
+                        <div class="stat-label">Rappels</div>
+                    </div>
+                </div>
+
+                <div class="recent-section" id="recent-plants-section">
+                    <div class="section-header">
+                        <span>Plantes récentes</span>
+                        <a href="#" class="see-all" onclick="showScreen('library'); return false;">Tout voir</a>
+                    </div>
+                    <div id="recent-plants-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran de recherche -->
+        <div class="screen" id="search-screen">
+            <div class="app-header">
+                <div class="app-title">Rechercher une plante</div>
+                <div class="app-subtitle">Ajoutez de nouvelles plantes à votre collection</div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="Nom français, anglais ou latin..." id="search-main-input">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <div class="filter-chips">
+                <div class="chip active" data-type="Tous">Tous</div>
+                <div class="chip" data-type="Arbuste">Arbustes</div>
+                <div class="chip" data-type="Vivace">Vivaces</div>
+                <div class="chip" data-type="Arbre">Arbres</div>
+                <div class="chip" data-type="Rosier">Rosiers</div>
+                <div class="chip" data-type="Grimpante">Grimpantes</div>
+                <div class="chip" data-type="Succulente">Succulentes</div>
+                <div class="chip" data-type="Aromatique">Aromatiques</div>
+                <div class="chip" data-type="Bulbe">Bulbes</div>
+                <div class="chip" data-type="Graminée">Graminées</div>
+            </div>
+
+            <div class="main-content">
+                <div class="loading" id="search-loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div>Recherche en cours...</div>
+                </div>
+                
+                <div class="search-results" id="search-results"></div>
+
+                <div class="no-results" id="no-results" style="display: none;">
+                    <div class="no-results-icon">🔍</div>
+                    <div class="info-title">Aucun résultat</div>
+                    <div class="info-text">Essayez avec d'autres mots-clés ou vérifiez l'orthographe.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran bibliothèque -->
+        <div class="screen" id="library-screen">
+            <div class="app-header">
+                <div class="app-title">Ma Bibliothèque</div>
+                <div class="app-subtitle" id="library-subtitle">Chargement...</div>
+            </div>
+
+            <div class="library-header" id="library-header-stats">
+                <div class="library-stats" id="library-type-stats"></div>
+            </div>
+
+            <!-- Filtres par type -->
+            <div class="filter-chips" id="library-filters" style="display: none;">
+                <div class="chip active" data-type="Tous" onclick="filterLibrary('Tous')">Tous</div>
+            </div>
+
+            <!-- Contrôles Tri et Vue -->
+            <div id="library-controls" style="display: none; padding: 0 16px; margin-bottom: 12px;">
+                <!-- Tags et Sélection multiple -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: #f9f9f9; border-radius: 10px;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: 1;">
+                        <button onclick="toggleTagsManagement()" style="padding: 6px 12px; border: 1px solid #4CAF50; background: white; color: #4CAF50; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                            <span>🏷️</span> Gérer tags
+                        </button>
+                        <div id="tags-filter-chips" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <!-- Tags chips générés dynamiquement -->
+                        </div>
+                    </div>
+                    <button id="selection-mode-btn" onclick="toggleSelectionMode()" style="display: none; padding: 6px 12px; border: 1px solid #FF9800; background: white; color: #FF9800; border-radius: 8px; cursor: pointer; font-size: 13px; align-items: center; gap: 4px;">
+                        <span>☑️</span> Sélectionner
+                    </button>
+                </div>
+
+                <!-- Panel gestion des tags (masqué par défaut) -->
+                <div id="tags-management-panel" style="display: none; padding: 12px; background: white; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">🏷️ Mes Tags</h3>
+                        <button onclick="showCreateTagDialog()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            + Nouveau tag
+                        </button>
+                    </div>
+                    <div id="tags-list" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px;">
+                        <!-- Tags générés dynamiquement -->
+                        <div style="color: #999; font-size: 13px; padding: 8px;">Aucun tag créé</div>
+                    </div>
+                </div>
+
+                <!-- Barre d'actions sélection multiple (masquée par défaut) -->
+                <div id="selection-actions-bar" style="display: none; padding: 12px; background: linear-gradient(135deg, #FF9800, #FFB74D); border-radius: 10px; margin-bottom: 12px; color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 500;">
+                            <span id="selection-count">0</span> plante(s) sélectionnée(s)
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="bulkAddTag()" style="padding: 6px 12px; background: white; color: #FF9800; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                🏷️ Ajouter tag
+                            </button>
+                            <button onclick="bulkDelete()" style="padding: 6px 12px; background: #d32f2f; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                🗑️ Supprimer
+                            </button>
+                            <button onclick="cancelSelection()" style="padding: 6px 12px; background: rgba(255,255,255,0.3); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                ✕ Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toggle Vue Grille/Liste -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span style="font-size: 13px; color: #666;">Affichage :</span>
+                        <div style="display: flex; gap: 4px; background: #f5f5f5; padding: 4px; border-radius: 8px;">
+                            <button id="view-grid-btn" class="view-toggle-btn active" onclick="switchView('grid')" style="padding: 6px 12px; border: none; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                                <span>📱</span> Grille
+                            </button>
+                            <button id="view-list-btn" class="view-toggle-btn" onclick="switchView('list')" style="padding: 6px 12px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                                <span>📋</span> Liste
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons de tri -->
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    <span style="font-size: 13px; color: #666;">Trier par :</span>
+                    <button class="sort-btn active" onclick="sortLibrary('name_asc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        Nom A→Z
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('name_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        Nom Z→A
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('date_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        📅 Récent
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('date_asc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        📅 Ancien
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('type')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        🌿 Type
+                    </button>
+                    <button class="sort-btn" onclick="sortLibrary('quantity')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        📊 Quantité
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="loading" id="library-loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div>Chargement de votre bibliothèque...</div>
+                </div>
+                
+                <div class="library-grid" id="library-grid"></div>
+                <div class="library-list" id="library-list" style="display: none;"></div>
+
+                <div class="empty-library" id="empty-library" style="display: none;">
+                    <div class="empty-library-icon">📚</div>
+                    <div class="info-title">Votre bibliothèque est vide</div>
+                    <div class="info-text">
+                        Commencez par ajouter des plantes depuis l'onglet Recherche pour créer votre collection personnalisée.
+                    </div>
+                    <button class="add-btn" onclick="showSearchScreen()" style="padding: 12px 24px; font-size: 14px;">Ajouter ma première plante</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran détail plante -->
+        <div class="screen" id="detail-screen">
+            <div class="plant-detail-screen">
+                <div class="plant-header">
+                    <button class="back-btn" onclick="goBackFromDetail()">←</button>
+                    <div>
+                        <div class="app-title" id="detail-plant-name">Nom de la plante</div>
+                        <div class="app-subtitle" id="detail-plant-latin">Nom latin</div>
+                    </div>
+                </div>
+
+                <div class="plant-main-image" id="detail-plant-icon">
+                    🌿
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="detail-tabs">
+                    <div class="tab active" onclick="showDetailTab('info', this)">Infos</div>
+                    <div class="tab" onclick="showDetailTab('entretien', this)">Entretien</div>
+                    <div class="tab" onclick="showDetailTab('notes', this)">Notes</div>
+                </div>
+
+                <!-- Tab Infos -->
+                <div class="tab-content" id="tab-info">
+                    
+                    <!-- SECTION : Prix et type -->
+                    <div class="detail-section">
+                        <h3 class="section-title">💰 Prix et type</h3>
+                        <div class="price-box" id="detail-price-box">
+                            <div class="price-label">Prix</div>
+                            <div class="price-value" id="detail-price">8,90 €</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-title">Type de plante</div>
+                            <span class="info-badge" id="detail-type">Vivace</span>
+                        </div>
+                        <div class="info-group" id="detail-sous-categorie-group" style="display: none;">
+                            <div class="info-title">📂 Catégorie</div>
+                            <div class="info-text" id="detail-sous-categorie">Vivaces aromatiques</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION : Conditions de culture -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">☀️ Conditions de culture</h3>
+                        <div class="info-group" id="detail-exposition-group" style="display: none;">
+                            <div class="info-title">Exposition</div>
+                            <div class="info-text" id="detail-exposition">Plein soleil</div>
+                        </div>
+                        <div class="info-group" id="detail-rusticite-group" style="display: none;">
+                            <div class="info-title">❄️ Rusticité</div>
+                            <div class="info-text" id="detail-rusticite">Jusqu'à -15°C</div>
+                        </div>
+                        <div class="info-group" id="detail-sol-group" style="display: none;">
+                            <div class="info-title">🌍 Type de sol</div>
+                            <div class="info-text" id="detail-sol">Bien drainé</div>
+                        </div>
+                        <div class="info-group" id="detail-ph-group" style="display: none;">
+                            <div class="info-title">⚗️ pH du sol</div>
+                            <div class="info-text" id="detail-ph">Acide, Neutre</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION : Dimensions et aspect -->
+                    <div class="detail-section">
+                        <h3 class="section-title">📏 Dimensions et aspect</h3>
+                        <div class="info-group" id="detail-dimensions-group" style="display: none;">
+                            <div class="info-title">Dimensions</div>
+                            <div class="info-text" id="detail-dimensions">H: 60cm × L: 40cm</div>
+                        </div>
+                        <div class="info-group" id="detail-feuillage-group" style="display: none;">
+                            <div class="info-title">🍃 Feuillage</div>
+                            <div class="info-text" id="detail-feuillage">Caduc - Vert</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION : Floraison et utilisation -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">🌺 Floraison et utilisation</h3>
+                        <div class="info-group" id="detail-floraison-group" style="display: none;">
+                            <div class="info-title">Période de floraison</div>
+                            <div class="info-text" id="detail-floraison">Juin à Septembre - Rose</div>
+                        </div>
+                        <div class="info-group" id="detail-utilisation-group" style="display: none;">
+                            <div class="info-title">🏡 Type d'utilisation</div>
+                            <div class="info-text" id="detail-utilisation">Massif, Bordure, Pot</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION : Description -->
+                    <div class="detail-section">
+                        <h3 class="section-title">📖 Description</h3>
+                        <div class="info-group" id="detail-description-group">
+                            <div class="info-text" id="detail-description">Description de la plante...</div>
+                        </div>
+                        <div class="info-group" id="detail-botanique-group" style="display: none;">
+                            <div class="info-title">🔬 Détails botaniques</div>
+                            <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION : Achat -->
+                    <div class="detail-section alternate">
+                        <h3 class="section-title">🛒 Formats disponibles</h3>
+                        <div class="info-group" id="detail-formats-group" style="display: none;">
+                            <div id="detail-formats-liste" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                        </div>
+                        <div class="info-group" id="detail-url-group" style="display: none; margin-top: 12px;">
+                            <a href="#" id="detail-url" class="url-link" target="_blank">🔗 Voir les détails complets →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Entretien -->
+                <div class="tab-content" id="tab-entretien" style="display: none;">
+                    <div class="info-group" id="detail-calendrier-group" style="display: none;">
+                        <div class="info-title">📅 Calendrier de plantation</div>
+                        <div style="font-size: 12px; color: #888; margin-top: 4px; margin-bottom: 4px;">Meilleure période</div>
+                        <div id="detail-calendrier-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
+                            <!-- Graphique généré dynamiquement -->
+                        </div>
+                        <div id="detail-calendrier-raisonnable-container" style="display: none; margin-top: 12px;">
+                            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">Période raisonnable</div>
+                            <div id="detail-calendrier-raisonnable-visuel" style="display: flex; gap: 4px;">
+                                <!-- Graphique période raisonnable -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-group" id="detail-floraison-calendrier-group" style="display: none;">
+                        <div class="info-title">🌺 Période de floraison</div>
+                        <div id="detail-floraison-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
+                            <!-- Graphique généré dynamiquement -->
+                        </div>
+                    </div>
+
+                    <div class="info-group" id="detail-densite-group" style="display: none;">
+                        <div class="info-title">🌱 Densité de plantation</div>
+                        <div class="info-text" id="detail-densite">3 plants par m²</div>
+                    </div>
+
+                    <div class="info-group" id="detail-taille-group" style="display: none;">
+                        <div class="info-title">✂️ Période de taille</div>
+                        <div id="detail-taille-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
+                            <!-- Graphique généré dynamiquement -->
+                        </div>
+                        <div class="info-text" id="detail-taille-technique" style="font-size: 13px; color: #666; margin-top: 8px;"></div>
+                    </div>
+
+                    <div class="info-group" id="detail-descriptif-taille-group" style="display: none;">
+                        <div class="info-title">✂️ Comment tailler</div>
+                        <div class="info-text" id="detail-descriptif-taille" style="line-height: 1.6; font-size: 14px;">Détails de taille...</div>
+                    </div>
+
+                    <div class="info-group" id="detail-difficulte-group" style="display: none;">
+                        <div class="info-title">🎯 Difficulté</div>
+                        <div class="info-text" id="detail-difficulte">Débutant</div>
+                    </div>
+
+                    <div class="info-group" id="detail-maladies-group" style="display: none;">
+                        <div class="info-title">🛡️ Résistance aux maladies</div>
+                        <div class="info-text" id="detail-maladies">Bonne</div>
+                    </div>
+
+                    <div class="info-group" id="detail-hivernage-group" style="display: none;">
+                        <div class="info-title">❄️ Hivernage</div>
+                        <div class="info-text" id="detail-hivernage">Peut rester en terre</div>
+                    </div>
+
+                    <div class="info-group" id="detail-conseils-group" style="display: none;">
+                        <div class="info-title">💡 Conseils d'entretien détaillés</div>
+                        <div class="info-text" id="detail-conseils" style="line-height: 1.6; font-size: 14px; white-space: pre-line;">Plantez dans un sol bien drainé...</div>
+                    </div>
+
+                    <div class="info-group" id="detail-produits-group" style="display: none;">
+                        <div class="info-title">🌿 Produits recommandés</div>
+                        <div id="detail-produits-liste" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+                    </div>
+
+                    <!-- Section scraping manuel AuJardin.info -->
+                    <div class="info-group" id="aujardin-manual-scraper" style="display: block; border: 2px dashed #4CAF50; padding: 16px; background: #f1f8f4; border-radius: 12px;">
+                        <div class="info-title" style="color: #2E7D32;">🌱 Ajouter données AuJardin.info</div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                            Si les données d'entretien ne sont pas complètes, ajoutez manuellement l'URL de la plante sur AuJardin.info
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="aujardin-url-input" 
+                                   placeholder="Ex: aujardin.info/plantes/lavandula-angustifolia.php" 
+                                   style="flex: 1; padding: 10px; border: 1px solid #4CAF50; border-radius: 8px; font-size: 13px;">
+                            <button onclick="scrapManualAuJardin()" 
+                                    style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span>🔍</span> Scraper
+                            </button>
+                        </div>
+                        <div id="aujardin-scraping-status" style="margin-top: 8px; font-size: 13px; display: none;"></div>
+                    </div>
+
+                    <!-- SECTION DONNÉES ENRICHIES AUJARDIN.INFO -->
+                    <div id="enrichment-section" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
+                        <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🌿 Entretien Détaillé</h3>
+                            <a id="enrichment-source" href="#" target="_blank" style="font-size: 12px; opacity: 0.9; margin-top: 4px; color: white; text-decoration: underline; display: block;">Source: AuJardin.info →</a>
+                        </div>
+
+                        <!-- Arrosage enrichi -->
+                        <div class="info-group" id="enrichment-arrosage-group" style="display: none;">
+                            <div class="info-title">💧 Arrosage</div>
+                            <div class="info-badge" id="enrichment-arrosage-frequence" style="background: linear-gradient(135deg, #2196F3, #42A5F5);"></div>
+                            <div class="info-text" id="enrichment-arrosage-detail" style="margin-top: 8px; line-height: 1.6;"></div>
+                        </div>
+
+                        <!-- Fertilisation enrichie -->
+                        <div class="info-group" id="enrichment-fertilisation-group" style="display: none;">
+                            <div class="info-title">🌱 Fertilisation</div>
+                            <div class="info-text" id="enrichment-fertilisation-detail" style="line-height: 1.6;"></div>
+                        </div>
+
+                        <!-- Taille enrichie -->
+                        <div class="info-group" id="enrichment-taille-group" style="display: none;">
+                            <div class="info-title">✂️ Taille Technique</div>
+                            <div class="info-badge" id="enrichment-taille-periode" style="background: linear-gradient(135deg, #FF9800, #FFB74D);"></div>
+                            <div class="info-text" id="enrichment-taille-technique" style="margin-top: 8px; line-height: 1.6; white-space: pre-line;"></div>
+                        </div>
+
+                        <!-- Multiplication enrichie -->
+                        <div class="info-group" id="enrichment-multiplication-group" style="display: none;">
+                            <div class="info-title">🌿 Multiplication</div>
+                            <div class="info-text" style="margin-bottom: 8px;">
+                                <strong>Méthodes :</strong> <span id="enrichment-multiplication-methodes"></span>
+                            </div>
+                            <div class="info-text" id="enrichment-multiplication-detail" style="line-height: 1.6; font-size: 14px;"></div>
+                        </div>
+
+                        <!-- Maladies enrichies -->
+                        <div class="info-group" id="enrichment-maladies-group" style="display: none;">
+                            <div class="info-title">🦠 Maladies Communes</div>
+                            <ul id="enrichment-maladies-liste" style="margin: 8px 0; padding-left: 20px; line-height: 1.8;"></ul>
+                        </div>
+
+                        <!-- Ravageurs enrichis -->
+                        <div class="info-group" id="enrichment-ravageurs-group" style="display: none;">
+                            <div class="info-title">🐛 Ravageurs</div>
+                            <ul id="enrichment-ravageurs-liste" style="margin: 8px 0; padding-left: 20px; line-height: 1.8;"></ul>
+                        </div>
+
+                        <!-- Variétés intéressantes -->
+                        <div class="info-group" id="enrichment-varietes-group" style="display: none;">
+                            <div class="info-title">🎨 Variétés Intéressantes</div>
+                            <div id="enrichment-varietes-liste" style="margin-top: 8px;"></div>
+                        </div>
+
+                        <!-- Loader pendant chargement -->
+                        <div id="enrichment-loading" style="text-align: center; padding: 40px 20px; display: none;">
+                            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                            <div style="color: #666;">Chargement des données d'entretien...</div>
+                        </div>
+
+                        <!-- Message si pas de données -->
+                        <div id="enrichment-not-found" style="text-align: center; padding: 20px; background: #FFF3CD; border-radius: 8px; color: #856404; display: none;">
+                            <div style="font-size: 14px;">ℹ️ Données d'entretien détaillées non disponibles pour cette plante</div>
+                        </div>
+                    </div>
+
+                    <div class="info-group" id="no-entretien-info" style="text-align: center; padding: 40px 20px; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🌿</div>
+                        <div>Informations d'entretien non disponibles</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Consultez la page détails pour plus d'infos</div>
+                    </div>
+                </div>
+
+                <!-- Tab Notes -->
+                <div class="tab-content" id="tab-notes" style="display: none;">
+                    <div class="info-group">
+                        <div class="info-title">📷 Photo personnalisée</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div id="current-photo-preview" style="display: none; position: relative;">
+                                <img id="current-photo-img" src="" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px;">
+                                <button onclick="removePhoto()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px;">×</button>
+                            </div>
+                            <input type="file" id="photo-upload" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)">
+                            <button onclick="document.getElementById('photo-upload').click()" class="save-notes-btn" style="background: #2196F3;">
+                                📷 Ajouter une photo
+                            </button>
+                            <div style="font-size: 12px; color: #666;">
+                                Ajoutez votre propre photo si l'image automatique n'est pas disponible
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-title">Quantité</div>
+                        <div class="quantity-control">
+                            <button class="quantity-btn" onclick="changeDetailQuantity(-1)">−</button>
+                            <span class="quantity-value" id="detail-quantity">1</span>
+                            <button class="quantity-btn" onclick="changeDetailQuantity(1)">+</button>
+                            <span class="info-text" style="margin-left: 8px;">plant(s)</span>
+                        </div>
+                    </div>
+
+                    <div class="info-group">
+                        <div class="info-title">Notes personnelles</div>
+                        <textarea 
+                            id="detail-notes" 
+                            class="notes-textarea" 
+                            placeholder="Emplacement dans le jardin, observations, dates importantes..."></textarea>
+                        <button class="save-notes-btn" onclick="saveNotes()">💾 Sauvegarder</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rappels Screen -->
+        <div class="screen" id="rappels-screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
+                <div class="app-title">📅 Mes Rappels</div>
+                <div class="app-subtitle">Calendrier d'entretien de ma bibliothèque</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                <!-- Mois actuel -->
+                <div class="info-group" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 16px; opacity: 0.9; margin-bottom: 8px;">Nous sommes en</div>
+                    <div id="rappels-mois-actuel" style="font-size: 28px; font-weight: 700;">Février 2026</div>
+                </div>
+
+                <!-- Filtres rappels -->
+                    <div class="info-group" style="margin-bottom: 20px;">
+                        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                            <button class="rappel-filter-btn active" data-filter="tout" onclick="filterRappels('tout')">
+                                Tout
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="plantation" onclick="filterRappels('plantation')">
+                                🌱 Plantation
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="taille" onclick="filterRappels('taille')">
+                                ✂️ Taille
+                            </button>
+                            <button class="rappel-filter-btn" data-filter="floraison" onclick="filterRappels('floraison')">
+                                🌺 Floraison
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Rappels du mois -->
+                    <div class="info-group">
+                        <div class="info-title">🌱 Ce mois-ci</div>
+                        <div id="rappels-mois" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Prochains rappels -->
+                    <div class="info-group">
+                        <div class="info-title">⏰ Prochainement</div>
+                        <div id="rappels-prochains" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Message si vide -->
+                    <div id="rappels-vide" style="text-align: center; padding: 60px 20px; color: #999; display: none;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">📅</div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun rappel</div>
+                        <div style="font-size: 14px;">Ajoutez des plantes à votre bibliothèque pour voir les rappels d'entretien</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profil Screen -->
+        <!-- Écran Calculateurs -->
+        <div class="screen" id="calculators-screen">
+            <div class="app-header">
+                <div class="app-title">📐 Calculateurs</div>
+                <div class="app-subtitle">Outils pratiques pour le jardinage</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                
+                <!-- CALCULATEUR 1: VOLUMES & MATÉRIAUX -->
+                <div class="recent-section">
+                    <div class="section-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">📦 Volume & Matériaux</span>
+                    </div>
+                    
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Forme de la surface</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <button class="shape-btn active" data-shape="rectangle" onclick="selectShape('rectangle')">
+                                    <div style="font-size: 20px;">▭</div>
+                                    <div style="font-size: 11px;">Rectangle</div>
+                                </button>
+                                <button class="shape-btn" data-shape="circle" onclick="selectShape('circle')">
+                                    <div style="font-size: 20px;">●</div>
+                                    <div style="font-size: 11px;">Cercle</div>
+                                </button>
+                                <button class="shape-btn" data-shape="border" onclick="selectShape('border')">
+                                    <div style="font-size: 20px;">◯</div>
+                                    <div style="font-size: 11px;">Bordure</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Rectangle inputs -->
+                        <div id="rect-inputs-calc">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Longueur (m)</label>
+                                    <input type="number" id="calc-rect-length" step="0.1" min="0" value="5" placeholder="5" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Largeur (m)</label>
+                                    <input type="number" id="calc-rect-width" step="0.1" min="0" value="3" placeholder="3" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Circle inputs -->
+                        <div id="circle-inputs-calc" class="hidden">
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Diamètre (m)</label>
+                                <input type="number" id="calc-circle-diameter" step="0.1" min="0" value="4" placeholder="4" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <!-- Border inputs -->
+                        <div id="border-inputs-calc" class="hidden">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Ø extérieur (m)</label>
+                                    <input type="number" id="calc-border-outer" step="0.1" min="0" value="5" placeholder="5" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Ø intérieur (m)</label>
+                                    <input type="number" id="calc-border-inner" step="0.1" min="0" value="4" placeholder="4" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Profondeur (cm)</label>
+                            <input type="number" id="calc-depth" step="1" min="0" value="10" placeholder="10" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Type de matériau</label>
+                            <select id="calc-material" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                <option value="terre:1400">Terre végétale (1400 kg/m³)</option>
+                                <option value="terreau:700">Terreau (700 kg/m³)</option>
+                                <option value="gravier:1600">Gravier (1600 kg/m³)</option>
+                                <option value="cailloux:1500">Cailloux décoratifs (1500 kg/m³)</option>
+                                <option value="sable:1550">Sable (1550 kg/m³)</option>
+                                <option value="pouzzolane:850">Pouzzolane (850 kg/m³)</option>
+                                <option value="compost:650">Compost (650 kg/m³)</option>
+                                <option value="ecorce:350">Écorce de pin (350 kg/m³)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Poids/sac (kg)</label>
+                                <input type="number" id="calc-bag-weight" step="1" min="1" value="40" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Prix/sac (€)</label>
+                                <input type="number" id="calc-bag-price" step="0.01" min="0" value="5.90" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <button onclick="calculateVolume()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            🧮 Calculer
+                        </button>
+
+                        <div id="volume-result-calc" class="calc-result" style="display: none; margin-top: 16px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 16px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Surface</span>
+                                <span id="result-surface-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Volume</span>
+                                <span id="result-volume-calc" style="color: #4CAF50; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Poids</span>
+                                <span id="result-weight-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Sacs</span>
+                                <span id="result-bags-calc" style="color: #4CAF50; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Coût</span>
+                                <span id="result-cost-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; color: #1976D2;">
+                            💡 Prévoyez 10% de matériau en plus pour le tassement
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CALCULATEUR 2: DENSITÉ PLANTATION -->
+                <div class="recent-section">
+                    <div class="section-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">🌱 Densité de plantation</span>
+                    </div>
+                    
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Surface (m²)</label>
+                                <input type="number" id="calc-plant-surface" step="0.1" min="0" value="10" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Espacement (cm)</label>
+                                <input type="number" id="calc-plant-spacing" step="1" min="1" value="40" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; color: #555; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Disposition</label>
+                            <select id="calc-plant-pattern" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                                <option value="square">En carré</option>
+                                <option value="triangle">En quinconce (+15%)</option>
+                            </select>
+                        </div>
+
+                        <button onclick="calculatePlanting()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            🧮 Calculer
+                        </button>
+
+                        <div id="planting-result-calc" class="calc-result" style="display: none; margin-top: 16px; background: linear-gradient(135deg, #E8F5E9, #C8E6C9); padding: 16px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.5);">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Nombre de plants</span>
+                                <span id="result-plants-calc" style="color: #2E7D32; font-weight: 700; font-size: 18px;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                <span style="color: #555; font-weight: 600; font-size: 13px;">Densité</span>
+                                <span id="result-density-calc" style="color: #333; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                        </div>
+
+                        <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; color: #1976D2;">
+                            💡 Le quinconce optimise l'espace et donne un aspect plus naturel
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lien vers profil -->
+                <div class="recent-section">
+                    <button onclick="showProfilScreen()" style="width: 100%; padding: 14px; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        ⚙️ Voir mon profil et paramètres
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Écran Profil (gardé pour accès via calculateurs) -->
+        <div class="screen" id="profil-screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <div class="app-title">⚙️ Mon Profil</div>
+                <div class="app-subtitle">Paramètres et statistiques</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                
+                <!-- Statistiques -->
+                    <div class="info-group">
+                        <div class="info-title">📊 Mes Statistiques</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px;">
+                            <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-plantes">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Plantes</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-rappels">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Rappels</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #FF9800, #FFA726); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-types">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Types</div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #9C27B0, #AB47BC); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-avec-photos">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Avec photos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Import/Export -->
+                    <div class="info-group">
+                        <div class="info-title">💾 Données</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button onclick="exportLibrary()" style="padding: 14px; background: #2196F3; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📥 Exporter ma bibliothèque
+                            </button>
+                            <button onclick="document.getElementById('import-file').click()" style="padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📤 Importer une bibliothèque
+                            </button>
+                            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importLibrary(event)">
+                        </div>
+                    </div>
+
+                    <!-- Outils -->
+                    <div class="info-group">
+                        <div class="info-title">🛠️ Outils de jardinage</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button onclick="showCalculatorsScreen()" style="padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📐 Calculateurs (volumes, densité, arrosage...)
+                            </button>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 8px; padding: 8px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid #2196F3;">
+                            💡 Calculez les quantités de terre, gravier, nombre de plants nécessaires, besoins en eau, etc.
+                        </div>
+                    </div>
+
+                    <!-- Préférences -->
+                    <div class="info-group">
+                        <div class="info-title">🔔 Préférences</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Notifications rappels</div>
+                                    <div style="font-size: 12px; color: #666;">Recevoir des alertes d'entretien</div>
+                                </div>
+                                <label style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                                    <input type="checkbox" id="notif-toggle" style="opacity: 0; width: 0; height: 0;">
+                                    <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 28px; transition: 0.3s;"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Thème sombre</div>
+                                    <div style="font-size: 12px; color: #666;">Mode nuit (à venir)</div>
+                                </div>
+                                <label style="position: relative; display: inline-block; width: 50px; height: 28px;">
+                                    <input type="checkbox" id="dark-mode-toggle" disabled style="opacity: 0; width: 0; height: 0;">
+                                    <span style="position: absolute; cursor: not-allowed; top: 0; left: 0; right: 0; bottom: 0; background: #ddd; border-radius: 28px;"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="info-group" style="border: 2px solid #f44336; border-radius: 12px;">
+                        <div class="info-title" style="color: #f44336;">⚠️ Zone dangereuse</div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                            Ces actions sont irréversibles
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button onclick="resetLibrary()" style="padding: 12px; background: white; color: #f44336; border: 2px solid #f44336; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                🗑️ Réinitialiser la bibliothèque
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- À propos -->
+                    <div class="info-group">
+                        <div class="info-title">ℹ️ À propos</div>
+                        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+                            <p><strong>Ma Bibliothèque Végétale</strong></p>
+                            <p>Version 11.2</p>
+                            <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
+                            <p style="margin-top: 12px;">
+                                <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
+                                    Données fournies par Promesse de Fleurs
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item" onclick="showHomeScreen()" id="nav-home">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Accueil</div>
+            </div>
+            <div class="nav-item" onclick="showSearchScreen()" id="nav-search">
+                <div class="nav-icon">🔍</div>
+                <div class="nav-label">Recherche</div>
+            </div>
+            <div class="nav-item active" onclick="showLibraryScreen()" id="nav-library">
+                <div class="nav-icon">📚</div>
+                <div class="nav-label">Bibliothèque</div>
+            </div>
+            <div class="nav-item" onclick="showRappelsScreen()" id="nav-rappels">
+                <div class="nav-icon">🔔</div>
+                <div class="nav-label">Rappels</div>
+            </div>
+            <div class="nav-item" onclick="showCalculatorsScreen()" id="nav-calculators">
+                <div class="nav-icon">📐</div>
+                <div class="nav-label">Outils</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Configuration API - s'adapte automatiquement à Railway
+        const API_URL = window.location.origin + '/api';
         
-        self.base_url = f"https://api.airtable.com/v0/{self.base_id}"
-        self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
+        let currentScreen = 'home';
+        let searchTimeout = null;
+        let currentFilter = 'Tous';
+        let currentPlantDetail = null;
+        let previousScreen = 'home';
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌿 Application démarrée');
+            updateTime();
+            setInterval(updateTime, 60000);
+            
+            // Charger la bibliothèque en arrière-plan pour les recherches
+            loadLibraryData();
+            
+            // Afficher la bibliothèque par défaut
+            showLibraryScreen();
+            
+            // Charger les suggestions pour la recherche
+            loadSuggestions();
+            
+            // Gestionnaires de recherche
+            document.getElementById('search-main-input').addEventListener('input', handleSearch);
+            document.getElementById('search-input').addEventListener('input', handleQuickSearch);
+            
+            // Gestionnaires de filtres
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.type;
+                    filterResults();
+                });
+            });
+        });
+        
+        // Charger les données de la bibliothèque en arrière-plan (pour recherche hybride)
+        async function loadLibraryData() {
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                allLibraryPlants = data.plants || [];
+                console.log(`📚 Bibliothèque chargée: ${allLibraryPlants.length} plantes`);
+            } catch (error) {
+                console.error('Erreur chargement bibliothèque data:', error);
+                allLibraryPlants = [];
+            }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('current-time').textContent = `${hours}:${minutes}`;
+        }
+
+        // Navigation entre écrans
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            document.getElementById(screenName + '-screen').classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            const activeNav = document.querySelector(`[onclick="showScreen('${screenName}')"]`);
+            if (activeNav) activeNav.classList.add('active');
+            
+            currentScreen = screenName;
+            
+            // Charger les données appropriées
+            if (screenName === 'library') {
+                loadLibrary();
+            } else if (screenName === 'search') {
+                loadSuggestions();
+            } else if (screenName === 'home') {
+                loadStats();
+                loadRecentPlants();
+            }
+        }
+
+        function showSearchScreen() {
+            showScreen('search');
+            updateBottomNav('search');
         }
         
-        self.enabled = bool(self.api_key and self.base_id)
-        
-        if self.enabled:
-            print("✅ Airtable activé")
-        else:
-            print("⚠️ Airtable désactivé (credentials manquants)")
-    
-    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Optional[Dict]:
-        """Effectue une requête à l'API Airtable"""
-        if not self.enabled:
-            return None
-        
-        url = f"{self.base_url}/{endpoint}"
-        
-        try:
-            if method == 'GET':
-                response = requests.get(url, headers=self.headers)
-            elif method == 'POST':
-                response = requests.post(url, headers=self.headers, json=data)
-            elif method == 'PATCH':
-                response = requests.patch(url, headers=self.headers, json=data)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=self.headers)
-            else:
-                return None
-            
-            response.raise_for_status()
-            return response.json()
-            
-        except requests.exceptions.HTTPError as e:
-            print(f"❌ Erreur Airtable HTTP {e.response.status_code}: {e}")
-            # Afficher le détail de l'erreur pour 422
-            if e.response.status_code == 422:
-                try:
-                    error_detail = e.response.json()
-                    print(f"📋 Détail erreur 422:")
-                    import json
-                    print(json.dumps(error_detail, indent=2, ensure_ascii=False))
-                except:
-                    print(f"📋 Réponse brute: {e.response.text}")
-            return None
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Erreur Airtable API: {e}")
-            return None
-    
-    def transform_plant_data(self, plant_data: Dict) -> Dict:
-        """
-        Transforme les données d'une plante pour Airtable
-        Adapte les noms de champs et les formats
-        """
-        fields = {}
-        
-        # DEBUG: Afficher ce qui est reçu
-        print(f"📥 transform_plant_data - Données reçues:")
-        print(f"   - Champs racine: {list(plant_data.keys())}")
-        if plant_data.get('details'):
-            print(f"   - Champs dans details: {len(plant_data['details'].keys())} champs")
-            print(f"   - Liste: {list(plant_data['details'].keys())}")
-        
-        # Champs basiques
-        if plant_data.get('nom_francais'):
-            fields['nom_francais'] = plant_data['nom_francais']
-        
-        if plant_data.get('nom_latin'):
-            fields['nom_latin'] = plant_data['nom_latin']
-        
-        if plant_data.get('famille'):
-            fields['famille'] = plant_data['famille']
-        
-        if plant_data.get('url'):
-            fields['url_source'] = plant_data['url']
-        
-        # Dimensions
-        if plant_data.get('hauteur_maturite'):
-            fields['hauteur_maturite'] = plant_data['hauteur_maturite']
-        
-        if plant_data.get('largeur_maturite'):
-            fields['largeur_maturite'] = plant_data['largeur_maturite']
-        
-        # Type de plante (IMPORTANT: doit être "Texte long" dans Airtable, pas "Sélection unique")
-        if plant_data.get('type_plante'):
-            try:
-                fields['type_plante'] = plant_data['type_plante']
-            except Exception as e:
-                print(f"⚠️ Erreur type_plante: {e}")
-                print(f"   💡 Dans Airtable, change le type du champ 'type_plante' en 'Texte long'")
-        
-        # Exposition
-        if plant_data.get('exposition'):
-            # Convertir en liste si c'est une string
-            expo = plant_data['exposition']
-            if isinstance(expo, str):
-                # Essayer de parser les multiples expositions
-                fields['exposition'] = [e.strip() for e in expo.split(',')]
-            else:
-                fields['exposition'] = [expo]
-        
-        # Floraison
-        if plant_data.get('periode_floraison'):
-            fields['periode_floraison'] = plant_data['periode_floraison']
-        
-        # Description
-        if plant_data.get('description'):
-            fields['description_courte'] = plant_data['description']
-        
-        # Prix
-        if plant_data.get('prix'):
-            fields['prix'] = plant_data['prix']
-        
-        # Disponibilité
-        if plant_data.get('disponibilite'):
-            fields['disponibilite'] = plant_data['disponibilite']
-        
-        # Image
-        if plant_data.get('image_principale'):
-            fields['image_principale'] = plant_data['image_principale']
-        
-        # Détails si disponibles
-        details = plant_data.get('details', {})
-        if details:
-            # Dimensions (priorité aux details)
-            if details.get('hauteur_maturite') and not fields.get('hauteur_maturite'):
-                fields['hauteur_maturite'] = details['hauteur_maturite']
-            
-            if details.get('largeur_maturite') and not fields.get('largeur_maturite'):
-                fields['largeur_maturite'] = details['largeur_maturite']
-            
-            # Exposition (peut être écrasée par details)
-            if details.get('exposition'):
-                expo = details['exposition']
-                if isinstance(expo, str):
-                    fields['exposition'] = [e.strip() for e in expo.split(',')]
-                elif isinstance(expo, list):
-                    fields['exposition'] = expo
-                else:
-                    fields['exposition'] = [expo]
-            
-            # Floraison
-            if details.get('periode_floraison'):
-                fields['periode_floraison'] = details['periode_floraison']
-            
-            # Couleur fleurs (IMPORTANT: doit être "Texte long" dans Airtable)
-            if details.get('couleur_fleur'):
-                try:
-                    fields['couleur_fleurs'] = details['couleur_fleur']
-                except Exception as e:
-                    print(f"⚠️ Erreur couleur_fleurs: {e}")
-                    print(f"   💡 Dans Airtable, change le type du champ 'couleur_fleurs' en 'Texte long'")
-            elif details.get('couleur_fleurs'):
-                try:
-                    fields['couleur_fleurs'] = details['couleur_fleurs']
-                except Exception as e:
-                    print(f"⚠️ Erreur couleur_fleurs: {e}")
-            
-            if details.get('duree_floraison'):
-                fields['duree_floraison'] = details['duree_floraison']
-            
-            # Feuillage et port
-            # persistance_feuillage (pas feuillage !)
-            if details.get('persistance_feuillage'):
-                fields['feuillage'] = details['persistance_feuillage']
-            
-            if details.get('couleur_feuillage'):
-                if fields.get('feuillage'):
-                    fields['feuillage'] += f" - {details['couleur_feuillage']}"
-                else:
-                    fields['feuillage'] = details['couleur_feuillage']
-            
-            if details.get('port'):
-                fields['port'] = details['port']
-            
-            # Sol (ATTENTION : noms inversés !)
-            # details a type_sol, ph_sol, humidite_sol
-            # Airtable veut sol_type, sol_ph, sol_humidite
-            if details.get('type_sol'):
-                fields['sol_type'] = details['type_sol']
-            
-            if details.get('ph_sol'):
-                fields['sol_ph'] = details['ph_sol']
-            
-            if details.get('humidite_sol'):
-                fields['sol_humidite'] = details['humidite_sol']
-            
-            if details.get('sol_drainage'):
-                fields['sol_drainage'] = details['sol_drainage']
-            
-            # Type de plante (peut être écrasé par details)
-            if details.get('type_plante'):
-                try:
-                    fields['type_plante'] = details['type_plante']
-                except Exception as e:
-                    print(f"⚠️ Erreur type_plante (details): {e}")
-            
-            # Descriptions
-            if details.get('description_detaillee'):
-                fields['description_complete'] = details['description_detaillee']
-            
-            if details.get('description_courte') and not fields.get('description_courte'):
-                fields['description_courte'] = details['description_courte']
-            
-            # Utilisations
-            if details.get('type_utilisation'):
-                fields['utilisations'] = details['type_utilisation']
-            elif details.get('convient_pour'):
-                fields['utilisations'] = details['convient_pour']
-            
-            # Plantation
-            if details.get('meilleure_periode_plantation'):
-                fields['meilleure_periode_plantation'] = details['meilleure_periode_plantation']
-            
-            if details.get('periode_raisonnable_plantation'):
-                fields['periode_raisonnable_plantation'] = details['periode_raisonnable_plantation']
-            
-            if details.get('densite_plantation'):
-                fields['densite_plantation'] = details['densite_plantation']
-            
-            # Taille
-            if details.get('periode_taille'):
-                fields['taille_periode'] = details['periode_taille']
-                # Dupliquer dans periode_taille (autre champ) pour compatibilité
-                fields['periode_taille'] = details['periode_taille']
-            
-            if details.get('descriptif_taille_detaille'):
-                fields['taille_technique'] = details['descriptif_taille_detaille']
-            elif details.get('taille'):
-                fields['taille_technique'] = details['taille']
-            
-            if details.get('periode_raisonnable_taille'):
-                fields['periode_raisonnable_taille'] = details['periode_raisonnable_taille']
-            
-            if details.get('frequence_taille'):
-                # Ajouter à taille_technique si existe déjà
-                if fields.get('taille_technique'):
-                    fields['taille_technique'] = f"{details['frequence_taille']}. {fields['taille_technique']}"
-                else:
-                    fields['taille_technique'] = details['frequence_taille']
-            
-            # Entretien supplémentaire
-            if details.get('paillage'):
-                fields['paillage'] = details['paillage']
-            
-            if details.get('tuteurage'):
-                fields['tuteurage'] = details['tuteurage']
-            
-            if details.get('rabattage_periode'):
-                fields['rabattage_periode'] = details['rabattage_periode']
-            
-            # Rusticité
-            if details.get('rusticite'):
-                fields['rusticite_zone'] = details['rusticite']
-            
-            if details.get('zone_usda'):
-                if fields.get('rusticite_zone'):
-                    fields['rusticite_zone'] += f" (Zone USDA: {details['zone_usda']})"
-                else:
-                    fields['rusticite_zone'] = f"Zone USDA: {details['zone_usda']}"
-            
-            if details.get('rusticite_min_celsius'):
-                fields['rusticite_min_celsius'] = details['rusticite_min_celsius']
-            
-            # Botanique
-            if details.get('famille'):
-                fields['famille'] = details['famille']
-            
-            if details.get('genre'):
-                if not fields.get('autres_noms'):
-                    fields['autres_noms'] = f"Genre: {details['genre']}"
-            
-            if details.get('espece'):
-                if fields.get('autres_noms'):
-                    fields['autres_noms'] += f", Espèce: {details['espece']}"
-                else:
-                    fields['autres_noms'] = f"Espèce: {details['espece']}"
-            
-            # Sous-catégorie
-            if details.get('sous_categorie'):
-                if fields.get('autres_noms'):
-                    fields['autres_noms'] += f", {details['sous_categorie']}"
-                else:
-                    fields['autres_noms'] = details['sous_categorie']
-            
-            # Image (peut être écrasée par details)
-            if details.get('image_principale') and not fields.get('image_principale'):
-                fields['image_principale'] = details['image_principale']
-        
-        # Données enrichies AuJardin.info
-        if plant_data.get('arrosage_detail'):
-            fields['arrosage_detail'] = plant_data['arrosage_detail']
-        
-        if plant_data.get('arrosage'):
-            fields['arrosage_frequence'] = plant_data['arrosage']
-        
-        if plant_data.get('fertilisation_detail'):
-            fields['fertilisation'] = plant_data['fertilisation_detail']
-        
-        if plant_data.get('taille_periode') and not fields.get('taille_periode'):
-            fields['taille_periode'] = plant_data['taille_periode']
-        
-        if plant_data.get('taille_technique') and not fields.get('taille_technique'):
-            fields['taille_technique'] = plant_data['taille_technique']
-        
-        if plant_data.get('multiplication'):
-            fields['multiplication'] = plant_data['multiplication']
-        
-        if plant_data.get('multiplication_detail'):
-            if 'multiplication' in fields:
-                fields['multiplication'] += f" - {plant_data['multiplication_detail']}"
-            else:
-                fields['multiplication'] = plant_data['multiplication_detail']
-        
-        if plant_data.get('rusticite') and not fields.get('rusticite_zone'):
-            fields['rusticite_zone'] = plant_data['rusticite']
-        
-        if plant_data.get('sol_type'):
-            fields['sol_type'] = plant_data['sol_type']
-        
-        if plant_data.get('sol_ph'):
-            fields['sol_ph'] = plant_data['sol_ph']
-        
-        # Source
-        fields['source'] = plant_data.get('source', 'Promesse de Fleurs')
-        fields['statut'] = 'Complet' if (details or plant_data.get('arrosage_detail')) else 'Partiel'
-        
-        # SÉCURITÉ: Liste blanche des champs Airtable autorisés
-        # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
-        ALLOWED_FIELDS = {
-            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'type_plante', 'url_source',
-            'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
-            'periode_floraison', 'couleur_fleurs', 'duree_floraison',
-            'exposition', 'rusticite_zone', 'rusticite_min_celsius',
-            'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
-            'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
-            'arrosage_frequence', 'arrosage_detail', 'fertilisation',
-            'taille_periode', 'taille_technique', 'multiplication',
-            'periode_taille', 'periode_raisonnable_taille', 'paillage', 'tuteurage', 'rabattage_periode',
-            'description_courte', 'description_complete', 'utilisations',
-            'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes'
+        function showLibraryScreen() {
+            showScreen('library');
+            updateBottomNav('library');
         }
         
-        
-        # IMPORTANT : type_plante et couleur_fleurs
-        # Si tu obtiens des erreurs 422 avec ces champs, c'est qu'ils sont définis
-        # comme "Sélection unique/multiple" dans Airtable.
-        # 
-        # SOLUTION : Dans Airtable, change le type de ces champs en "Texte long"
-        # 
-        # Les erreurs s'afficheront dans les logs mais ne bloqueront pas l'insertion
-        
-        # Filtrer pour ne garder que les champs autorisés
-        cleaned_fields = {k: v for k, v in fields.items() if k in ALLOWED_FIELDS}
-        
-        # Debug: afficher les champs rejetés si on en a
-        rejected = set(fields.keys()) - set(cleaned_fields.keys())
-        if rejected:
-            print(f"⚠️ Champs rejetés (n'existent pas dans Airtable): {rejected}")
-        
-        return cleaned_fields
-    
-    def find_plant_by_latin_name(self, nom_latin: str) -> Optional[str]:
-        """
-        Cherche une plante par son nom latin
-        Retourne le record ID si trouvée
-        """
-        if not self.enabled:
-            return None
-        
-        # Utiliser filterByFormula pour chercher
-        formula = f"{{nom_latin}}='{nom_latin}'"
-        params = {'filterByFormula': formula}
-        
-        response = self._request('GET', f"{self.table_plantes}?{requests.compat.urlencode(params)}")
-        
-        if response and response.get('records'):
-            return response['records'][0]['id']
-        
-        return None
-    
-    def create_plant(self, plant_data: Dict) -> Optional[str]:
-        """
-        Crée une nouvelle plante dans Airtable
-        Retourne le record ID si succès
-        """
-        if not self.enabled:
-            return None
-        
-        # Transformer les données
-        fields = self.transform_plant_data(plant_data)
-        
-        # DEBUG: Afficher les noms de champs envoyés
-        print(f"🔍 DEBUG Airtable - Champs envoyés: {list(fields.keys())}")
-        
-        # Créer le record
-        data = {
-            'fields': fields
+        function showHomeScreen() {
+            showScreen('home');
+            updateBottomNav('home');
         }
         
-        # DEBUG: Afficher le JSON complet
-        import json
-        print(f"📤 JSON complet envoyé:")
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-        
-        response = self._request('POST', self.table_plantes, data)
-        
-        if response and response.get('id'):
-            print(f"✅ Plante créée dans Airtable: {fields.get('nom_francais')} (ID: {response['id']})")
-            return response['id']
-        
-        return None
-    
-    def update_plant(self, record_id: str, plant_data: Dict) -> bool:
-        """
-        Met à jour une plante existante dans Airtable
-        """
-        if not self.enabled:
-            return False
-        
-        # Transformer les données
-        fields = self.transform_plant_data(plant_data)
-        
-        # Mettre à jour le record
-        data = {
-            'fields': fields
-        }
-        
-        response = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
-        
-        if response and response.get('id'):
-            print(f"✅ Plante mise à jour dans Airtable: {fields.get('nom_francais')}")
-            return True
-        
-        return False
-    
-    def upsert_plant(self, plant_data: Dict) -> Optional[str]:
-        """
-        Crée ou met à jour une plante
-        (Upsert = Update or Insert)
-        """
-        if not self.enabled:
-            return None
-        
-        nom_latin = plant_data.get('nom_latin')
-        
-        if not nom_latin:
-            print("⚠️ Pas de nom latin, impossible de faire un upsert")
-            return self.create_plant(plant_data)
-        
-        # Chercher si la plante existe déjà
-        record_id = self.find_plant_by_latin_name(nom_latin)
-        
-        if record_id:
-            # Mise à jour
-            self.update_plant(record_id, plant_data)
-            return record_id
-        else:
-            # Création
-            return self.create_plant(plant_data)
-    
-    def get_plant(self, record_id: str) -> Optional[Dict]:
-        """Récupère une plante par son ID"""
-        if not self.enabled:
-            return None
-        
-        response = self._request('GET', f"{self.table_plantes}/{record_id}")
-        
-        if response:
-            return response.get('fields', {})
-        
-        return None
-    
-    def delete_plant(self, record_id: str) -> bool:
-        """Supprime une plante par son record ID Airtable"""
-        if not self.enabled:
-            return False
-        
-        response = self._request('DELETE', f"{self.table_plantes}/{record_id}")
-        
-        if response and response.get('deleted'):
-            print(f"✅ Plante supprimée dans Airtable: {record_id}")
-            return True
-        
-        return False
-    
-    def delete_plant_by_latin_name(self, nom_latin: str) -> bool:
-        """Supprime une plante par son nom latin"""
-        if not self.enabled:
-            return False
-        
-        # Trouver le record ID
-        record_id = self.find_plant_by_latin_name(nom_latin)
-        
-        if record_id:
-            return self.delete_plant(record_id)
-        else:
-            print(f"⚠️ Plante non trouvée dans Airtable pour suppression: {nom_latin}")
-            return False
-    
-    def get_all_plants(self, view: Optional[str] = None) -> List[Dict]:
-        """
-        Récupère toutes les plantes
-        Peut filtrer par vue Airtable
-        """
-        if not self.enabled:
-            return []
-        
-        endpoint = self.table_plantes
-        if view:
-            endpoint += f"?view={view}"
-        
-        all_records = []
-        offset = None
-        
-        while True:
-            url = endpoint
-            if offset:
-                url += f"{'&' if '?' in url else '?'}offset={offset}"
+        function showRappelsScreen() {
+            console.log('🎯 showRappelsScreen appelé');
             
-            response = self._request('GET', url)
+            // Retirer active de tous les screens
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+                console.log('  - Retiré active de:', screen.id);
+            });
             
-            if not response:
-                break
+            // Ajouter active à rappels-screen
+            const rappelsScreen = document.getElementById('rappels-screen');
+            console.log('  - Rappels screen trouvé:', rappelsScreen ? 'OUI' : 'NON');
             
-            records = response.get('records', [])
-            all_records.extend([r['fields'] for r in records])
-            
-            # Pagination
-            offset = response.get('offset')
-            if not offset:
-                break
-        
-        print(f"✅ {len(all_records)} plantes récupérées depuis Airtable")
-        return all_records
-    
-    def sync_formats(self, nom_latin: str, formats: List[Dict]) -> bool:
-        """
-        Synchronise les formats de vente pour une plante
-        """
-        if not self.enabled or not formats:
-            return False
-        
-        # Trouver la plante
-        plant_record_id = self.find_plant_by_latin_name(nom_latin)
-        
-        if not plant_record_id:
-            print(f"⚠️ Plante {nom_latin} non trouvée pour sync formats")
-            return False
-        
-        # Créer les formats
-        for format_data in formats:
-            fields = {
-                'nom_format': format_data.get('format', 'Inconnu'),
-                'prix': format_data.get('prix', ''),
-                'disponibilite': format_data.get('disponibilite', 'Inconnu'),
-                'plante': [plant_record_id]  # Link to plant
+            if (rappelsScreen) {
+                rappelsScreen.classList.add('active');
+                console.log('  - Active ajouté à rappels-screen');
+                console.log('  - Classes sur rappels-screen:', rappelsScreen.className);
+                console.log('  - Display style:', window.getComputedStyle(rappelsScreen).display);
             }
             
-            if format_data.get('url'):
-                fields['url_achat'] = format_data['url']
-            
-            data = {'fields': fields}
-            self._request('POST', self.table_formats, data)
-        
-        print(f"✅ {len(formats)} formats synchronisés pour {nom_latin}")
-        return True
-    
-    def test_connection(self) -> bool:
-        """Test la connexion à Airtable"""
-        if not self.enabled:
-            print("❌ Airtable désactivé")
-            return False
-        
-        response = self._request('GET', self.table_plantes + '?maxRecords=1')
-        
-        if response is not None:
-            print("✅ Connexion Airtable OK")
-            return True
-        else:
-            print("❌ Connexion Airtable échouée")
-            return False
-
-
-# Instance globale
-airtable_client = AirtableClient()
-
-
-if __name__ == "__main__":
-    # Tests
-    print("=== Test Airtable Client ===\n")
-    
-    # Test connexion
-    if airtable_client.enabled:
-        airtable_client.test_connection()
-        
-        # Test création plante
-        test_plant = {
-            'nom_francais': 'Lavande vraie (TEST)',
-            'nom_latin': 'Lavandula angustifolia TEST',
-            'famille': 'Lamiacées',
-            'type_plante': 'Vivace',
-            'exposition': 'Plein soleil',
-            'description': 'Test depuis Python',
-            'prix': '8,90 €',
-            'url': 'https://example.com'
+            updateBottomNav('rappels');
+            loadRappels();
         }
         
-        record_id = airtable_client.create_plant(test_plant)
+        function goBackFromRappels() {
+            showLibraryScreen();
+        }
         
-        if record_id:
-            print(f"\n✅ Test réussi ! Record ID: {record_id}")
-            print("⚠️ N'oubliez pas de supprimer ce record de test dans Airtable")
-    else:
-        print("⚠️ Configurez vos credentials Airtable pour tester")
+        function showProfilScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('profil-screen').classList.add('active');
+            updateBottomNav('profil');
+            loadProfilStats();
+        }
+
+        function showCalculatorsScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('calculators-screen').classList.add('active');
+            updateBottomNav('calculators');
+        }
+        
+        function goBackFromProfil() {
+            showLibraryScreen();
+        }
+        
+        async function loadProfilStats() {
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                const plants = data.plants || [];
+                
+                // Total plantes
+                document.getElementById('profil-total-plantes').textContent = plants.length;
+                
+                // Compter les types uniques
+                const types = new Set(plants.map(p => p.type_plante).filter(Boolean));
+                document.getElementById('profil-total-types').textContent = types.size;
+                
+                // Compter les plantes avec photos personnalisées
+                const withPhotos = plants.filter(p => p.custom_photo).length;
+                document.getElementById('profil-avec-photos').textContent = withPhotos;
+                
+                // Compter les rappels (approximatif)
+                let totalRappels = 0;
+                plants.forEach(plant => {
+                    const details = plant.details || {};
+                    if (details.periode_taille) totalRappels++;
+                    if (details.meilleure_periode_plantation) totalRappels++;
+                    if (details.periode_floraison) totalRappels++;
+                });
+                document.getElementById('profil-total-rappels').textContent = totalRappels;
+                
+            } catch (error) {
+                console.error('Erreur chargement stats profil:', error);
+            }
+        }
+        
+        function exportLibrary() {
+            fetch(`${API_URL}/library`)
+                .then(response => response.json())
+                .then(data => {
+                    const dataStr = JSON.stringify(data, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `ma-bibliotheque-${new Date().toISOString().split('T')[0]}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    
+                    alert('✅ Bibliothèque exportée avec succès !');
+                })
+                .catch(error => {
+                    console.error('Erreur export:', error);
+                    alert('❌ Erreur lors de l\'export');
+                });
+        }
+        
+        function importLibrary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.plants || !Array.isArray(importedData.plants)) {
+                        alert('❌ Fichier invalide');
+                        return;
+                    }
+                    
+                    const confirmMsg = `Importer ${importedData.plants.length} plantes ?\n\nCeci remplacera votre bibliothèque actuelle.`;
+                    if (!confirm(confirmMsg)) return;
+                    
+                    // Pour l'instant, on ne peut pas vraiment importer car il faudrait recréer toutes les plantes
+                    // via l'API. C'est une fonctionnalité avancée à implémenter côté serveur.
+                    alert('⚠️ Fonctionnalité d\'import en cours de développement.\n\nPour l\'instant, seul l\'export est disponible.');
+                    
+                } catch (error) {
+                    console.error('Erreur import:', error);
+                    alert('❌ Erreur lors de la lecture du fichier');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset l'input pour permettre de réimporter le même fichier
+            event.target.value = '';
+        }
+        
+        function resetLibrary() {
+            const confirmMsg = '⚠️ ATTENTION ⚠️\n\nVoulez-vous vraiment SUPPRIMER TOUTE votre bibliothèque ?\n\nCette action est IRRÉVERSIBLE !';
+            if (!confirm(confirmMsg)) return;
+            
+            const doubleConfirm = 'Tapez "SUPPRIMER" pour confirmer :';
+            const userInput = prompt(doubleConfirm);
+            
+            if (userInput === 'SUPPRIMER') {
+                fetch(`${API_URL}/library`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(() => {
+                        alert('✅ Bibliothèque réinitialisée');
+                        showLibraryScreen();
+                        loadLibrary();
+                    })
+                    .catch(error => {
+                        console.error('Erreur reset:', error);
+                        alert('❌ Erreur lors de la réinitialisation');
+                    });
+            } else {
+                alert('Annulé');
+            }
+        }
+        
+        function updateBottomNav(activeScreen) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeItem = document.getElementById(`nav-${activeScreen}`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
+        
+        async function loadRappels() {
+            console.log('🔄 Chargement des rappels...');
+            
+            // Charger la bibliothèque pour générer les rappels
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                
+                console.log('📚 Bibliothèque chargée:', data);
+                
+                // Réinitialiser l'affichage
+                document.getElementById('rappels-vide').style.display = 'none';
+                
+                if (!data.plants || data.plants.length === 0) {
+                    console.log('📭 Bibliothèque vide');
+                    document.getElementById('rappels-vide').style.display = 'block';
+                    return;
+                }
+                
+                // Afficher le mois actuel
+                const maintenant = new Date();
+                const moisNoms = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                document.getElementById('rappels-mois-actuel').textContent = 
+                    `${moisNoms[maintenant.getMonth()]} ${maintenant.getFullYear()}`;
+                
+                // Générer les rappels
+                const rappelsMois = [];
+                const rappelsProchains = [];
+                
+                data.plants.forEach(plant => {
+                    console.log(`🌿 Traitement: ${plant.nom_francais}`);
+                    
+                    // Récupérer les détails si disponibles
+                    const details = plant.details || {};
+                    console.log(`   📦 Details présents:`, Object.keys(details).length > 0 ? 'OUI' : 'NON');
+                    
+                    if (Object.keys(details).length > 0) {
+                        console.log(`   📋 Champs details:`, Object.keys(details).slice(0, 10).join(', '));
+                    }
+                    
+                    // Rappel de taille
+                    console.log(`   ✂️ periode_taille:`, details.periode_taille || 'NON PRÉSENT');
+                    if (details.periode_taille) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Taille',
+                            periode: details.periode_taille,
+                            description: details.descriptif_taille_detaille || details.taille || 'Tailler la plante',
+                            icon: '✂️'
+                        };
+                        
+                        console.log(`   📅 Vérification période taille: "${details.periode_taille}"`);
+                        
+                        try {
+                            const isCurrent = isCurrentMonth(details.periode_taille, maintenant);
+                            const isNext = isNextMonths(details.periode_taille, maintenant, 3);
+                            
+                            console.log(`      → Ce mois-ci: ${isCurrent}`);
+                            console.log(`      → Prochainement: ${isNext}`);
+                            
+                            if (isCurrent) {
+                                rappelsMois.push(rappel);
+                                console.log(`      ✅ Ajouté à "Ce mois-ci"`);
+                            } else if (isNext) {
+                                rappelsProchains.push(rappel);
+                                console.log(`      ✅ Ajouté à "Prochainement"`);
+                            } else {
+                                console.log(`      ⏭️ Pas dans les 3 prochains mois`);
+                            }
+                        } catch (e) {
+                            console.error('Erreur isCurrentMonth/isNextMonths:', e);
+                        }
+                    }
+                    
+                    // Rappel de plantation
+                    if (details.meilleure_periode_plantation) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Plantation',
+                            periode: details.meilleure_periode_plantation,
+                            description: 'Période idéale pour planter',
+                            icon: '🌱'
+                        };
+                        
+                        try {
+                            if (isCurrentMonth(details.meilleure_periode_plantation, maintenant)) {
+                                rappelsMois.push(rappel);
+                            } else if (isNextMonths(details.meilleure_periode_plantation, maintenant, 3)) {
+                                rappelsProchains.push(rappel);
+                            }
+                        } catch (e) {
+                            console.error('Erreur periode plantation:', e);
+                        }
+                    }
+                    
+                    // Rappel de floraison
+                    if (details.periode_floraison) {
+                        const rappel = {
+                            plante: plant.nom_francais,
+                            action: 'Floraison',
+                            periode: details.periode_floraison,
+                            description: 'Période de floraison à admirer',
+                            icon: '🌸'
+                        };
+                        
+                        try {
+                            if (isCurrentMonth(details.periode_floraison, maintenant)) {
+                                rappelsMois.push(rappel);
+                            } else if (isNextMonths(details.periode_floraison, maintenant, 3)) {
+                                rappelsProchains.push(rappel);
+                            }
+                        } catch (e) {
+                            console.error('Erreur periode floraison:', e);
+                        }
+                    }
+                });
+                
+                console.log(`✅ ${rappelsMois.length} rappels ce mois-ci`);
+                console.log(`⏰ ${rappelsProchains.length} rappels prochainement`);
+                
+                // Stocker dans les variables globales
+                allRappelsMois = rappelsMois;
+                allRappelsProchains = rappelsProchains;
+                
+                // Mettre à jour le compteur global
+                totalReminders = rappelsMois.length + rappelsProchains.length;
+                console.log(`📊 Total rappels: ${totalReminders}`);
+                
+                // Mettre à jour le compteur dans l'accueil si l'élément existe
+                const reminderCounter = document.getElementById('total-reminders');
+                if (reminderCounter) {
+                    reminderCounter.textContent = totalReminders;
+                }
+                
+                // Afficher les rappels (avec filtre actif)
+                filterRappels(currentRappelFilter);
+                
+                if (rappelsMois.length === 0 && rappelsProchains.length === 0) {
+                    console.log('📭 Aucun rappel trouvé');
+                    document.getElementById('rappels-vide').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur chargement rappels:', error);
+                document.getElementById('rappels-vide').style.display = 'block';
+            }
+        }
+        
+        function isCurrentMonth(periodeText, date) {
+            if (!periodeText) return false;
+            const moisActuel = date.getMonth();
+            const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
+                              'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const periodeLower = periodeText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Retire accents
+            const moisNomNormalized = moisNoms[moisActuel].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            const found = periodeLower.includes(moisNomNormalized);
+            console.log(`  🔍 isCurrentMonth("${periodeText}") → contient "${moisNoms[moisActuel]}" ? ${found}`);
+            return found;
+        }
+        
+        function isNextMonths(periodeText, date, nbMois) {
+            if (!periodeText) return false;
+            const moisActuel = date.getMonth();
+            const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
+                              'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const periodeLower = periodeText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            console.log(`  🔍 isNextMonths("${periodeText}", nbMois=${nbMois})`);
+            console.log(`     Mois actuel: ${moisNoms[moisActuel]} (${moisActuel})`);
+            
+            for (let i = 1; i <= nbMois; i++) {
+                const moisFutur = (moisActuel + i) % 12;
+                const moisNomNormalized = moisNoms[moisFutur].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const found = periodeLower.includes(moisNomNormalized);
+                console.log(`     Mois+${i}: ${moisNoms[moisFutur]} → ${found}`);
+                if (found) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        function displayRappels(containerId, rappels) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (rappels.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">Aucun rappel</div>';
+                return;
+            }
+            
+            rappels.forEach(rappel => {
+                const rappelEl = document.createElement('div');
+                rappelEl.style.cssText = 'padding: 16px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; cursor: pointer; transition: all 0.2s;';
+                rappelEl.onmouseover = () => rappelEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                rappelEl.onmouseout = () => rappelEl.style.boxShadow = 'none';
+                
+                rappelEl.innerHTML = `
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <div style="font-size: 32px;">${rappel.icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">${rappel.plante}</div>
+                            <div style="font-size: 13px; color: #4CAF50; font-weight: 600; margin-bottom: 6px;">${rappel.action} • ${rappel.periode}</div>
+                            <div style="font-size: 13px; color: #666; line-height: 1.4;">${rappel.description.substring(0, 100)}${rappel.description.length > 100 ? '...' : ''}</div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(rappelEl);
+            });
+        }
+        
+        function filterRappels(filter) {
+            // Mettre à jour le filtre actif
+            currentRappelFilter = filter;
+            
+            // Mettre à jour les boutons
+            document.querySelectorAll('.rappel-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Filtrer les rappels
+            let filteredMois = allRappelsMois;
+            let filteredProchains = allRappelsProchains;
+            
+            if (filter !== 'tout') {
+                filteredMois = allRappelsMois.filter(r => r.action.toLowerCase().includes(filter));
+                filteredProchains = allRappelsProchains.filter(r => r.action.toLowerCase().includes(filter));
+            }
+            
+            // Afficher les rappels filtrés
+            displayRappels('rappels-mois', filteredMois);
+            displayRappels('rappels-prochains', filteredProchains);
+            
+            // Afficher message si vide
+            if (filteredMois.length === 0 && filteredProchains.length === 0) {
+                if (filter === 'tout') {
+                    document.getElementById('rappels-vide').style.display = 'block';
+                }
+            } else {
+                document.getElementById('rappels-vide').style.display = 'none';
+            }
+        }
+
+        // Statistiques
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const stats = await response.json();
+                
+                // L'API retourne {total: X, by_type: {...}}
+                document.getElementById('total-plants').textContent = stats.total || 0;
+                document.getElementById('total-reminders').textContent = totalReminders;
+            } catch (error) {
+                console.error('Erreur chargement stats:', error);
+                document.getElementById('total-plants').textContent = '0';
+                document.getElementById('total-reminders').textContent = totalReminders;
+            }
+        }
+
+        // Plantes récentes
+        async function loadRecentPlants() {
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                
+                // L'API retourne {count: X, plants: [...]}
+                const library = data.plants || [];
+                
+                const recentList = document.getElementById('recent-plants-list');
+                recentList.innerHTML = '';
+                
+                if (library.length === 0) {
+                    recentList.innerHTML = `
+                        <div class="plant-item">
+                            <div class="plant-info" style="text-align: center; width: 100%; padding: 20px;">
+                                <div class="plant-details">Aucune plante dans votre bibliothèque</div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Afficher les 3 dernières plantes
+                library.slice(0, 3).forEach(plant => {
+                    const plantEl = document.createElement('div');
+                    plantEl.className = 'plant-item';
+                    plantEl.style.cursor = 'pointer';
+                    plantEl.onclick = () => showPlantDetailById(plant.plant_id || plant.id);
+                    plantEl.innerHTML = `
+                        <div class="plant-image">${plant.icon || '🌿'}</div>
+                        <div class="plant-info">
+                            <div class="plant-name">${plant.nom_francais}</div>
+                            <div class="plant-details">${plant.type_plante || 'Plante'} • ${plant.exposition || 'Exposition non spécifiée'}</div>
+                        </div>
+                    `;
+                    recentList.appendChild(plantEl);
+                });
+            } catch (error) {
+                console.error('Erreur chargement plantes récentes:', error);
+            }
+        }
+
+        // Recherche
+        function handleSearch(e) {
+            const query = e.target.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                loadSuggestions();
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 500);
+        }
+
+        function handleQuickSearch(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) return;
+            
+            // Passer à l'écran de recherche et effectuer la recherche
+            showScreen('search');
+            document.getElementById('search-main-input').value = query;
+            performSearch(query);
+        }
+
+        async function performSearch(query) {
+            const resultsDiv = document.getElementById('search-results');
+            const loadingDiv = document.getElementById('search-loading');
+            const noResultsDiv = document.getElementById('no-results');
+            
+            loadingDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            noResultsDiv.style.display = 'none';
+            
+            try {
+                const queryLower = query.toLowerCase().trim();
+                
+                console.log(`🔍 Recherche: "${query}"`);
+                console.log(`📚 Bibliothèque locale: ${allLibraryPlants.length} plantes`);
+                if (allLibraryPlants.length > 0) {
+                    console.log(`   Exemples: ${allLibraryPlants.slice(0, 3).map(p => p.nom_francais).join(', ')}`);
+                }
+                
+                // 1. RECHERCHE LOCALE dans la bibliothèque
+                const localResults = allLibraryPlants.filter(plant => {
+                    const nomFr = (plant.nom_francais || '').toLowerCase();
+                    const nomLat = (plant.nom_latin || '').toLowerCase();
+                    const type = (plant.type_plante || '').toLowerCase();
+                    return nomFr.includes(queryLower) || nomLat.includes(queryLower) || type.includes(queryLower);
+                });
+                
+                console.log(`✅ ${localResults.length} résultats locaux`);
+                if (localResults.length > 0) {
+                    console.log(`   Trouvé: ${localResults.map(p => p.nom_francais).join(', ')}`);
+                }
+                
+                // 2. RECHERCHE INTERNET
+                const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                const internetResults = data.results || [];
+                
+                console.log(`🌐 ${internetResults.length} résultats internet`);
+                
+                loadingDiv.style.display = 'none';
+                
+                // 3. MARQUER les plantes déjà dans la bibliothèque
+                const libraryNames = new Set(allLibraryPlants.map(p => p.nom_francais.toLowerCase()));
+                console.log(`🏷️ Noms en bibliothèque:`, Array.from(libraryNames).slice(0, 5));
+                
+                let markedCount = 0;
+                internetResults.forEach(plant => {
+                    plant.inLibrary = libraryNames.has(plant.nom_francais.toLowerCase());
+                    if (plant.inLibrary) {
+                        markedCount++;
+                        console.log(`   ✓ Marqué: ${plant.nom_francais}`);
+                    }
+                });
+                console.log(`✅ ${markedCount} plantes marquées comme "dans la bibliothèque"`);
+                
+                // 4. AFFICHER les résultats
+                if (localResults.length === 0 && internetResults.length === 0) {
+                    noResultsDiv.style.display = 'block';
+                    return;
+                }
+                
+                displaySearchResults(localResults, internetResults);
+                
+            } catch (error) {
+                console.error('Erreur recherche:', error);
+                loadingDiv.style.display = 'none';
+                noResultsDiv.style.display = 'block';
+                noResultsDiv.querySelector('.info-text').textContent = 
+                    'Erreur lors de la recherche. Vérifiez que le serveur backend est démarré.';
+            }
+        }
+
+        async function loadSuggestions() {
+            const resultsDiv = document.getElementById('search-results');
+            
+            try {
+                const response = await fetch(`${API_URL}/suggestions`);
+                const suggestions = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="recent-section">
+                        <div class="section-header">
+                            <span>Suggestions populaires</span>
+                        </div>
+                    </div>
+                `;
+                
+                const sectionDiv = resultsDiv.querySelector('.recent-section');
+                
+                suggestions.forEach(plant => {
+                    const plantEl = createSearchResultElement(plant);
+                    sectionDiv.appendChild(plantEl);
+                });
+            } catch (error) {
+                console.error('Erreur chargement suggestions:', error);
+            }
+        }
+
+        function displaySearchResults(localResults, internetResults) {
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '';
+            
+            // Section 1: Résultats dans MA bibliothèque
+            if (localResults.length > 0) {
+                const localSection = document.createElement('div');
+                localSection.className = 'recent-section';
+                localSection.innerHTML = `
+                    <div class="section-header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">📚 Dans ma bibliothèque (${localResults.length})</span>
+                    </div>
+                `;
+                
+                localResults.forEach(plant => {
+                    plant.inLibrary = true; // Marquer comme étant dans la bibliothèque
+                    const plantEl = createSearchResultElement(plant);
+                    localSection.appendChild(plantEl);
+                });
+                
+                resultsDiv.appendChild(localSection);
+            }
+            
+            // Section 2: Résultats sur internet
+            if (internetResults.length > 0) {
+                const internetSection = document.createElement('div');
+                internetSection.className = 'recent-section';
+                internetSection.style.marginTop = localResults.length > 0 ? '20px' : '0';
+                internetSection.innerHTML = `
+                    <div class="section-header">
+                        <span>🌐 Recherche en ligne (${internetResults.length})</span>
+                    </div>
+                `;
+                
+                internetResults.forEach(plant => {
+                    const plantEl = createSearchResultElement(plant);
+                    internetSection.appendChild(plantEl);
+                });
+                
+                resultsDiv.appendChild(internetSection);
+            }
+        }
+
+        function createSearchResultElement(plant) {
+            const plantEl = document.createElement('div');
+            plantEl.className = 'search-suggestion';
+            plantEl.dataset.type = plant.type_plante || 'Plante';
+            
+            // Style spécial si déjà dans la bibliothèque
+            if (plant.inLibrary) {
+                plantEl.style.background = 'linear-gradient(to right, #E8F5E9 0%, #ffffff 15%)';
+                plantEl.style.borderLeft = '4px solid #4CAF50';
+            }
+            
+            // Stocker les données dans un attribut data
+            plantEl.dataset.plantData = JSON.stringify(plant);
+            
+            // Badge "Dans ma bibliothèque"
+            const libraryBadge = plant.inLibrary ? 
+                '<span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px;">✓ Dans ma bibliothèque</span>' : 
+                '';
+            
+            plantEl.innerHTML = `
+                <div class="suggestion-icon">${plant.icon || '🌿'}</div>
+                <div class="suggestion-info">
+                    <div style="display: flex; align-items: center;">
+                        <div class="suggestion-name">${plant.nom_francais}</div>
+                        ${libraryBadge}
+                    </div>
+                    <div class="suggestion-latin">${plant.nom_latin}</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="detail-btn" style="padding: 8px 12px; background: #f5f5f5; color: #2E7D32; border: 1px solid #2E7D32; border-radius: 8px; font-size: 13px; cursor: pointer;">🔍 Détails</button>
+                    ${plant.inLibrary ? 
+                        '<button class="add-btn" disabled style="opacity: 0.5; cursor: not-allowed;">Déjà ajouté</button>' : 
+                        '<button class="add-btn">Ajouter</button>'
+                    }
+                </div>
+            `;
+            
+            // Bouton détails
+            const detailBtn = plantEl.querySelector('.detail-btn');
+            detailBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (plant.url) {
+                    window.location.href = `plant-detail.html?url=${encodeURIComponent(plant.url)}`;
+                } else {
+                    alert('URL de la plante non disponible');
+                }
+            });
+            
+            // Bouton ajouter (seulement si pas déjà dans la bibliothèque)
+            if (!plant.inLibrary) {
+                const addButton = plantEl.querySelector('.add-btn');
+                addButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addToLibrary(e, plant);
+                });
+            }
+            
+            return plantEl;
+        }
+
+        function filterResults() {
+            const results = document.querySelectorAll('.search-suggestion');
+            
+            results.forEach(result => {
+                if (currentFilter === 'Tous' || result.dataset.type === currentFilter) {
+                    result.style.display = 'flex';
+                } else {
+                    result.style.display = 'none';
+                }
+            });
+        }
+
+        async function addToLibrary(event, plantData) {
+            event.stopPropagation();
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '⏳';  // Indicateur de chargement
+            button.disabled = true;
+            
+            try {
+                // OPTION A : Si la plante a une URL et pas de détails, les charger d'abord
+                if (plantData.url && !plantData.details) {
+                    console.log('🔄 Chargement des détails avant ajout...');
+                    button.textContent = '📥';  // Icône téléchargement
+                    
+                    // Charger les détails complets
+                    const detailsResponse = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(plantData.url)}`);
+                    const detailsData = await detailsResponse.json();
+                    
+                    if (detailsData.success && detailsData.data) {
+                        // Ajouter les détails complets à plantData
+                        plantData.details = detailsData.data;
+                        plantData.image_principale = detailsData.data.image_principale || '';
+                        console.log('✅ Détails chargés automatiquement');
+                        console.log('   - Nombre de champs:', Object.keys(detailsData.data).length);
+                    } else {
+                        console.log('⚠️ Impossible de charger les détails, ajout avec données de base seulement');
+                    }
+                }
+                
+                // Envoyer à l'API (avec détails si disponibles)
+                button.textContent = '💾';  // Icône sauvegarde
+                
+                // Construire l'objet à envoyer (comme dans addFromDetail)
+                const plantToSend = {
+                    nom_francais: plantData.nom_francais,
+                    nom_latin: plantData.nom_latin || plantData.details?.nom_latin || '',
+                    exposition: plantData.exposition || plantData.details?.exposition || '',
+                    type_plante: plantData.details?.type_plante || plantData.type_plante || 'Plante',
+                    prix: plantData.prix || '',
+                    description: plantData.description || '',
+                    icon: plantData.icon || '🌿',
+                    url: plantData.url || '',
+                    details: plantData.details || {},
+                    image_principale: plantData.details?.image_principale || plantData.image_principale || ''
+                };
+                
+                console.log('📤 addToLibrary - Envoi:', {
+                    nom_francais: plantToSend.nom_francais,
+                    nom_latin: plantToSend.nom_latin,
+                    has_details: !!plantToSend.details
+                });
+                
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(plantToSend)
+                });
+                
+                if (response.ok) {
+                    setTimeout(() => {
+                        button.textContent = 'Ajouté ✓';
+                    }, 300);
+                    
+                    // Recharger les stats
+                    loadStats();
+                    loadRecentPlants();
+                    
+                    // Recharger allLibraryPlants pour la recherche
+                    loadLibraryData();
+                } else {
+                    throw new Error('Erreur lors de l\'ajout');
+                }
+            } catch (error) {
+                console.error('Erreur ajout plante:', error);
+                button.textContent = originalText;
+                button.disabled = false;
+                alert('Erreur lors de l\'ajout. Vérifiez que le serveur est démarré.');
+            }
+        }
+
+        // Bibliothèque
+        // Variables globales pour filtrage bibliothèque
+        let allLibraryPlants = [];
+        let currentLibraryFilter = 'Tous';
+        let currentSortMode = 'name_asc';
+        let currentViewMode = 'grid';  // 'grid' ou 'list'
+        let currentTagFilter = null;  // Tag actif
+        let selectionMode = false;  // Mode sélection activé/désactivé
+        let selectedPlants = new Set();  // IDs des plantes sélectionnées
+        let allTags = [];  // Liste de tous les tags disponibles
+        let totalReminders = 0; // Nombre total de rappels actifs
+        
+        // Variables globales pour filtrage rappels
+        let allRappelsMois = [];  // Tous les rappels du mois
+        let allRappelsProchains = [];  // Tous les rappels prochains
+        let currentRappelFilter = 'tout';  // Filtre actif : 'tout', 'plantation', 'taille', 'floraison'
+        
+        async function loadLibrary() {
+            const gridDiv = document.getElementById('library-grid');
+            const emptyDiv = document.getElementById('empty-library');
+            const loadingDiv = document.getElementById('library-loading');
+            const subtitleDiv = document.getElementById('library-subtitle');
+            const statsDiv = document.getElementById('library-type-stats');
+            const filtersDiv = document.getElementById('library-filters');
+            
+            loadingDiv.style.display = 'block';
+            gridDiv.innerHTML = '';
+            emptyDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/library`);
+                const data = await response.json();
+                
+                // Stocker toutes les plantes pour filtrage
+                allLibraryPlants = data.plants || [];
+                
+                // Charger les tags
+                await loadTags();
+                
+                // Charger les notes pour récupérer les tags des plantes
+                for (const plant of allLibraryPlants) {
+                    try {
+                        const plantId = plant.plant_id || plant.id;
+                        if (!plantId) {
+                            console.log(`⚠️ Plante sans ID:`, plant);
+                            continue;
+                        }
+                        const notesResp = await fetch(`${API_URL}/library/${plantId}/notes`);
+                        const notesData = await notesResp.json();
+                        notes_db_local[plantId] = notesData;
+                    } catch (err) {
+                        console.log(`Notes non disponibles pour plante ${plant.plant_id || plant.id}`);
+                    }
+                }
+                
+                loadingDiv.style.display = 'none';
+                
+                if (allLibraryPlants.length === 0) {
+                    emptyDiv.style.display = 'block';
+                    subtitleDiv.textContent = 'Votre collection est vide';
+                    if (filtersDiv) filtersDiv.style.display = 'none';
+                    return;
+                }
+                
+                subtitleDiv.textContent = `${allLibraryPlants.length} plante${allLibraryPlants.length > 1 ? 's' : ''} dans votre collection`;
+                
+                // Calculer les stats par type
+                const typeStats = {};
+                allLibraryPlants.forEach(plant => {
+                    const type = plant.type_plante || 'Autre';
+                    typeStats[type] = (typeStats[type] || 0) + (plant.quantity || 1);
+                });
+                
+                // Afficher les stats
+                statsDiv.innerHTML = `
+                    <div class="library-stat">
+                        <div class="library-stat-number">${allLibraryPlants.length}</div>
+                        <div class="library-stat-label">Total</div>
+                    </div>
+                `;
+                
+                Object.entries(typeStats).slice(0, 3).forEach(([type, count]) => {
+                    statsDiv.innerHTML += `
+                        <div class="library-stat">
+                            <div class="library-stat-number">${count}</div>
+                            <div class="library-stat-label">${type}${count > 1 ? 's' : ''}</div>
+                        </div>
+                    `;
+                });
+                
+                // Générer les filtres cliquables
+                if (filtersDiv) {
+                    const types = Object.keys(typeStats).sort();
+                    filtersDiv.innerHTML = '';
+                    
+                    // Chip "Tous"
+                    const allChip = document.createElement('div');
+                    allChip.className = 'chip active';
+                    allChip.dataset.type = 'Tous';
+                    allChip.textContent = '📚 Tous';
+                    allChip.addEventListener('click', () => filterLibrary('Tous'));
+                    filtersDiv.appendChild(allChip);
+                    
+                    // Chips par type
+                    types.forEach(type => {
+                        const count = typeStats[type];
+                        const chip = document.createElement('div');
+                        chip.className = 'chip';
+                        chip.dataset.type = type;
+                        chip.textContent = `${type} (${count})`;
+                        chip.addEventListener('click', () => filterLibrary(type));
+                        filtersDiv.appendChild(chip);
+                    });
+                    
+                    filtersDiv.style.display = 'flex';
+                }
+                
+                // Afficher toutes les plantes
+                displayFilteredLibrary(allLibraryPlants);
+                
+            } catch (error) {
+                console.error('Erreur chargement bibliothèque:', error);
+                loadingDiv.style.display = 'none';
+                emptyDiv.style.display = 'block';
+                emptyDiv.querySelector('.info-text').textContent = 
+                    'Erreur lors du chargement. Vérifiez que le serveur backend est démarré.';
+            }
+        }
+        
+        function filterLibrary(type) {
+            currentLibraryFilter = type;
+            
+            // Mettre à jour les chips actifs
+            document.querySelectorAll('#library-filters .chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.type === type) {
+                    chip.classList.add('active');
+                }
+            });
+            
+            // Filtrer par type
+            let filtered = (type === 'Tous') ? allLibraryPlants : allLibraryPlants.filter(p => p.type_plante === type);
+            
+            // Filtrer par tag si actif
+            if (currentTagFilter !== null) {
+                filtered = filtered.filter(p => {
+                    const plantNotes = notes_db_local[p.id] || {};
+                    return plantNotes.tags && plantNotes.tags.includes(currentTagFilter);
+                });
+            }
+            
+            displayFilteredLibrary(filtered);
+        }
+        
+        // NOUVEAU: Fonction de tri
+        function sortLibrary(mode) {
+            currentSortMode = mode;
+            
+            // Mettre à jour boutons actifs
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Appliquer le filtre actuel avec le nouveau tri
+            filterLibrary(currentLibraryFilter);
+        }
+        
+        // NOUVEAU: Fonction toggle vue
+        function switchView(mode) {
+            currentViewMode = mode;
+            
+            const gridDiv = document.getElementById('library-grid');
+            const listDiv = document.getElementById('library-list');
+            const gridBtn = document.getElementById('view-grid-btn');
+            const listBtn = document.getElementById('view-list-btn');
+            
+            if (mode === 'grid') {
+                gridDiv.style.display = 'grid';
+                listDiv.style.display = 'none';
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                gridDiv.style.display = 'none';
+                listDiv.style.display = 'flex';
+                gridBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+            
+            // Réafficher avec la nouvelle vue
+            filterLibrary(currentLibraryFilter);
+        }
+        
+        // NOUVEAU: Trier un tableau de plantes
+        function sortPlants(plants) {
+            const sorted = [...plants];
+            
+            switch (currentSortMode) {
+                case 'name_asc':
+                    sorted.sort((a, b) => a.nom_francais.localeCompare(b.nom_francais));
+                    break;
+                case 'name_desc':
+                    sorted.sort((a, b) => b.nom_francais.localeCompare(a.nom_francais));
+                    break;
+                case 'date_desc':
+                    // Plus récent en premier (ID plus grand = plus récent)
+                    sorted.sort((a, b) => b.id - a.id);
+                    break;
+                case 'date_asc':
+                    // Plus ancien en premier (ID plus petit = plus ancien)
+                    sorted.sort((a, b) => a.id - b.id);
+                    break;
+                case 'type':
+                    sorted.sort((a, b) => {
+                        const typeCompare = a.type_plante.localeCompare(b.type_plante);
+                        return typeCompare !== 0 ? typeCompare : a.nom_francais.localeCompare(b.nom_francais);
+                    });
+                    break;
+                case 'quantity':
+                    sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+                    break;
+            }
+            
+            return sorted;
+        }
+        
+        function displayFilteredLibrary(plants) {
+            const gridDiv = document.getElementById('library-grid');
+            const listDiv = document.getElementById('library-list');
+            const controlsDiv = document.getElementById('library-controls');
+            
+            gridDiv.innerHTML = '';
+            listDiv.innerHTML = '';
+            
+            if (plants.length === 0) {
+                gridDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Aucune plante de ce type</div>';
+                controlsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Afficher les contrôles
+            controlsDiv.style.display = 'block';
+            
+            // Trier les plantes
+            const sortedPlants = sortPlants(plants);
+            
+            // Afficher selon la vue active
+            if (currentViewMode === 'grid') {
+                displayGridView(sortedPlants, gridDiv);
+            } else {
+                displayListView(sortedPlants, listDiv);
+            }
+        }
+        
+        // NOUVEAU: Afficher vue grille avec actions rapides, tags et checkboxes
+        function displayGridView(plants, container) {
+            plants.forEach(plant => {
+                const plantId = plant.plant_id || plant.id;  // Support les deux formats
+                
+                const cardEl = document.createElement('div');
+                cardEl.className = 'library-card';
+                if (selectionMode) cardEl.classList.add('selection-mode');
+                if (selectedPlants.has(plantId)) cardEl.classList.add('selected');
+                
+                // Priorité: photo personnalisée > image principale > icône
+                let imageHTML;
+                if (plant.custom_photo) {
+                    imageHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" alt="${plant.nom_francais}" onclick="openImageZoom('${plant.custom_photo}'); event.stopPropagation();">`;
+                } else if (plant.image_principale) {
+                    imageHTML = `<img src="${plant.image_principale}" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" alt="${plant.nom_francais}" onclick="openImageZoom('${plant.image_principale}'); event.stopPropagation();">`;
+                } else {
+                    imageHTML = plant.icon || '🌿';
+                }
+                
+                // Récupérer les tags de la plante
+                const plantTags = getPlantTags(plantId);
+                const tagsHTML = plantTags.length > 0 ? 
+                    `<div style="display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px;">
+                        ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
+                    </div>` : '';
+                
+                cardEl.innerHTML = `
+                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
+                    <div class="library-card-image">${imageHTML}</div>
+                    <div class="library-card-content" style="cursor: pointer;">
+                        <div class="library-card-name">${plant.nom_francais}</div>
+                        <div class="library-card-details">${plant.type_plante || 'Plante'} • Qté: ${plant.quantity || 0}</div>
+                        ${tagsHTML}
+                    </div>
+                    <div class="card-quick-actions">
+                        <button class="quick-action-btn" title="Diminuer quantité" onclick="changeQuantity(${plantId}, -1); return false;">−</button>
+                        <button class="quick-action-btn" title="Augmenter quantité" onclick="changeQuantity(${plantId}, 1); return false;">+</button>
+                        <button class="quick-action-btn" title="Voir détails" onclick="showPlantDetailById(${plantId}); return false;">👁️</button>
+                        <button class="quick-action-btn" title="Supprimer" onclick="deletePlant(${plantId}); return false;" style="color: #d32f2f;">🗑️</button>
+                    </div>
+                `;
+                
+                // Clic sur le contenu pour voir les détails (sauf en mode sélection)
+                if (!selectionMode) {
+                    cardEl.querySelector('.library-card-content').addEventListener('click', () => {
+                        showPlantDetail(plant, 'library');
+                    });
+                }
+                
+                container.appendChild(cardEl);
+            });
+        }
+        
+        // NOUVEAU: Afficher vue liste compacte
+        function displayListView(plants, container) {
+            plants.forEach(plant => {
+                const plantId = plant.plant_id || plant.id;  // Support les deux formats
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'library-list-item';
+                if (selectionMode) itemEl.classList.add('selection-mode');
+                if (selectedPlants.has(plantId)) itemEl.classList.add('selected');
+                
+                const icon = plant.icon || '🌿';
+                const plantTags = getPlantTags(plantId);
+                const tagsHTML = plantTags.length > 0 ?
+                    `<div style="display: flex; gap: 4px; margin-top: 2px;">
+                        ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
+                    </div>` : '';
+                
+                itemEl.innerHTML = `
+                    ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
+                    <div class="library-list-icon">${icon}</div>
+                    <div class="library-list-content" onclick="${selectionMode ? '' : `showPlantDetailById(${plantId})`}">
+                        <div class="library-list-name">${plant.nom_francais}</div>
+                        <div class="library-list-meta">
+                            <span>${plant.type_plante || 'Plante'}</span>
+                            <span>•</span>
+                            <span>Qté: ${plant.quantity || 0}</span>
+                            <span>•</span>
+                            <span>${plant.prix || 'N/A'}</span>
+                        </div>
+                        ${tagsHTML}
+                    </div>
+                    <div class="library-list-actions">
+                        <button title="Diminuer" onclick="changeQuantity(${plantId}, -1); return false;">−</button>
+                        <button title="Augmenter" onclick="changeQuantity(${plantId}, 1); return false;">+</button>
+                        <button title="Supprimer" onclick="deletePlant(${plantId}); return false;" style="color: #d32f2f;">🗑️</button>
+                    </div>
+                `;
+                
+                container.appendChild(itemEl);
+            });
+        }
+        
+        // NOUVEAU: Changer quantité d'une plante
+        async function changeQuantity(plantId, delta) {
+            console.log('🚨 changeQuantity APPELÉE !', { plantId, delta, typeof_plantId: typeof plantId });
+            
+            console.log(`🔢 changeQuantity appelée: plantId=${plantId} (type: ${typeof plantId}), delta=${delta}`);
+            console.log(`📚 allLibraryPlants:`, allLibraryPlants.map(p => ({ id: p.plant_id || p.id, nom: p.nom_francais })));
+            
+            try {
+                // Trouver la plante
+                const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
+                if (!plant) {
+                    console.error(`❌ Plante ${plantId} non trouvée dans allLibraryPlants`);
+                    console.error(`   IDs disponibles:`, allLibraryPlants.map(p => p.plant_id || p.id));
+                    alert('❌ Plante non trouvée');
+                    return;
+                }
+                
+                console.log(`✅ Plante trouvée:`, plant.nom_francais);
+                
+                const oldQuantity = plant.quantity || 0;
+                const newQuantity = Math.max(0, oldQuantity + delta);
+                
+                console.log(`Changement quantité: plante ${plantId}, ${oldQuantity} → ${newQuantity}`);
+                
+                // Mettre à jour via API
+                const response = await fetch(`${API_URL}/library/${plantId}/notes`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        notes: plant.notes || '',
+                        quantity: newQuantity
+                    })
+                });
+                
+                if (response.ok) {
+                    // Mettre à jour localement
+                    plant.quantity = newQuantity;
+                    
+                    console.log(`✅ Quantité mise à jour: ${oldQuantity} → ${newQuantity}`);
+                    console.log(`   plant.quantity après mise à jour: ${plant.quantity}`);
+                    
+                    // Réafficher IMMÉDIATEMENT
+                    console.log('🔄 Appel filterLibrary pour rafraîchir affichage...');
+                    filterLibrary(currentLibraryFilter);
+                    console.log('✅ Affichage rafraîchi');
+                    
+                    // Recharger stats
+                    loadStats();
+                    
+                    // Feedback visuel temporaire
+                    const msg = document.createElement('div');
+                    msg.textContent = `${delta > 0 ? '➕' : '➖'} Quantité: ${newQuantity}`;
+                    msg.style.cssText = 'position: fixed; top: 80px; right: 20px; background: #4CAF50; color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+                    document.body.appendChild(msg);
+                    setTimeout(() => msg.remove(), 1500);
+                } else {
+                    console.error('❌ Erreur serveur:', response.status);
+                    alert('❌ Erreur lors de la mise à jour');
+                }
+            } catch (error) {
+                console.error('Erreur changement quantité:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // NOUVEAU: Supprimer une plante
+        async function deletePlant(plantId) {
+            if (!confirm('Voulez-vous vraiment supprimer cette plante de votre bibliothèque ?')) {
+                return;
+            }
+            
+            try {
+                console.log(`Suppression plante ${plantId}`);
+                
+                const response = await fetch(`${API_URL}/library/${plantId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    // Retirer de la liste locale
+                    allLibraryPlants = allLibraryPlants.filter(p => (p.plant_id || p.id) !== plantId);
+                    
+                    // Réafficher
+                    filterLibrary(currentLibraryFilter);
+                    
+                    // Recharger stats
+                    loadStats();
+                    loadRecentPlants();
+                    
+                    console.log('✅ Plante supprimée');
+                } else {
+                    console.error('❌ Erreur serveur:', response.status);
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                console.error('Erreur suppression plante:', error);
+                alert('Erreur lors de la suppression');
+            }
+        }
+        
+        // NOUVEAU: Voir détails par ID
+        function showPlantDetailById(plantId) {
+            const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
+            if (plant) {
+                showPlantDetail(plant, 'library');
+            } else {
+                console.error(`Plante ${plantId} non trouvée dans allLibraryPlants`);
+            }
+        }
+
+        // ====== GESTION DES TAGS ======
+        
+        let notes_db_local = {};  // Copie locale de notes_db pour accès côté client
+        
+        async function loadTags() {
+            try {
+                const response = await fetch(`${API_URL}/tags`);
+                const data = await response.json();
+                if (data.success) {
+                    allTags = data.tags;
+                    displayTagsFilter();
+                }
+            } catch (error) {
+                console.error('Erreur chargement tags:', error);
+            }
+        }
+        
+        function displayTagsFilter() {
+            const container = document.getElementById('tags-filter-chips');
+            container.innerHTML = '';
+            
+            allTags.forEach(tag => {
+                const chip = document.createElement('div');
+                chip.className = 'tag-filter-chip';
+                if (currentTagFilter === tag.id) chip.classList.add('active');
+                chip.style.background = tag.color;
+                chip.textContent = tag.name;
+                chip.onclick = () => filterByTag(tag.id);
+                container.appendChild(chip);
+            });
+        }
+        
+        function filterByTag(tagId) {
+            currentTagFilter = (currentTagFilter === tagId) ? null : tagId;
+            displayTagsFilter();
+            filterLibrary(currentLibraryFilter);
+        }
+        
+        function toggleTagsManagement() {
+            const panel = document.getElementById('tags-management-panel');
+            const isVisible = panel.style.display !== 'none';
+            panel.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                loadTags();
+                displayTagsList();
+            }
+        }
+        
+        function displayTagsList() {
+            const container = document.getElementById('tags-list');
+            
+            if (allTags.length === 0) {
+                container.innerHTML = '<div style="color: #999; font-size: 13px; padding: 8px;">Aucun tag créé</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            allTags.forEach(tag => {
+                const tagEl = document.createElement('div');
+                tagEl.className = 'tag-chip';
+                tagEl.style.background = tag.color;
+                tagEl.innerHTML = `${tag.name}<span class="tag-chip-close" onclick="event.stopPropagation(); deleteTag(${tag.id})">✕</span>`;
+                container.appendChild(tagEl);
+            });
+        }
+        
+        function showCreateTagDialog() {
+            const name = prompt('Nom du tag :');
+            if (!name) return;
+            const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#FF5722', '#607D8B'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            createTag(name, color);
+        }
+        
+        async function createTag(name, color) {
+            try {
+                const response = await fetch(`${API_URL}/tags`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, color })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    allTags.push(data.tag);
+                    displayTagsList();
+                    displayTagsFilter();
+                }
+            } catch (error) {
+                console.error('Erreur création tag:', error);
+            }
+        }
+        
+        async function deleteTag(tagId) {
+            if (!confirm('Supprimer ce tag de toutes les plantes ?')) return;
+            try {
+                const response = await fetch(`${API_URL}/tags/${tagId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    allTags = allTags.filter(t => t.id !== tagId);
+                    if (currentTagFilter === tagId) currentTagFilter = null;
+                    displayTagsList();
+                    displayTagsFilter();
+                    filterLibrary(currentLibraryFilter);
+                }
+            } catch (error) {
+                console.error('Erreur suppression tag:', error);
+            }
+        }
+        
+        function managePlantTags(plantId) {
+            const plant = allLibraryPlants.find(p => p.id === plantId);
+            if (!plant) return;
+            const plantTags = getPlantTags(plantId);
+            const availableTags = allTags.filter(t => !plantTags.find(pt => pt.id === t.id));
+            let message = `Tags de "${plant.nom_francais}" :\n\nActuels : ${plantTags.length > 0 ? plantTags.map(t => t.name).join(', ') : 'Aucun'}\n\nAjouter un tag ? (numéro)\n`;
+            availableTags.forEach((tag, i) => { message += `${i + 1}. ${tag.name}\n`; });
+            const choice = prompt(message);
+            if (!choice) return;
+            const index = parseInt(choice) - 1;
+            if (index >= 0 && index < availableTags.length) {
+                addTagToPlant(plantId, availableTags[index].id);
+            }
+        }
+        
+        async function addTagToPlant(plantId, tagId) {
+            try {
+                const response = await fetch(`${API_URL}/library/${plantId}/tags`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tag_id: tagId })
+                });
+                if (response.ok) {
+                    if (!notes_db_local[plantId]) notes_db_local[plantId] = { tags: [] };
+                    if (!notes_db_local[plantId].tags) notes_db_local[plantId].tags = [];
+                    if (!notes_db_local[plantId].tags.includes(tagId)) notes_db_local[plantId].tags.push(tagId);
+                    filterLibrary(currentLibraryFilter);
+                }
+            } catch (error) {
+                console.error('Erreur ajout tag:', error);
+            }
+        }
+        
+        function getPlantTags(plantId) {
+            const plantNotes = notes_db_local[plantId] || {};
+            const tagIds = plantNotes.tags || [];
+            return allTags.filter(t => tagIds.includes(t.id));
+        }
+        
+        // ====== MODE SÉLECTION MULTIPLE ======
+        
+        function toggleSelectionMode() {
+            selectionMode = !selectionMode;
+            selectedPlants.clear();
+            const btn = document.getElementById('selection-mode-btn');
+            const actionsBar = document.getElementById('selection-actions-bar');
+            if (selectionMode) {
+                btn.style.background = '#FF9800';
+                btn.style.color = 'white';
+                btn.innerHTML = '<span>✓</span> Mode sélection';
+                actionsBar.style.display = 'flex';
+            } else {
+                btn.style.background = 'white';
+                btn.style.color = '#FF9800';
+                btn.innerHTML = '<span>☑️</span> Sélectionner';
+                actionsBar.style.display = 'none';
+            }
+            updateSelectionCount();
+            filterLibrary(currentLibraryFilter);
+        }
+        
+        function togglePlantSelection(plantId, checked) {
+            if (checked) { selectedPlants.add(plantId); } else { selectedPlants.delete(plantId); }
+            updateSelectionCount();
+            const cards = document.querySelectorAll('.library-card, .library-list-item');
+            cards.forEach(card => {
+                const checkbox = card.querySelector('.selection-checkbox');
+                if (checkbox) {
+                    const id = parseInt(checkbox.getAttribute('onchange').match(/\d+/)[0]);
+                    if (id === plantId) {
+                        if (checked) { card.classList.add('selected'); } else { card.classList.remove('selected'); }
+                    }
+                }
+            });
+        }
+        
+        function updateSelectionCount() {
+            document.getElementById('selection-count').textContent = selectedPlants.size;
+        }
+        
+        async function bulkAddTag() {
+            if (selectedPlants.size === 0) { alert('Aucune plante sélectionnée'); return; }
+            if (allTags.length === 0) { alert('Créez d\'abord des tags'); return; }
+            let message = 'Choisir un tag :\n\n';
+            allTags.forEach((tag, i) => { message += `${i + 1}. ${tag.name}\n`; });
+            const choice = prompt(message);
+            if (!choice) return;
+            const index = parseInt(choice) - 1;
+            if (index < 0 || index >= allTags.length) return;
+            const tagId = allTags[index].id;
+            try {
+                const response = await fetch(`${API_URL}/library/bulk-action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plant_ids: Array.from(selectedPlants), action: 'add_tag', tag_id: tagId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Tag ajouté à ${data.affected} plante(s)`);
+                    selectedPlants.forEach(plantId => {
+                        if (!notes_db_local[plantId]) notes_db_local[plantId] = { tags: [] };
+                        if (!notes_db_local[plantId].tags) notes_db_local[plantId].tags = [];
+                        if (!notes_db_local[plantId].tags.includes(tagId)) notes_db_local[plantId].tags.push(tagId);
+                    });
+                    cancelSelection();
+                    filterLibrary(currentLibraryFilter);
+                }
+            } catch (error) {
+                console.error('Erreur ajout tags groupés:', error);
+            }
+        }
+        
+        async function bulkDelete() {
+            if (selectedPlants.size === 0) { alert('Aucune plante sélectionnée'); return; }
+            if (!confirm(`Supprimer ${selectedPlants.size} plante(s) ?`)) return;
+            try {
+                const response = await fetch(`${API_URL}/library/bulk-action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plant_ids: Array.from(selectedPlants), action: 'delete' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert(`${data.deleted} plante(s) supprimée(s)`);
+                    selectedPlants.forEach(plantId => {
+                        allLibraryPlants = allLibraryPlants.filter(p => p.id !== plantId);
+                    });
+                    cancelSelection();
+                    loadStats();
+                    filterLibrary(currentLibraryFilter);
+                }
+            } catch (error) {
+                console.error('Erreur suppression groupée:', error);
+            }
+        }
+        
+        function cancelSelection() {
+            selectedPlants.clear();
+            toggleSelectionMode();
+        }
+
+        // Fonctions page détail
+        async function showPlantDetail(plantData, fromScreen = 'search') {
+            previousScreen = fromScreen;
+            currentPlantDetail = plantData;
+            
+            // Masquer tous les écrans
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // Afficher l'écran détail
+            document.getElementById('detail-screen').classList.add('active');
+            
+            // Remplir les informations DE BASE
+            document.getElementById('detail-plant-name').textContent = plantData.nom_francais;
+            document.getElementById('detail-plant-latin').textContent = plantData.nom_latin || 'Nom latin non disponible';
+            
+            // Vérifier si la plante est déjà dans la bibliothèque
+            const isInLibrary = fromScreen === 'library' || 
+                               allLibraryPlants.some(p => p.nom_latin === plantData.nom_latin || p.nom_francais === plantData.nom_francais);
+            
+            // Afficher le bouton "Ajouter" seulement si pas déjà dans la bibliothèque
+            if (isInLibrary) {
+                document.getElementById('detail-plant-icon').innerHTML = `${plantData.icon || '🌿'}`;
+            } else {
+                document.getElementById('detail-plant-icon').innerHTML = `
+                    ${plantData.icon || '🌿'}
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('detail-price').textContent = plantData.prix || 'Prix non disponible';
+            document.getElementById('detail-type').textContent = plantData.type_plante || 'Plante';
+            
+            // Description de base
+            if (plantData.description) {
+                document.getElementById('detail-description').textContent = plantData.description;
+                document.getElementById('detail-description-group').style.display = 'block';
+            } else {
+                document.getElementById('detail-description-group').style.display = 'none';
+            }
+            
+            // Si les détails sont déjà dans plantData (venant de la bibliothèque)
+            if (plantData.details && Object.keys(plantData.details).length > 0) {
+                console.log('✅ Détails déjà présents dans plantData, pas de rescan');
+                console.log('   - periode_taille:', plantData.details.periode_taille || 'NON PRÉSENT');
+                console.log('   - Nombre de champs:', Object.keys(plantData.details).length);
+                
+                // Stocker dans currentPlantDetail
+                currentPlantDetail.details = plantData.details;
+                
+                // Afficher les infos détaillées
+                displayDetailedInfo(plantData.details);
+                
+                // Afficher lien si URL disponible
+                if (plantData.url) {
+                    document.getElementById('detail-url').href = plantData.url;
+                    document.getElementById('detail-url-group').style.display = 'block';
+                } else {
+                    document.getElementById('detail-url-group').style.display = 'none';
+                }
+            }
+            // Sinon, essayer de charger les détails complets si URL disponible
+            else if (plantData.url) {
+                console.log('📥 Pas de détails en cache, chargement depuis URL...');
+                document.getElementById('detail-url').href = plantData.url;
+                document.getElementById('detail-url-group').style.display = 'block';
+                
+                // Charger les détails complets ET ATTENDRE qu'ils soient chargés
+                await loadCompleteDetails(plantData.url);
+            } else {
+                document.getElementById('detail-url-group').style.display = 'none';
+                // Afficher uniquement les infos de base
+                displayBasicInfo(plantData);
+            }
+            
+            // Charger les notes et quantité si la plante est déjà dans la bibliothèque
+            await loadPlantLibraryInfo(plantData);
+            
+            // Réinitialiser l'onglet actif
+            showDetailTab('info');
+        }
+        
+        async function loadCompleteDetails(url) {
+            try {
+                console.log('📥 loadCompleteDetails appelé pour:', url);
+                const response = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+                
+                console.log('📦 Réponse API détails:', data.success ? 'SUCCESS' : 'FAIL');
+                
+                if (data.success && data.data) {
+                    // Stocker les détails dans la plante actuelle
+                    currentPlantDetail.details = data.data;
+                    console.log('✅ Détails stockés dans currentPlantDetail');
+                    console.log('   - periode_taille:', data.data.periode_taille || 'NON PRÉSENT');
+                    console.log('   - Nombre de champs:', Object.keys(data.data).length);
+                    
+                    // Afficher les infos détaillées
+                    displayDetailedInfo(data.data);
+                } else {
+                    console.log('⚠️ Pas de données dans la réponse API');
+                }
+            } catch (error) {
+                console.log('❌ Détails complets non disponibles:', error.message);
+            }
+        }
+        
+        function displayBasicInfo(plantData) {
+            // Exposition
+            if (plantData.exposition) {
+                document.getElementById('detail-exposition').textContent = plantData.exposition;
+                document.getElementById('detail-exposition-group').style.display = 'block';
+            } else {
+                document.getElementById('detail-exposition-group').style.display = 'none';
+            }
+            
+            // Masquer les autres infos détaillées
+            document.getElementById('detail-sous-categorie-group').style.display = 'none';
+            document.getElementById('detail-rusticite-group').style.display = 'none';
+            document.getElementById('detail-dimensions-group').style.display = 'none';
+            document.getElementById('detail-floraison-group').style.display = 'none';
+            document.getElementById('detail-feuillage-group').style.display = 'none';
+            document.getElementById('detail-utilisation-group').style.display = 'none';
+            document.getElementById('detail-sol-group').style.display = 'none';
+            document.getElementById('detail-ph-group').style.display = 'none';
+            document.getElementById('detail-botanique-group').style.display = 'none';
+            document.getElementById('detail-formats-group').style.display = 'none';
+            
+            // Onglet Entretien - afficher message "non disponible"
+            document.getElementById('no-entretien-info').style.display = 'block';
+            document.getElementById('detail-calendrier-group').style.display = 'none';
+            document.getElementById('detail-densite-group').style.display = 'none';
+            document.getElementById('detail-floraison-calendrier-group').style.display = 'none';
+            document.getElementById('detail-taille-group').style.display = 'none';
+            document.getElementById('detail-descriptif-taille-group').style.display = 'none';
+            document.getElementById('detail-difficulte-group').style.display = 'none';
+            document.getElementById('detail-maladies-group').style.display = 'none';
+            document.getElementById('detail-hivernage-group').style.display = 'none';
+            document.getElementById('detail-conseils-group').style.display = 'none';
+            document.getElementById('detail-produits-group').style.display = 'none';
+            
+            // Réinitialiser la section enrichissement
+            document.getElementById('enrichment-section').style.display = 'none';
+            document.getElementById('enrichment-arrosage-group').style.display = 'none';
+            document.getElementById('enrichment-fertilisation-group').style.display = 'none';
+            document.getElementById('enrichment-taille-group').style.display = 'none';
+            document.getElementById('enrichment-multiplication-group').style.display = 'none';
+            document.getElementById('enrichment-maladies-group').style.display = 'none';
+            document.getElementById('enrichment-ravageurs-group').style.display = 'none';
+            document.getElementById('enrichment-varietes-group').style.display = 'none';
+            document.getElementById('enrichment-loading').style.display = 'none';
+            document.getElementById('enrichment-not-found').style.display = 'none';
+        }
+        
+        
+        function createMonthCalendar(periodeText, containerId, color = 'green') {
+            /**
+             * Crée un graphique visuel des mois avec les mois actifs colorés
+             * @param periodeText - Texte comme "Mars à Mai, Septembre à Octobre"
+             * @param containerId - ID du conteneur où insérer le graphique
+             * @param color - Couleur du graphique : 'green', 'pink', 'orange', 'blue'
+             */
+            console.log(`📅 createMonthCalendar appelé:`, { periodeText, containerId, color });
+            
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`❌ Conteneur ${containerId} non trouvé`);
+                return;
+            }
+            if (!periodeText) {
+                console.warn(`⚠️ periodeText vide pour ${containerId}`);
+                return;
+            }
+            
+            // Définir les gradients par couleur
+            const colorGradients = {
+                'green': 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+                'lightgreen': 'linear-gradient(135deg, #81C784, #A5D6A7)',  // Vert clair pour période raisonnable
+                'pink': 'linear-gradient(135deg, #E91E63, #F06292)',
+                'orange': 'linear-gradient(135deg, #FF9800, #FFB74D)',
+                'blue': 'linear-gradient(135deg, #2196F3, #42A5F5)',
+                'purple': 'linear-gradient(135deg, #9C27B0, #BA68C8)'
+            };
+            
+            const gradient = colorGradients[color] || colorGradients['green'];
+            
+            const mois = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+            const moisComplets = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            
+            // Parser le texte pour déterminer quels mois sont actifs
+            const moisActifs = new Set();
+            
+            // Patterns pour extraire les périodes
+            const patterns = [
+                // "Mars à Mai" -> index 2 à 4
+                /(\w+)\s+à\s+(\w+)/gi,
+                // "Mars, Avril" -> index 2, 3
+                /(\w+)(?:,|\set)/gi
+            ];
+            
+            // Fonction pour trouver l'index d'un mois
+            const getMoisIndex = (moisNom) => {
+                const moisNomLower = moisNom.toLowerCase().trim();
+                const idx = moisComplets.findIndex(m => m.toLowerCase().startsWith(moisNomLower.substring(0, 3)));
+                console.log(`  Mois "${moisNom}" → index ${idx}`);
+                return idx;
+            };
+            
+            // Parser les périodes type "Mars à Mai"
+            const rangeMatches = periodeText.matchAll(/(\w+)\s+à\s+(\w+)/gi);
+            for (const match of rangeMatches) {
+                const startIdx = getMoisIndex(match[1]);
+                const endIdx = getMoisIndex(match[2]);
+                
+                console.log(`  Période: ${match[1]} à ${match[2]} → ${startIdx} à ${endIdx}`);
+                
+                if (startIdx >= 0 && endIdx >= 0) {
+                    if (startIdx <= endIdx) {
+                        for (let i = startIdx; i <= endIdx; i++) {
+                            moisActifs.add(i);
+                        }
+                    } else {
+                        // Période sur 2 années (ex: Nov à Fév)
+                        for (let i = startIdx; i < 12; i++) moisActifs.add(i);
+                        for (let i = 0; i <= endIdx; i++) moisActifs.add(i);
+                    }
+                }
+            }
+            
+            // Parser les mois individuels (dans le texte restant)
+            const texteNettoye = periodeText.replace(/(\w+)\s+à\s+(\w+)/gi, '');
+            const moisIndividuels = texteNettoye.matchAll(/(\w+)/gi);
+            for (const match of moisIndividuels) {
+                const idx = getMoisIndex(match[1]);
+                if (idx >= 0) moisActifs.add(idx);
+            }
+            
+            console.log(`  ✅ Mois actifs:`, Array.from(moisActifs).map(i => moisComplets[i]));
+            
+            // Générer le graphique
+            container.innerHTML = '';
+            mois.forEach((m, index) => {
+                const moisDiv = document.createElement('div');
+                moisDiv.style.cssText = `
+                    flex: 1;
+                    text-align: center;
+                    padding: 8px 4px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    ${moisActifs.has(index) ? 
+                        `background: ${gradient}; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);` : 
+                        'background: #f5f5f5; color: #999;'}
+                `;
+                moisDiv.textContent = m;
+                moisDiv.title = moisComplets[index];
+                container.appendChild(moisDiv);
+            });
+        }
+        
+        function displayDetailedInfo(details) {
+            // ONGLET INFO
+            
+            // Image principale (remplacer l'emoji)
+            if (details.image_principale) {
+                const iconEl = document.getElementById('detail-plant-icon');
+                iconEl.innerHTML = `<img src="${details.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px; cursor: zoom-in;" alt="${details.nom_complet || 'Plante'}" onclick="openImageZoom('${details.image_principale}')">`;
+                console.log('📸 Image principale affichée avec zoom');
+            }
+            
+            // Type de plante (depuis breadcrumb)
+            if (details.type_plante) {
+                document.getElementById('detail-type').textContent = details.type_plante;
+            }
+            
+            // Sous-catégorie
+            if (details.sous_categorie) {
+                document.getElementById('detail-sous-categorie').textContent = details.sous_categorie;
+                document.getElementById('detail-sous-categorie-group').style.display = 'block';
+            }
+            
+            // Exposition
+            if (details.exposition) {
+                document.getElementById('detail-exposition').textContent = details.exposition;
+                document.getElementById('detail-exposition-group').style.display = 'block';
+            }
+            
+            // Rusticité
+            if (details.rusticite) {
+                document.getElementById('detail-rusticite').textContent = details.rusticite;
+                document.getElementById('detail-rusticite-group').style.display = 'block';
+            }
+            
+            // Dimensions
+            if (details.hauteur_maturite || details.largeur_maturite) {
+                let dimText = '';
+                if (details.hauteur_maturite) dimText += `H: ${details.hauteur_maturite}`;
+                if (details.largeur_maturite) dimText += ` × L: ${details.largeur_maturite}`;
+                document.getElementById('detail-dimensions').textContent = dimText;
+                document.getElementById('detail-dimensions-group').style.display = 'block';
+            }
+            
+            // Floraison
+            if (details.periode_floraison || details.couleur_fleur) {
+                let florText = '';
+                if (details.periode_floraison) florText += details.periode_floraison;
+                if (details.couleur_fleur) florText += ` - ${details.couleur_fleur}`;
+                document.getElementById('detail-floraison').textContent = florText;
+                document.getElementById('detail-floraison-group').style.display = 'block';
+            }
+            
+            // Feuillage
+            if (details.persistance_feuillage || details.couleur_feuillage) {
+                let feuillText = '';
+                if (details.persistance_feuillage) feuillText += details.persistance_feuillage;
+                if (details.couleur_feuillage) feuillText += ` - ${details.couleur_feuillage}`;
+                document.getElementById('detail-feuillage').textContent = feuillText;
+                document.getElementById('detail-feuillage-group').style.display = 'block';
+            }
+            
+            // Sol
+            if (details.type_sol) {
+                document.getElementById('detail-sol').textContent = details.type_sol;
+                document.getElementById('detail-sol-group').style.display = 'block';
+            }
+            
+            // Type d'utilisation
+            if (details.type_utilisation) {
+                document.getElementById('detail-utilisation').textContent = details.type_utilisation;
+                document.getElementById('detail-utilisation-group').style.display = 'block';
+            }
+            
+            // pH du sol (séparé)
+            if (details.ph_sol) {
+                document.getElementById('detail-ph').textContent = details.ph_sol;
+                document.getElementById('detail-ph-group').style.display = 'block';
+            }
+            
+            // Botanique
+            if (details.genre || details.espece || details.famille || details.origine) {
+                const botaniqueDiv = document.getElementById('detail-botanique');
+                botaniqueDiv.innerHTML = '';
+                
+                if (details.genre) {
+                    botaniqueDiv.innerHTML += `<div><strong>Genre :</strong> ${details.genre}</div>`;
+                }
+                if (details.espece) {
+                    botaniqueDiv.innerHTML += `<div><strong>Espèce :</strong> ${details.espece}</div>`;
+                }
+                if (details.famille) {
+                    botaniqueDiv.innerHTML += `<div><strong>Famille :</strong> ${details.famille}</div>`;
+                }
+                if (details.origine) {
+                    botaniqueDiv.innerHTML += `<div><strong>Origine :</strong> ${details.origine}</div>`;
+                }
+                
+                document.getElementById('detail-botanique-group').style.display = 'block';
+            }
+            
+            // Formats disponibles
+            if (details.formats && details.formats.length > 0) {
+                const formatsListe = document.getElementById('detail-formats-liste');
+                formatsListe.innerHTML = '';
+                
+                details.formats.forEach(format => {
+                    const formatEl = document.createElement('div');
+                    formatEl.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 8px; font-size: 13px;';
+                    
+                    let html = '<div style="font-weight: 600; margin-bottom: 4px;">';
+                    if (format.format) html += format.format;
+                    if (format.hauteur_livraison) html += ` (${format.hauteur_livraison})`;
+                    html += '</div>';
+                    
+                    html += '<div style="color: #666; display: flex; justify-content: space-between; align-items: center;">';
+                    
+                    if (format.prix_unitaire) {
+                        html += `<span style="font-size: 15px; font-weight: 600; color: #4CAF50;">${format.prix_unitaire.toFixed(2)} €</span>`;
+                    }
+                    
+                    if (format.stock) {
+                        html += `<span style="color: #4CAF50; font-size: 12px;">✓ ${format.stock} en stock</span>`;
+                    }
+                    
+                    html += '</div>';
+                    
+                    if (format.prix_par_lot && Object.keys(format.prix_par_lot).length > 0) {
+                        html += '<div style="font-size: 11px; color: #999; margin-top: 4px;">';
+                        Object.entries(format.prix_par_lot).forEach(([qty, prix]) => {
+                            html += `${qty} plants: ${prix}€/u • `;
+                        });
+                        html = html.slice(0, -3); // Enlever le dernier •
+                        html += '</div>';
+                    }
+                    
+                    formatEl.innerHTML = html;
+                    formatsListe.appendChild(formatEl);
+                });
+                
+                document.getElementById('detail-formats-group').style.display = 'block';
+            }
+            
+            // ONGLET ENTRETIEN
+            
+            let hasEntretienInfo = false;
+            
+            // Calendrier plantation
+            if (details.meilleure_periode_plantation) {
+                // Créer le graphique visuel (vert foncé)
+                createMonthCalendar(details.meilleure_periode_plantation, 'detail-calendrier-visuel', 'green');
+                
+                // Calendrier période raisonnable (vert clair)
+                if (details.periode_raisonnable_plantation) {
+                    createMonthCalendar(details.periode_raisonnable_plantation, 'detail-calendrier-raisonnable-visuel', 'lightgreen');
+                    document.getElementById('detail-calendrier-raisonnable-container').style.display = 'block';
+                }
+                
+                document.getElementById('detail-calendrier-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Période floraison avec graphique
+            if (details.periode_floraison) {
+                // Créer le graphique visuel (rose)
+                createMonthCalendar(details.periode_floraison, 'detail-floraison-visuel', 'pink');
+                
+                document.getElementById('detail-floraison-calendrier-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Densité plantation
+            if (details.densite_plantation) {
+                document.getElementById('detail-densite').textContent = details.densite_plantation;
+                document.getElementById('detail-densite-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Taille avec graphique visuel
+            if (details.periode_taille) {
+                // Créer le graphique visuel pour la période de taille (orange)
+                createMonthCalendar(details.periode_taille, 'detail-taille-visuel', 'orange');
+                
+                // Afficher la technique de taille en dessous si disponible
+                if (details.taille || details.frequence_taille) {
+                    let tailleText = '';
+                    if (details.frequence_taille) {
+                        tailleText += details.frequence_taille;
+                    }
+                    if (details.taille && details.frequence_taille) {
+                        tailleText += ' - ';
+                    }
+                    if (details.taille) {
+                        tailleText += details.taille;
+                    }
+                    document.getElementById('detail-taille-technique').textContent = tailleText;
+                }
+                
+                document.getElementById('detail-taille-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Descriptif taille détaillé
+            if (details.descriptif_taille_detaille) {
+                document.getElementById('detail-descriptif-taille').textContent = details.descriptif_taille_detaille;
+                document.getElementById('detail-descriptif-taille-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Difficulté
+            if (details.difficulte_culture) {
+                document.getElementById('detail-difficulte').textContent = details.difficulte_culture;
+                document.getElementById('detail-difficulte-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Maladies
+            if (details.resistance_maladies) {
+                document.getElementById('detail-maladies').textContent = details.resistance_maladies;
+                document.getElementById('detail-maladies-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Hivernage
+            if (details.hivernage) {
+                document.getElementById('detail-hivernage').textContent = details.hivernage;
+                document.getElementById('detail-hivernage-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Conseils détaillés
+            if (details.description_detaillee) {
+                document.getElementById('detail-conseils').textContent = details.description_detaillee;
+                document.getElementById('detail-conseils-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Produits associés
+            if (details.produits_associes && details.produits_associes.length > 0) {
+                const produitsListe = document.getElementById('detail-produits-liste');
+                produitsListe.innerHTML = '';
+                
+                details.produits_associes.forEach(produit => {
+                    const produitEl = document.createElement('div');
+                    produitEl.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 8px; font-size: 13px;';
+                    produitEl.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 4px;">${produit.nom}</div>
+                        <div style="color: #666; display: flex; justify-content: space-between;">
+                            <span>${produit.prix || ''}</span>
+                            ${produit.stock ? `<span style="color: #4CAF50;">✓ ${produit.stock} en stock</span>` : ''}
+                        </div>
+                    `;
+                    produitsListe.appendChild(produitEl);
+                });
+                
+                document.getElementById('detail-produits-group').style.display = 'block';
+                hasEntretienInfo = true;
+            }
+            
+            // Masquer "non disponible" si on a des infos
+            if (hasEntretienInfo) {
+                document.getElementById('no-entretien-info').style.display = 'none';
+            }
+            
+            // Charger les données enrichies en arrière-plan
+            if (details.nom_latin) {
+                loadEnrichmentData(details.nom_latin);
+            }
+        }
+
+        async function loadEnrichmentData(nom_latin) {
+            console.log(`🌿 Chargement données enrichies pour: ${nom_latin}`);
+            
+            // Afficher le loader
+            document.getElementById('enrichment-loading').style.display = 'block';
+            document.getElementById('enrichment-section').style.display = 'block';
+            document.getElementById('enrichment-not-found').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/plant/aujardin-enrichment?nom_latin=${encodeURIComponent(nom_latin)}`);
+                const result = await response.json();
+                
+                // Masquer le loader
+                document.getElementById('enrichment-loading').style.display = 'none';
+                
+                if (result.success && result.data) {
+                    displayEnrichmentData(result.data);
+                } else {
+                    // Pas de données trouvées
+                    document.getElementById('enrichment-not-found').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur chargement données enrichies:', error);
+                document.getElementById('enrichment-loading').style.display = 'none';
+                document.getElementById('enrichment-not-found').style.display = 'block';
+            }
+        }
+
+        function displayEnrichmentData(data) {
+            console.log('📊 Affichage données enrichies:', data);
+            
+            let hasEnrichmentData = false;
+            
+            // Mettre à jour le lien source si l'URL est disponible
+            if (data.url_source) {
+                const sourceLink = document.getElementById('enrichment-source');
+                sourceLink.href = data.url_source;
+                sourceLink.textContent = 'Source: AuJardin.info →';
+            }
+            
+            // Arrosage
+            if (data.arrosage || data.arrosage_detail) {
+                if (data.arrosage) {
+                    document.getElementById('enrichment-arrosage-frequence').textContent = data.arrosage;
+                    document.getElementById('enrichment-arrosage-frequence').style.display = 'inline-block';
+                }
+                if (data.arrosage_detail) {
+                    document.getElementById('enrichment-arrosage-detail').textContent = data.arrosage_detail;
+                }
+                document.getElementById('enrichment-arrosage-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Fertilisation
+            if (data.fertilisation_detail) {
+                document.getElementById('enrichment-fertilisation-detail').textContent = data.fertilisation_detail;
+                document.getElementById('enrichment-fertilisation-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Taille
+            if (data.taille_periode || data.taille_technique) {
+                if (data.taille_periode) {
+                    document.getElementById('enrichment-taille-periode').textContent = data.taille_periode;
+                    document.getElementById('enrichment-taille-periode').style.display = 'inline-block';
+                }
+                if (data.taille_technique) {
+                    document.getElementById('enrichment-taille-technique').textContent = data.taille_technique;
+                }
+                document.getElementById('enrichment-taille-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Multiplication
+            if (data.multiplication || data.multiplication_detail) {
+                if (data.multiplication) {
+                    document.getElementById('enrichment-multiplication-methodes').textContent = data.multiplication;
+                }
+                if (data.multiplication_detail) {
+                    document.getElementById('enrichment-multiplication-detail').textContent = data.multiplication_detail;
+                }
+                document.getElementById('enrichment-multiplication-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Maladies
+            if (data.maladies && data.maladies.length > 0) {
+                const maladiesliste = document.getElementById('enrichment-maladies-liste');
+                maladiesliste.innerHTML = '';
+                
+                data.maladies.forEach(maladie => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '4px';
+                    li.innerHTML = `<strong>${maladie}</strong>`;
+                    maladiesliste.appendChild(li);
+                });
+                
+                document.getElementById('enrichment-maladies-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Ravageurs
+            if (data.ravageurs && data.ravageurs.length > 0) {
+                const ravageursliste = document.getElementById('enrichment-ravageurs-liste');
+                ravageursliste.innerHTML = '';
+                
+                data.ravageurs.forEach(ravageur => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '4px';
+                    li.innerHTML = `<strong>${ravageur}</strong>`;
+                    ravageursliste.appendChild(li);
+                });
+                
+                document.getElementById('enrichment-ravageurs-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Variétés
+            if (data.varietes && data.varietes.length > 0) {
+                const varietesliste = document.getElementById('enrichment-varietes-liste');
+                varietesliste.innerHTML = '';
+                
+                data.varietes.slice(0, 5).forEach(variete => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '12px';
+                    div.style.paddingBottom = '12px';
+                    div.style.borderBottom = '1px solid #e0e0e0';
+                    
+                    div.innerHTML = `
+                        <div style="font-weight: 600; color: #4CAF50; margin-bottom: 4px;">${variete.nom}</div>
+                        ${variete.description ? `<div style="font-size: 14px; color: #666;">${variete.description}</div>` : ''}
+                    `;
+                    
+                    varietesliste.appendChild(div);
+                });
+                
+                document.getElementById('enrichment-varietes-group').style.display = 'block';
+                hasEnrichmentData = true;
+            }
+            
+            // Si aucune donnée enrichie, afficher le message
+            if (!hasEnrichmentData) {
+                document.getElementById('enrichment-not-found').style.display = 'block';
+            }
+        }
+
+        async function loadPlantLibraryInfo(plantData) {
+            try {
+                // Chercher le plant_id dans la base locale
+                // On doit d'abord sauvegarder la plante pour obtenir son ID
+                const plantToSave = {
+                    nom_francais: plantData.nom_francais,
+                    nom_latin: plantData.nom_latin,
+                    exposition: plantData.exposition,
+                    type_plante: plantData.type_plante,
+                    prix: plantData.prix,
+                    description: plantData.description,
+                    icon: plantData.icon,
+                    url: plantData.url
+                };
+                
+                // Ajouter les détails s'ils sont disponibles dans currentPlantDetail
+                if (currentPlantDetail && currentPlantDetail.details) {
+                    plantToSave.details = currentPlantDetail.details;
+                    plantToSave.image_principale = currentPlantDetail.details.image_principale || '';
+                    console.log('📦 Envoi des détails avec periode_taille:', currentPlantDetail.details.periode_taille);
+                }
+                
+                // Appeler l'API pour obtenir/créer le plant_id
+                const saveResponse = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(plantToSave)
+                });
+                
+                if (saveResponse.ok) {
+                    const saveResult = await saveResponse.json();
+                    const plantId = saveResult.plant_id;
+                    
+                    currentPlantDetail.plant_id = plantId;
+                    
+                    // Charger les infos de la bibliothèque
+                    const libResponse = await fetch(`${API_URL}/library/plant/${plantId}`);
+                    const libInfo = await libResponse.json();
+                    
+                    if (libInfo.in_library) {
+                        document.getElementById('detail-quantity').textContent = libInfo.quantity;
+                        document.getElementById('detail-notes').value = libInfo.notes || '';
+                        
+                        // IMPORTANT: Récupérer les détails depuis la bibliothèque
+                        if (libInfo.plant && libInfo.plant.details) {
+                            currentPlantDetail.details = libInfo.plant.details;
+                            console.log('✅ Détails récupérés depuis bibliothèque');
+                            console.log('   periode_taille:', libInfo.plant.details.periode_taille || 'NON');
+                            
+                            // Réafficher les détails
+                            displayDetailedInfo(libInfo.plant.details);
+                        }
+                        
+                        // Charger la photo personnalisée si disponible
+                        if (libInfo.custom_photo) {
+                            document.getElementById('current-photo-img').src = libInfo.custom_photo;
+                            document.getElementById('current-photo-preview').style.display = 'block';
+                            updatePlantIcon(libInfo.custom_photo);
+                        } else {
+                            document.getElementById('current-photo-preview').style.display = 'none';
+                        }
+                        
+                        // Changer le bouton "Ajouter" en "Ajouté"
+                        const addBtn = document.getElementById('detail-add-btn');
+                        if (addBtn) {
+                            addBtn.innerHTML = '<span>✓</span><span>Ajouté</span>';
+                            addBtn.classList.add('added');
+                            addBtn.disabled = true;
+                        }
+                    } else {
+                        // Réinitialiser pour une nouvelle plante
+                        document.getElementById('detail-quantity').textContent = '1';
+                        document.getElementById('detail-notes').value = '';
+                        document.getElementById('current-photo-preview').style.display = 'none';
+                        
+                        // S'assurer que le bouton est en mode "Ajouter"
+                        const addBtn = document.getElementById('detail-add-btn');
+                        if (addBtn) {
+                            addBtn.innerHTML = '<span>➕</span><span>Ajouter</span>';
+                            addBtn.classList.remove('added');
+                            addBtn.disabled = false;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement infos bibliothèque:', error);
+                // Réinitialiser par défaut
+                document.getElementById('detail-quantity').textContent = '1';
+                document.getElementById('detail-notes').value = '';
+            }
+        }
+
+        // Fonction pour scraper manuellement AuJardin.info
+        async function scrapManualAuJardin() {
+            const input = document.getElementById('aujardin-url-input');
+            const statusDiv = document.getElementById('aujardin-scraping-status');
+            const url = input.value.trim();
+            
+            if (!url) {
+                statusDiv.textContent = '⚠️ Veuillez entrer une URL';
+                statusDiv.style.color = '#FF9800';
+                statusDiv.style.display = 'block';
+                return;
+            }
+            
+            // Afficher le statut
+            statusDiv.textContent = '🔄 Scraping en cours...';
+            statusDiv.style.color = '#2196F3';
+            statusDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_URL}/plant/aujardin-scrape-manual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Afficher les données
+                    displayEnrichmentData(result.data);
+                    
+                    // Masquer le formulaire de scraping
+                    document.getElementById('aujardin-manual-scraper').style.display = 'none';
+                    
+                    // Message succès
+                    statusDiv.textContent = '✅ Données chargées avec succès !';
+                    statusDiv.style.color = '#4CAF50';
+                    
+                    console.log('✅ Scraping manuel réussi:', result.data);
+                } else {
+                    statusDiv.textContent = '❌ Impossible de scraper cette URL';
+                    statusDiv.style.color = '#d32f2f';
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur scraping manuel:', error);
+                statusDiv.textContent = '❌ Erreur lors du scraping';
+                statusDiv.style.color = '#d32f2f';
+            }
+        }
+
+        function goBackFromDetail() {
+            document.getElementById('detail-screen').classList.remove('active');
+            showScreen(previousScreen);
+        }
+
+        function showDetailTab(tabName, clickedElement) {
+            // Masquer tous les contenus
+            document.getElementById('tab-info').style.display = 'none';
+            document.getElementById('tab-entretien').style.display = 'none';
+            document.getElementById('tab-notes').style.display = 'none';
+            
+            // Afficher le contenu sélectionné
+            document.getElementById('tab-' + tabName).style.display = 'block';
+            
+            // Mettre à jour les onglets actifs
+            document.querySelectorAll('.detail-tabs .tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            }
+        }
+
+        async function addFromDetail() {
+            if (!currentPlantDetail) return;
+            
+            console.log('➕ addFromDetail appelé');
+            console.log('   currentPlantDetail:', currentPlantDetail);
+            console.log('   currentPlantDetail.details:', currentPlantDetail.details);
+            
+            if (currentPlantDetail.details && currentPlantDetail.details.periode_taille) {
+                console.log('   ✅ Details.periode_taille présent:', currentPlantDetail.details.periode_taille);
+            } else {
+                console.log('   ❌ Details.periode_taille ABSENT !');
+            }
+            
+            const button = document.getElementById('detail-add-btn');
+            const originalHTML = button.innerHTML;
+            
+            button.innerHTML = '<span>✓</span><span>Ajouté</span>';
+            button.classList.add('added');
+            button.disabled = true;
+            
+            try {
+                // Envoyer les données avec les détails complets si disponibles
+                const plantToSend = {
+                    nom_francais: currentPlantDetail.nom_francais,
+                    nom_latin: currentPlantDetail.nom_latin,
+                    exposition: currentPlantDetail.exposition,
+                    // Prendre type_plante depuis details si disponible, sinon depuis currentPlantDetail
+                    type_plante: currentPlantDetail.details?.type_plante || currentPlantDetail.type_plante || 'Plante',
+                    prix: currentPlantDetail.prix,
+                    description: currentPlantDetail.description,
+                    icon: currentPlantDetail.icon,
+                    url: currentPlantDetail.url,
+                    // Ajouter les détails complets si disponibles
+                    details: currentPlantDetail.details || {},
+                    // Ajouter l'image principale si disponible
+                    image_principale: currentPlantDetail.details?.image_principale || ''
+                };
+                
+                console.log('📤 Envoi à API:', {
+                    nom_francais: plantToSend.nom_francais,
+                    has_details: !!plantToSend.details,
+                    details_keys: Object.keys(plantToSend.details || {}),
+                    periode_taille: plantToSend.details?.periode_taille
+                });
+                
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(plantToSend)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Réponse API:', result);
+                    // Stocker le plant_id retourné par l'API
+                    if (result.plant_id !== undefined) {
+                        currentPlantDetail.plant_id = result.plant_id;
+                    }
+                    
+                    loadStats();
+                    loadRecentPlants();
+                } else {
+                    throw new Error('Erreur lors de l\'ajout');
+                }
+            } catch (error) {
+                console.error('Erreur ajout plante:', error);
+                button.innerHTML = originalHTML;
+                button.classList.remove('added');
+                button.disabled = false;
+                alert('Erreur lors de l\'ajout');
+            }
+        }
+
+        function changeDetailQuantity(delta) {
+            const quantityEl = document.getElementById('detail-quantity');
+            let current = parseInt(quantityEl.textContent) || 1;
+            current = Math.max(1, current + delta);
+            quantityEl.textContent = current;
+        }
+
+        
+        async function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Vérifier la taille (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La photo est trop grande (max 2MB)');
+                return;
+            }
+            
+            // Convertir en base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result;
+                
+                // Afficher l'aperçu
+                document.getElementById('current-photo-img').src = base64;
+                document.getElementById('current-photo-preview').style.display = 'block';
+                
+                // Sauvegarder automatiquement
+                if (currentPlantDetail && currentPlantDetail.plant_id) {
+                    try {
+                        const response = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}/photo`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ photo: base64 })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ Photo sauvegardée');
+                            // Mettre à jour l'icône dans le header
+                            updatePlantIcon(base64);
+                        }
+                    } catch (error) {
+                        console.error('Erreur sauvegarde photo:', error);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function removePhoto() {
+            if (!currentPlantDetail || !currentPlantDetail.plant_id) return;
+            
+            if (confirm('Supprimer la photo personnalisée ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}/photo`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        document.getElementById('current-photo-preview').style.display = 'none';
+                        updatePlantIcon(currentPlantDetail.icon || '🌿');
+                        console.log('✅ Photo supprimée');
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression photo:', error);
+                }
+            }
+        }
+        
+        function updatePlantIcon(iconOrPhoto) {
+            const iconEl = document.getElementById('detail-plant-icon');
+            if (iconOrPhoto && iconOrPhoto.startsWith('data:image')) {
+                // C'est une photo base64
+                iconEl.innerHTML = `
+                    <img src="${iconOrPhoto}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            } else {
+                // C'est un emoji
+                iconEl.innerHTML = `
+                    ${iconOrPhoto || '🌿'}
+                    <div class="plant-actions">
+                        <button class="action-btn" id="detail-add-btn" onclick="addFromDetail()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        async function saveNotes() {
+            if (!currentPlantDetail || currentPlantDetail.plant_id === undefined) {
+                alert('Erreur : ID de plante non trouvé');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            
+            try {
+                // Vérifier si la plante est dans la bibliothèque
+                const checkResponse = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}`);
+                const checkInfo = await checkResponse.json();
+                
+                if (!checkInfo.in_library) {
+                    alert('Veuillez d\'abord ajouter cette plante à votre bibliothèque via le bouton "➕ Ajouter"');
+                    button.disabled = false;
+                    return;
+                }
+                
+                const notes = document.getElementById('detail-notes').value;
+                const quantity = parseInt(document.getElementById('detail-quantity').textContent);
+                
+                const response = await fetch(`${API_URL}/library/${currentPlantDetail.plant_id}/notes`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        notes: notes,
+                        quantity: quantity
+                    })
+                });
+                
+                if (response.ok) {
+                    button.textContent = '✓ Sauvegardé';
+                    button.style.background = '#45a049';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#4CAF50';
+                        button.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Erreur sauvegarde');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde notes:', error);
+                button.textContent = '❌ Erreur';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+        
+        // Fonctions zoom image
+        function openImageZoom(imageUrl) {
+            document.getElementById('zoomed-image').src = imageUrl;
+            document.getElementById('image-zoom-modal').style.display = 'block';
+        }
+        
+        function closeImageZoom() {
+            document.getElementById('image-zoom-modal').style.display = 'none';
+        }
+
+        // ====== FONCTIONS CALCULATEURS ======
+        
+        let currentCalcShape = 'rectangle';
+
+        function selectShape(shape) {
+            currentCalcShape = shape;
+            
+            // Update button styles
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.shape === shape) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show/hide inputs
+            document.getElementById('rect-inputs-calc').classList.toggle('hidden', shape !== 'rectangle');
+            document.getElementById('circle-inputs-calc').classList.toggle('hidden', shape !== 'circle');
+            document.getElementById('border-inputs-calc').classList.toggle('hidden', shape !== 'border');
+        }
+
+        function calculateVolume() {
+            let surface = 0;
+            const depth = parseFloat(document.getElementById('calc-depth').value) / 100; // Convert cm to m
+
+            // Calculate surface based on shape
+            if (currentCalcShape === 'rectangle') {
+                const length = parseFloat(document.getElementById('calc-rect-length').value);
+                const width = parseFloat(document.getElementById('calc-rect-width').value);
+                surface = length * width;
+            } else if (currentCalcShape === 'circle') {
+                const diameter = parseFloat(document.getElementById('calc-circle-diameter').value);
+                const radius = diameter / 2;
+                surface = Math.PI * radius * radius;
+            } else if (currentCalcShape === 'border') {
+                const outerDiameter = parseFloat(document.getElementById('calc-border-outer').value);
+                const innerDiameter = parseFloat(document.getElementById('calc-border-inner').value);
+                const outerRadius = outerDiameter / 2;
+                const innerRadius = innerDiameter / 2;
+                surface = Math.PI * (outerRadius * outerRadius - innerRadius * innerRadius);
+            }
+
+            const volume = surface * depth;
+            
+            // Get material density
+            const materialSelect = document.getElementById('calc-material');
+            const density = parseFloat(materialSelect.value.split(':')[1]);
+            const weight = volume * density;
+
+            // Calculate bags
+            const bagWeight = parseFloat(document.getElementById('calc-bag-weight').value);
+            const bagPrice = parseFloat(document.getElementById('calc-bag-price').value);
+            const bags = Math.ceil(weight / bagWeight);
+            const cost = bags * bagPrice;
+
+            // Display results
+            document.getElementById('result-surface-calc').textContent = surface.toFixed(2) + ' m²';
+            document.getElementById('result-volume-calc').textContent = volume.toFixed(2) + ' m³';
+            document.getElementById('result-weight-calc').textContent = weight.toFixed(0) + ' kg';
+            document.getElementById('result-bags-calc').textContent = bags + ' sacs';
+            document.getElementById('result-cost-calc').textContent = cost.toFixed(2) + ' €';
+
+            document.getElementById('volume-result-calc').style.display = 'block';
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('volume-result-calc').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function calculatePlanting() {
+            const surface = parseFloat(document.getElementById('calc-plant-surface').value);
+            const spacing = parseFloat(document.getElementById('calc-plant-spacing').value) / 100; // Convert to meters
+            const pattern = document.getElementById('calc-plant-pattern').value;
+
+            let plantsPerM2;
+            if (pattern === 'square') {
+                plantsPerM2 = 1 / (spacing * spacing);
+            } else {
+                // Triangle/quinconce - approximately 15% more efficient
+                plantsPerM2 = 1.15 / (spacing * spacing);
+            }
+
+            const totalPlants = Math.ceil(surface * plantsPerM2);
+
+            document.getElementById('result-plants-calc').textContent = totalPlants + ' plants';
+            document.getElementById('result-density-calc').textContent = plantsPerM2.toFixed(1) + ' plants/m²';
+
+            document.getElementById('planting-result-calc').style.display = 'block';
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('planting-result-calc').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    </script>
+    
+    <!-- Modal Zoom Image -->
+    <div id="image-zoom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; padding: 20px; box-sizing: border-box;" onclick="closeImageZoom()">
+        <div style="position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; cursor: pointer; z-index: 10001;" onclick="closeImageZoom()">×</div>
+        <img id="zoomed-image" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="event.stopPropagation()">
+    </div>
+    
+</body>
+</html>
