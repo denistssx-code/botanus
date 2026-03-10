@@ -3616,12 +3616,13 @@
             document.getElementById('detail-price').textContent = plantData.prix || 'Prix non disponible';
             document.getElementById('detail-type').textContent = plantData.type_plante || 'Plante';
             
-            // Description de base (sera complétée par displayDetailedInfo si disponible)
+            // Description de base
             if (plantData.description) {
                 document.getElementById('detail-description').textContent = plantData.description;
                 document.getElementById('detail-description-group').style.display = 'block';
+            } else {
+                document.getElementById('detail-description-group').style.display = 'none';
             }
-            // Note: ne pas cacher ici, displayDetailedInfo peut avoir une description depuis details
             
             // Si les détails sont déjà dans plantData (venant de la bibliothèque)
             if (plantData.details && Object.keys(plantData.details).length > 0) {
@@ -3847,19 +3848,6 @@
         function displayDetailedInfo(details) {
             // ONGLET INFO
             
-            // Réinitialiser les groupes optionnels de l'onglet Info
-            document.getElementById('detail-description-group').style.display = 'none';
-            document.getElementById('detail-sous-categorie-group').style.display = 'none';
-            document.getElementById('detail-rusticite-group').style.display = 'none';
-            document.getElementById('detail-dimensions-group').style.display = 'none';
-            document.getElementById('detail-floraison-group').style.display = 'none';
-            document.getElementById('detail-feuillage-group').style.display = 'none';
-            document.getElementById('detail-utilisation-group').style.display = 'none';
-            document.getElementById('detail-sol-group').style.display = 'none';
-            document.getElementById('detail-ph-group').style.display = 'none';
-            document.getElementById('detail-botanique-group').style.display = 'none';
-            document.getElementById('detail-formats-group').style.display = 'none';
-            
             // Image principale (remplacer l'emoji)
             if (details.image_principale) {
                 const iconEl = document.getElementById('detail-plant-icon');
@@ -3927,13 +3915,6 @@
             if (details.type_utilisation) {
                 document.getElementById('detail-utilisation').textContent = details.type_utilisation;
                 document.getElementById('detail-utilisation-group').style.display = 'block';
-            }
-            
-            // Description (priorité: description > description_courte > description_complete)
-            const description = details.description || details.description_courte || details.description_complete;
-            if (description) {
-                document.getElementById('detail-description').textContent = description;
-                document.getElementById('detail-description-group').style.display = 'block';
             }
             
             // pH du sol (séparé)
