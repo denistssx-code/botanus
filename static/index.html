@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -3924,7 +3925,7 @@
             }
             
             // Botanique
-            if (details.genre || details.espece || details.famille || details.origine) {
+            if (details.genre || details.espece || details.cultivar || details.famille || details.origine || details.autres_noms) {
                 const botaniqueDiv = document.getElementById('detail-botanique');
                 botaniqueDiv.innerHTML = '';
                 
@@ -3934,11 +3935,17 @@
                 if (details.espece) {
                     botaniqueDiv.innerHTML += `<div><strong>Espèce :</strong> ${details.espece}</div>`;
                 }
+                if (details.cultivar) {
+                    botaniqueDiv.innerHTML += `<div><strong>Cultivar :</strong> ${details.cultivar}</div>`;
+                }
                 if (details.famille) {
                     botaniqueDiv.innerHTML += `<div><strong>Famille :</strong> ${details.famille}</div>`;
                 }
                 if (details.origine) {
                     botaniqueDiv.innerHTML += `<div><strong>Origine :</strong> ${details.origine}</div>`;
+                }
+                if (details.autres_noms) {
+                    botaniqueDiv.innerHTML += `<div><strong>Autres noms :</strong> ${details.autres_noms}</div>`;
                 }
                 
                 document.getElementById('detail-botanique-group').style.display = 'block';
