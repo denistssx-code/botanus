@@ -1599,17 +1599,83 @@ def load_from_airtable():
                     'exposition': plant_fields.get('exposition', ''),
                     'type_plante': plant_fields.get('type_plante', 'Plante'),
                     'prix': plant_fields.get('prix', ''),
-                    'description': plant_fields.get('description_courte', plant_fields.get('description_detaillee', '')),
+                    'description': plant_fields.get('description_courte', plant_fields.get('description_complete', '')),
                     'icon': '🌿',  # Icône par défaut
                     'url': plant_fields.get('url_source', ''),
                     'image_principale': plant_fields.get('image_principale', ''),
                     
-                    # Détails (si disponibles)
+                    # Détails COMPLETS (TOUS les champs Airtable)
                     'details': {
-                        k: v for k, v in plant_fields.items()
-                        if k not in ['nom_francais', 'nom_latin', 'exposition', 'type_plante', 'prix', 'description_courte', 'url_source', 'image_principale']
-                        and v is not None and v != ''
+                        # Botaniques
+                        'genre': plant_fields.get('genre', ''),
+                        'espece': plant_fields.get('espece', ''),
+                        'cultivar': plant_fields.get('cultivar', ''),
+                        'famille': plant_fields.get('famille', ''),
+                        'origine': plant_fields.get('origine', ''),
+                        'autres_noms': plant_fields.get('autres_noms', ''),
+                        
+                        # Type et catégorie
+                        'type_plante': plant_fields.get('type_plante', ''),
+                        'sous_categorie': plant_fields.get('sous_categorie', ''),
+                        
+                        # Descriptions
+                        'description_courte': plant_fields.get('description_courte', ''),
+                        'description_complete': plant_fields.get('description_complete', ''),
+                        
+                        # Conditions de culture
+                        'exposition': plant_fields.get('exposition', ''),
+                        'rusticite_zone': plant_fields.get('rusticite_zone', ''),
+                        'rusticite_min_celsius': plant_fields.get('rusticite_min_celsius', ''),
+                        'sol_type': plant_fields.get('sol_type', ''),
+                        'sol_ph': plant_fields.get('sol_ph', ''),
+                        'sol_humidite': plant_fields.get('sol_humidite', ''),
+                        'sol_drainage': plant_fields.get('sol_drainage', ''),
+                        
+                        # Dimensions
+                        'hauteur_maturite': plant_fields.get('hauteur_maturite', ''),
+                        'largeur_maturite': plant_fields.get('largeur_maturite', ''),
+                        'port': plant_fields.get('port', ''),
+                        'feuillage': plant_fields.get('feuillage', ''),
+                        
+                        # Floraison
+                        'periode_floraison': plant_fields.get('periode_floraison', ''),
+                        'couleur_fleurs': plant_fields.get('couleur_fleurs', ''),
+                        'duree_floraison': plant_fields.get('duree_floraison', ''),
+                        
+                        # Plantation
+                        'meilleure_periode_plantation': plant_fields.get('meilleure_periode_plantation', ''),
+                        'periode_raisonnable_plantation': plant_fields.get('periode_raisonnable_plantation', ''),
+                        'densite_plantation': plant_fields.get('densite_plantation', ''),
+                        
+                        # Entretien
+                        'taille_periode': plant_fields.get('taille_periode', ''),
+                        'periode_taille': plant_fields.get('periode_taille', ''),
+                        'periode_raisonnable_taille': plant_fields.get('periode_raisonnable_taille', ''),
+                        'taille_technique': plant_fields.get('taille_technique', ''),
+                        'arrosage_frequence': plant_fields.get('arrosage_frequence', ''),
+                        'arrosage_detail': plant_fields.get('arrosage_detail', ''),
+                        'fertilisation': plant_fields.get('fertilisation', ''),
+                        'multiplication': plant_fields.get('multiplication', ''),
+                        'paillage': plant_fields.get('paillage', ''),
+                        'tuteurage': plant_fields.get('tuteurage', ''),
+                        'rabattage_periode': plant_fields.get('rabattage_periode', ''),
+                        
+                        # Utilisations
+                        'utilisations': plant_fields.get('utilisations', ''),
+                        
+                        # Autres
+                        'prix': plant_fields.get('prix', ''),
+                        'disponibilite': plant_fields.get('disponibilite', ''),
+                        'source': plant_fields.get('source', ''),
+                        'statut': plant_fields.get('statut', ''),
+                        'url_source': plant_fields.get('url_source', '')
                     }
+                }
+                
+                # Nettoyer les valeurs vides dans details
+                library_db[plant_id]['details'] = {
+                    k: v for k, v in library_db[plant_id]['details'].items()
+                    if v is not None and v != '' and v != []
                 }
                 
                 # Initialiser notes vides
