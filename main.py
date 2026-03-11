@@ -386,66 +386,59 @@ class PromesseDeFleursScraper:
                 if len(parts) >= 2:
                     detail.nom_francais = parts[1].strip()
             
-            # 2.5. TYPE DE PLANTE depuis le fil d'Ariane (breadcrumb)
+            # 2.5. TYPE DE PLANTE - Extraction depuis l'URL
+            # URL format: https://www.promessedefleurs.com/VIVACES/vivaces-par-variete/...
+            #                                              ^^^^^^^ = type_plante
+            print("  📂 Extraction type de plante depuis URL...")
+            url_parts = url.split('/')
+            if len(url_parts) > 3:
+                type_from_url = url_parts[3].lower()  # Premier segment après le domaine
+                
+                # Mapping pour normaliser les types
+                type_mapping = {
+                    'arbustes': 'Arbuste',
+                    'arbuste': 'Arbuste',
+                    'arbres': 'Arbre',
+                    'arbre': 'Arbre',
+                    'vivaces': 'Vivace',
+                    'vivace': 'Vivace',
+                    'grimpantes': 'Grimpante',
+                    'grimpante': 'Grimpante',
+                    'annuelles': 'Annuelle',
+                    'annuelle': 'Annuelle',
+                    'bulbes': 'Bulbe',
+                    'bulbe': 'Bulbe',
+                    'rosiers': 'Rosier',
+                    'rosier': 'Rosier',
+                    'graminees': 'Graminée',
+                    'graminee': 'Graminée',
+                    'plantes-potageres': 'Plante potagère',
+                    'plantes-aromatiques': 'Plante aromatique',
+                    'fruitiers': 'Fruitier'
+                }
+                
+                detail.type_plante = type_mapping.get(type_from_url, type_from_url.capitalize())
+                print(f"  ✅ Type extrait depuis URL: {type_from_url} → {detail.type_plante}")
+            else:
+                detail.type_plante = 'Non défini'
+                print(f"  ⚠️ Impossible d'extraire le type depuis l'URL")
+            
+            # Breadcrumb: extraire seulement la sous-catégorie (optionnel)
             breadcrumb = soup.find('ol', class_='items')
             if breadcrumb:
-                # Trouver tous les items du breadcrumb
                 all_items = breadcrumb.find_all('li', class_='item')
-                print(f"🍞 Breadcrumb: {len(all_items)} niveaux trouvés")
-                
-                # Afficher tous les niveaux pour debug
-                for idx, item in enumerate(all_items):
-                    link = item.find('a')
-                    if link:
-                        print(f"  [{idx}] {self.clean_text(link.get_text())} (classes: {item.get('class', [])})")
-                
-                # Filtrer les items (ignorer "home" qui est l'accueil)
+                # Filtrer les items (ignorer "home")
                 items = [item for item in all_items if 'home' not in item.get('class', [])]
-                print(f"  → {len(items)} niveaux après filtrage 'home'")
                 
-                # Structure après filtrage: [0] = Type (Vivaces/Arbustes/etc), [1] = Sous-catégorie, [2] = Détail
-                if len(items) >= 1:
-                    # Prendre le 1er élément après "home" = le type
-                    type_item = items[0]
-                    type_link = type_item.find('a')
-                    if type_link:
-                        type_text = self.clean_text(type_link.get_text())
-                        
-                        # Mapping pour normaliser les types
-                        type_mapping = {
-                            'Arbustes': 'Arbuste',
-                            'Arbres': 'Arbre',
-                            'Arbre': 'Arbre',
-                            'Vivaces': 'Vivace',
-                            'Grimpantes': 'Grimpante',
-                            'Annuelles': 'Annuelle',
-                            'Bulbes': 'Bulbe',
-                            'Bulbe': 'Bulbe',
-                            'Rosiers': 'Rosier',
-                            'Arbustes par variété': 'Arbuste',
-                            'Vivaces par variété': 'Vivace',
-                            'Graminées': 'Graminée',
-                            'Plantes de jardin': 'Non défini',
-                            'Plantes': 'Non défini',
-                            'Plante': 'Non défini'
-                        }
-                        
-                        detail.type_plante = type_mapping.get(type_text, type_text)
-                        print(f"  ✅ Type extrait: {type_text} → {detail.type_plante}")
-                    
-                    # Bonus: extraire la sous-catégorie si elle existe
-                    if len(items) >= 2:
-                        subcat_item = items[1]
-                        subcat_link = subcat_item.find('a')
-                        if subcat_link:
-                            subcat_text = self.clean_text(subcat_link.get_text())
-                            detail.sous_categorie = subcat_text
-                            print(f"  📂 Sous-catégorie: {subcat_text}")
-                else:
-                    print(f"  ⚠️ Breadcrumb vide après filtrage, utilisation fallback")
-                    detail.type_plante = 'Non défini'
-            else:
-                print(f"  ⚠️ Breadcrumb non trouvé")
+                # Extraire la sous-catégorie (généralement le 3ème élément)
+                # Format breadcrumb: [0]=Type, [1]="par variété", [2]=Sous-catégorie (ex: "Agapanthes")
+                if len(items) >= 3:
+                    subcat_item = items[2]
+                    subcat_link = subcat_item.find('a')
+                    if subcat_link:
+                        subcat_text = self.clean_text(subcat_link.get_text())
+                        detail.sous_categorie = subcat_text
+                        print(f"  📂 Sous-catégorie: {subcat_text}")
             
             # 3. DESCRIPTION COURTE
             desc_short = soup.find('div', class_='product-description')
