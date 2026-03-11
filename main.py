@@ -54,8 +54,10 @@ class PlantDetailInfo:
     nom_francais: str = ""
     genre: str = ""
     espece: str = ""
+    cultivar: str = ""
     famille: str = ""
     origine: str = ""
+    autres_noms: str = ""
     
     # Catégorisation (depuis breadcrumb)
     type_plante: str = ""
@@ -541,10 +543,14 @@ class PromesseDeFleursScraper:
                                     detail.genre = value
                                 elif 'Espèce' in label:
                                     detail.espece = value
+                                elif 'Cultivar' in label:
+                                    detail.cultivar = value
                                 elif 'Famille' in label:
                                     detail.famille = value
                                 elif 'Origine' in label:
                                     detail.origine = value
+                                elif 'Autres noms' in label:
+                                    detail.autres_noms = value
                             
                             elif section_title == 'Quand planter ?':
                                 if 'Meilleure' in label:
