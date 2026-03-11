@@ -118,11 +118,14 @@ class AirtableClient:
         if plant_data.get('exposition'):
             # Convertir en liste si c'est une string
             expo = plant_data['exposition']
-            if isinstance(expo, str):
+            if isinstance(expo, list):
+                # Déjà une liste, utiliser telle quelle
+                fields['exposition'] = expo
+            elif isinstance(expo, str):
                 # Essayer de parser les multiples expositions
                 fields['exposition'] = [e.strip() for e in expo.split(',')]
             else:
-                fields['exposition'] = [expo]
+                fields['exposition'] = [str(expo)]
         
         # Floraison
         if plant_data.get('periode_floraison'):
