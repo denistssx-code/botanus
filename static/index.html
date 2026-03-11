@@ -1301,11 +1301,10 @@
                         </div>
                         <div class="info-group">
                             <div class="info-title">Type de plante</div>
-                            <span class="info-badge" id="detail-type">Vivace</span>
-                        </div>
-                        <div class="info-group" id="detail-sous-categorie-group" style="display: none;">
-                            <div class="info-title">📂 Catégorie</div>
-                            <div class="info-text" id="detail-sous-categorie">Vivaces aromatiques</div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span class="info-badge" id="detail-type">Vivace</span>
+                                <span id="detail-sous-categorie-badge" style="display: none; color: #666; font-size: 13px;"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -3583,6 +3582,21 @@
             previousScreen = fromScreen;
             currentPlantDetail = plantData;
             
+            // 🔄 RÉINITIALISER TOUS LES CONTENUS POUR ÉVITER LE CACHE
+            // Cacher tous les groupes d'infos
+            document.querySelectorAll('[id$="-group"]').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Vider tous les contenus
+            document.getElementById('detail-exposition').textContent = '';
+            document.getElementById('detail-rusticite').textContent = '';
+            document.getElementById('detail-sol').textContent = '';
+            document.getElementById('detail-botanique').innerHTML = '';
+            document.getElementById('detail-dimensions').innerHTML = '';
+            document.getElementById('detail-floraison').innerHTML = '';
+            document.getElementById('detail-formats-liste').innerHTML = '';
+            
             // Masquer tous les écrans
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
@@ -3701,7 +3715,6 @@
             }
             
             // Masquer les autres infos détaillées
-            document.getElementById('detail-sous-categorie-group').style.display = 'none';
             document.getElementById('detail-rusticite-group').style.display = 'none';
             document.getElementById('detail-dimensions-group').style.display = 'none';
             document.getElementById('detail-floraison-group').style.display = 'none';
@@ -3861,10 +3874,11 @@
                 document.getElementById('detail-type').textContent = details.type_plante;
             }
             
-            // Sous-catégorie
+            // Sous-catégorie (afficher dans le badge fusionné)
             if (details.sous_categorie) {
-                document.getElementById('detail-sous-categorie').textContent = details.sous_categorie;
-                document.getElementById('detail-sous-categorie-group').style.display = 'block';
+                const badge = document.getElementById('detail-sous-categorie-badge');
+                badge.textContent = `→ ${details.sous_categorie}`;
+                badge.style.display = 'inline';
             }
             
             // Exposition
