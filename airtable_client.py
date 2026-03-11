@@ -356,7 +356,7 @@ class AirtableClient:
         # SÉCURITÉ: Liste blanche des champs Airtable autorisés
         # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
         ALLOWED_FIELDS = {
-            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'type_plante', 'url_source',
+            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'type_plante', 'url_source',
             'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
             'periode_floraison', 'couleur_fleurs', 'duree_floraison',
             'exposition', 'rusticite_zone', 'rusticite_min_celsius',
