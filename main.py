@@ -1142,6 +1142,25 @@ def handle_library():
         'plants': plants_with_notes
     })
 
+@app.route('/api/library/all-notes', methods=['GET'])
+def get_all_notes():
+    """Retourne TOUTES les notes/tags en une seule requête (optimisation frontend)"""
+    all_notes = {}
+    
+    for plant_id in library_db.keys():
+        notes_data = notes_db.get(plant_id, {})
+        all_notes[plant_id] = {
+            'notes': notes_data.get('notes', ''),
+            'quantity': notes_data.get('quantity', 0),
+            'custom_photo': notes_data.get('custom_photo'),
+            'tags': notes_data.get('tags', [])
+        }
+    
+    return jsonify({
+        'success': True,
+        'notes': all_notes
+    })
+
 @app.route('/api/library/add', methods=['POST'])
 def add_to_library():
     """Ajoute une plante à la bibliothèque"""
