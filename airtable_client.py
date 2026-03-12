@@ -388,6 +388,16 @@ class AirtableClient:
         
         return cleaned_fields
     
+    def _escape_formula_value(self, value: str) -> str:
+        """
+        Échappe les caractères spéciaux pour les formules Airtable
+        Les apostrophes doivent être doublées dans les formules Airtable
+        """
+        if not value:
+            return ''
+        # Doubler les apostrophes pour Airtable
+        return value.replace("'", "''")
+    
     def find_plant_by_latin_name(self, nom_latin: str) -> Optional[str]:
         """
         Cherche une plante par son nom latin
@@ -396,8 +406,11 @@ class AirtableClient:
         if not self.enabled:
             return None
         
+        # Échapper les apostrophes dans nom_latin pour la formule
+        escaped_nom_latin = self._escape_formula_value(nom_latin)
+        
         # Utiliser filterByFormula pour chercher
-        formula = f"{{nom_latin}}='{nom_latin}'"
+        formula = f"{{nom_latin}}='{escaped_nom_latin}'"
         params = {'filterByFormula': formula}
         
         response = self._request('GET', f"{self.table_plantes}?{requests.compat.urlencode(params)}")
