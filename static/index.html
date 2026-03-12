@@ -1049,14 +1049,15 @@
         
         /* Calendrier styles */
         .month-mini-btn {
-            padding: 8px 4px;
+            padding: 6px 2px;
             background: #f5f5f5;
             border: 2px solid transparent;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             transition: all 0.2s;
+            min-width: 0;
         }
         
         .month-mini-btn.active {
@@ -1140,6 +1141,7 @@
             <div class="app-header">
                 <div class="app-title">Ma Bibliothèque Végétale</div>
                 <div class="app-subtitle">Gestionnaire de plantes professionnel</div>
+                <button onclick="showProfilScreen()" style="position: absolute; top: 16px; right: 16px; background: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">⚙️</button>
             </div>
 
             <div class="search-container">
@@ -1723,21 +1725,21 @@
             <div class="main-content" style="padding-bottom: 80px;">
                 
                 <!-- Sélecteur de mois -->
-                <div style="padding: 16px; background: white; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <button onclick="previousMonth()" style="padding: 8px 16px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                <div style="padding: 12px; background: white; margin-bottom: 12px; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <button onclick="previousMonth()" style="padding: 6px 12px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             ←
                         </button>
-                        <div id="current-month-display" style="font-size: 18px; font-weight: 600;">
+                        <div id="current-month-display" style="font-size: 16px; font-weight: 600;">
                             <!-- Mois affiché -->
                         </div>
-                        <button onclick="nextMonth()" style="padding: 8px 16px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                        <button onclick="nextMonth()" style="padding: 6px 12px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             →
                         </button>
                     </div>
                     
                     <!-- Mois miniatures pour navigation rapide -->
-                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 100%;">
                         <button onclick="jumpToMonth(0)" class="month-mini-btn" data-month="0">Jan</button>
                         <button onclick="jumpToMonth(1)" class="month-mini-btn" data-month="1">Fév</button>
                         <button onclick="jumpToMonth(2)" class="month-mini-btn" data-month="2">Mar</button>
@@ -2062,12 +2064,37 @@
                         <div class="info-title">ℹ️ À propos</div>
                         <div style="font-size: 13px; color: #666; line-height: 1.6;">
                             <p><strong>Ma Bibliothèque Végétale</strong></p>
-                            <p>Version 12.16 - Calendrier + Tags</p>
+                            <p>Version 12.18 - Calendrier + Tags + Fixes</p>
                             <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
                             <p style="margin-top: 12px;">
                                 <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
                                     Données fournies par Promesse de Fleurs
                                 </a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Stockage des données -->
+                    <div class="info-group" style="border: 2px solid #2196F3; border-radius: 12px;">
+                        <div class="info-title" style="color: #2196F3;">💾 Stockage des données</div>
+                        <div style="font-size: 12px; color: #666; line-height: 1.6;">
+                            <p style="margin-bottom: 8px;"><strong>✅ Sauvegardé dans Airtable (persistant) :</strong></p>
+                            <ul style="margin-left: 16px; margin-bottom: 12px;">
+                                <li>Plantes de votre bibliothèque</li>
+                                <li>Informations botaniques complètes</li>
+                                <li>Images et descriptions</li>
+                            </ul>
+                            
+                            <p style="margin-bottom: 8px;"><strong>⚠️ En mémoire seulement (perdu au redémarrage) :</strong></p>
+                            <ul style="margin-left: 16px; color: #FF9800;">
+                                <li>Tags personnalisés 🏷️</li>
+                                <li>Notes sur les plantes 📝</li>
+                                <li>Quantités actuelles 🔢</li>
+                                <li>Photos personnalisées 📸</li>
+                            </ul>
+                            
+                            <p style="margin-top: 12px; padding: 8px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #FF9800;">
+                                💡 <strong>Astuce :</strong> Exportez régulièrement votre bibliothèque pour sauvegarder vos notes et tags !
                             </p>
                         </div>
                     </div>
@@ -2300,8 +2327,11 @@
         // ====== AMÉLIORATION TAGS ======
         
         function showPlantTagsDialog(plantId) {
-            const plant = allLibraryPlants.find(p => p.id === plantId);
-            if (!plant) return;
+            const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
+            if (!plant) {
+                console.error(`Plante ${plantId} non trouvée`);
+                return;
+            }
             
             const plantTags = getPlantTags(plantId);
             const availableTags = allTags.filter(t => !plantTags.find(pt => pt.id === t.id));
