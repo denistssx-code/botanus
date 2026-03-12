@@ -2905,20 +2905,17 @@
                 // Charger les tags
                 await loadTags();
                 
-                // Charger les notes pour récupérer les tags des plantes
-                for (const plant of allLibraryPlants) {
-                    try {
-                        const plantId = plant.plant_id || plant.id;
-                        if (!plantId) {
-                            console.log(`⚠️ Plante sans ID:`, plant);
-                            continue;
-                        }
-                        const notesResp = await fetch(`${API_URL}/library/${plantId}/notes`);
-                        const notesData = await notesResp.json();
-                        notes_db_local[plantId] = notesData;
-                    } catch (err) {
-                        console.log(`Notes non disponibles pour plante ${plant.plant_id || plant.id}`);
+                // Charger TOUTES les notes en UNE seule requête (optimisation)
+                try {
+                    const allNotesResp = await fetch(`${API_URL}/library/all-notes`);
+                    const allNotesData = await allNotesResp.json();
+                    if (allNotesData.success) {
+                        notes_db_local = allNotesData.notes;
+                        console.log(`📝 Notes chargées pour ${Object.keys(notes_db_local).length} plantes`);
                     }
+                } catch (err) {
+                    console.log(`⚠️ Erreur chargement notes groupées:`, err);
+                    notes_db_local = {};
                 }
                 
                 loadingDiv.style.display = 'none';
