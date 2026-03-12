@@ -294,22 +294,26 @@ class AirtableClient:
             if details.get('famille'):
                 fields['famille'] = details['famille']
             
+            # Champs botaniques séparés (v12.14)
             if details.get('genre'):
-                if not fields.get('autres_noms'):
-                    fields['autres_noms'] = f"Genre: {details['genre']}"
+                fields['genre'] = details['genre']
             
             if details.get('espece'):
-                if fields.get('autres_noms'):
-                    fields['autres_noms'] += f", Espèce: {details['espece']}"
-                else:
-                    fields['autres_noms'] = f"Espèce: {details['espece']}"
+                fields['espece'] = details['espece']
+            
+            if details.get('cultivar'):
+                fields['cultivar'] = details['cultivar']
+            
+            if details.get('origine'):
+                fields['origine'] = details['origine']
+            
+            # Autres noms (noms communs uniquement)
+            if details.get('autres_noms'):
+                fields['autres_noms'] = details['autres_noms']
             
             # Sous-catégorie
             if details.get('sous_categorie'):
-                if fields.get('autres_noms'):
-                    fields['autres_noms'] += f", {details['sous_categorie']}"
-                else:
-                    fields['autres_noms'] = details['sous_categorie']
+                fields['sous_categorie'] = details['sous_categorie']
             
             # Image (peut être écrasée par details)
             if details.get('image_principale') and not fields.get('image_principale'):
@@ -356,7 +360,7 @@ class AirtableClient:
         # SÉCURITÉ: Liste blanche des champs Airtable autorisés
         # Ceci empêche d'envoyer des champs qui n'existent pas dans Airtable
         ALLOWED_FIELDS = {
-            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'type_plante', 'url_source',
+            'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'sous_categorie', 'type_plante', 'url_source',
             'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
             'periode_floraison', 'couleur_fleurs', 'duree_floraison',
             'exposition', 'rusticite_zone', 'rusticite_min_celsius',
