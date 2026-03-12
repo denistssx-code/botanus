@@ -1046,6 +1046,85 @@
                 transform: translateY(0);
             }
         }
+        
+        /* Calendrier styles */
+        .month-mini-btn {
+            padding: 8px 4px;
+            background: #f5f5f5;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .month-mini-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .month-mini-btn:hover {
+            background: #e8e8e8;
+        }
+        
+        .month-mini-btn.active:hover {
+            background: #45a049;
+        }
+        
+        .calendrier-section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .calendrier-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .calendrier-plant-item {
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .calendrier-plant-item:hover {
+            background: #f0f0f0;
+            transform: translateX(4px);
+        }
+        
+        .calendrier-plant-emoji {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .calendrier-plant-info {
+            flex: 1;
+        }
+        
+        .calendrier-plant-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .calendrier-plant-action {
+            font-size: 12px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -1634,6 +1713,60 @@
             </div>
         </div>
 
+        <!-- Calendrier Screen -->
+        <div class="screen" id="calendrier-screen">
+            <div class="app-header">
+                <div class="app-title">📅 Calendrier de Jardinage</div>
+                <div class="app-subtitle" id="calendrier-subtitle">Planning annuel de vos plantes</div>
+            </div>
+
+            <div class="main-content" style="padding-bottom: 80px;">
+                
+                <!-- Sélecteur de mois -->
+                <div style="padding: 16px; background: white; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <button onclick="previousMonth()" style="padding: 8px 16px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            ←
+                        </button>
+                        <div id="current-month-display" style="font-size: 18px; font-weight: 600;">
+                            <!-- Mois affiché -->
+                        </div>
+                        <button onclick="nextMonth()" style="padding: 8px 16px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            →
+                        </button>
+                    </div>
+                    
+                    <!-- Mois miniatures pour navigation rapide -->
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+                        <button onclick="jumpToMonth(0)" class="month-mini-btn" data-month="0">Jan</button>
+                        <button onclick="jumpToMonth(1)" class="month-mini-btn" data-month="1">Fév</button>
+                        <button onclick="jumpToMonth(2)" class="month-mini-btn" data-month="2">Mar</button>
+                        <button onclick="jumpToMonth(3)" class="month-mini-btn" data-month="3">Avr</button>
+                        <button onclick="jumpToMonth(4)" class="month-mini-btn" data-month="4">Mai</button>
+                        <button onclick="jumpToMonth(5)" class="month-mini-btn" data-month="5">Juin</button>
+                        <button onclick="jumpToMonth(6)" class="month-mini-btn" data-month="6">Juil</button>
+                        <button onclick="jumpToMonth(7)" class="month-mini-btn" data-month="7">Aoû</button>
+                        <button onclick="jumpToMonth(8)" class="month-mini-btn" data-month="8">Sep</button>
+                        <button onclick="jumpToMonth(9)" class="month-mini-btn" data-month="9">Oct</button>
+                        <button onclick="jumpToMonth(10)" class="month-mini-btn" data-month="10">Nov</button>
+                        <button onclick="jumpToMonth(11)" class="month-mini-btn" data-month="11">Déc</button>
+                    </div>
+                </div>
+
+                <!-- Sections par catégorie -->
+                <div id="calendrier-content" style="padding: 0 16px;">
+                    <!-- Contenu généré dynamiquement -->
+                </div>
+
+                <!-- Message vide -->
+                <div id="calendrier-empty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📚</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Bibliothèque vide</div>
+                    <div style="font-size: 14px;">Ajoutez des plantes pour voir le calendrier d'entretien</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Profil Screen -->
         <!-- Écran Calculateurs -->
         <div class="screen" id="calculators-screen">
@@ -1929,7 +2062,7 @@
                         <div class="info-title">ℹ️ À propos</div>
                         <div style="font-size: 13px; color: #666; line-height: 1.6;">
                             <p><strong>Ma Bibliothèque Végétale</strong></p>
-                            <p>Version 11.2</p>
+                            <p>Version 12.16 - Calendrier + Tags</p>
                             <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
                             <p style="margin-top: 12px;">
                                 <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
@@ -1961,9 +2094,9 @@
                 <div class="nav-icon">🔔</div>
                 <div class="nav-label">Rappels</div>
             </div>
-            <div class="nav-item" onclick="showCalculatorsScreen()" id="nav-calculators">
-                <div class="nav-icon">📐</div>
-                <div class="nav-label">Outils</div>
+            <div class="nav-item" onclick="showCalendrierScreen()" id="nav-calendrier">
+                <div class="nav-icon">📅</div>
+                <div class="nav-label">Calendrier</div>
             </div>
         </div>
 
@@ -1978,6 +2111,226 @@
         let currentFilter = 'Tous';
         let currentPlantDetail = null;
         let previousScreen = 'home';
+        let currentCalendrierMonth = new Date().getMonth(); // 0-11
+        
+        // ====== CALENDRIER FUNCTIONS ======
+        
+        function showCalendrierScreen() {
+            showScreen('calendrier');
+            updateBottomNav('calendrier');
+            loadCalendrier();
+        }
+        
+        function previousMonth() {
+            currentCalendrierMonth = (currentCalendrierMonth - 1 + 12) % 12;
+            loadCalendrier();
+        }
+        
+        function nextMonth() {
+            currentCalendrierMonth = (currentCalendrierMonth + 1) % 12;
+            loadCalendrier();
+        }
+        
+        function jumpToMonth(monthIndex) {
+            currentCalendrierMonth = monthIndex;
+            loadCalendrier();
+        }
+        
+        function loadCalendrier() {
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                               'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            
+            // Mettre à jour affichage mois
+            document.getElementById('current-month-display').textContent = monthNames[currentCalendrierMonth];
+            
+            // Mettre à jour boutons mois actifs
+            document.querySelectorAll('.month-mini-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', index === currentCalendrierMonth);
+            });
+            
+            const contentDiv = document.getElementById('calendrier-content');
+            const emptyDiv = document.getElementById('calendrier-empty');
+            
+            if (allLibraryPlants.length === 0) {
+                contentDiv.innerHTML = '';
+                emptyDiv.style.display = 'block';
+                return;
+            }
+            
+            emptyDiv.style.display = 'none';
+            
+            // Analyser quelles plantes ont quoi ce mois-ci
+            const toPlant = [];
+            const toPrune = [];
+            const flowering = [];
+            
+            allLibraryPlants.forEach(plant => {
+                const details = plant.details || {};
+                
+                // Plantation
+                if (isMonthInPeriod(currentCalendrierMonth, details.meilleure_periode_plantation) ||
+                    isMonthInPeriod(currentCalendrierMonth, details.periode_raisonnable_plantation)) {
+                    toPlant.push(plant);
+                }
+                
+                // Taille
+                if (isMonthInPeriod(currentCalendrierMonth, details.periode_taille) ||
+                    isMonthInPeriod(currentCalendrierMonth, details.periode_raisonnable_taille)) {
+                    toPrune.push(plant);
+                }
+                
+                // Floraison
+                if (isMonthInPeriod(currentCalendrierMonth, details.periode_floraison)) {
+                    flowering.push(plant);
+                }
+            });
+            
+            // Générer HTML
+            let html = '';
+            
+            if (toPlant.length > 0) {
+                html += createCalendrierSection('🌱 À planter', toPlant, 'Plantation');
+            }
+            
+            if (toPrune.length > 0) {
+                html += createCalendrierSection('✂️ À tailler', toPrune, 'Taille');
+            }
+            
+            if (flowering.length > 0) {
+                html += createCalendrierSection('🌸 En fleur', flowering, 'Floraison');
+            }
+            
+            if (html === '') {
+                html = `
+                    <div style="text-align: center; padding: 60px 20px; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Rien de prévu ce mois-ci</div>
+                        <div style="font-size: 14px;">Vos plantes se reposent 🌿</div>
+                    </div>
+                `;
+            }
+            
+            contentDiv.innerHTML = html;
+        }
+        
+        function createCalendrierSection(title, plants, actionLabel) {
+            let html = `
+                <div class="calendrier-section">
+                    <div class="calendrier-section-title">${title} (${plants.length})</div>
+            `;
+            
+            plants.forEach(plant => {
+                const emoji = plant.icon || '🌿';
+                const name = plant.nom_francais || plant.nom_latin;
+                html += `
+                    <div class="calendrier-plant-item" onclick="showPlantDetailFromCalendrier(${plant.id})">
+                        <div class="calendrier-plant-emoji">${emoji}</div>
+                        <div class="calendrier-plant-info">
+                            <div class="calendrier-plant-name">${name}</div>
+                            <div class="calendrier-plant-action">${actionLabel} recommandée</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            return html;
+        }
+        
+        function isMonthInPeriod(monthIndex, period) {
+            if (!period) return false;
+            
+            const monthNames = {
+                'janvier': 0, 'février': 1, 'mars': 2, 'avril': 3,
+                'mai': 4, 'juin': 5, 'juillet': 6, 'août': 7,
+                'septembre': 8, 'octobre': 9, 'novembre': 10, 'décembre': 11,
+                'jan': 0, 'fév': 1, 'mar': 2, 'avr': 3,
+                'juil': 6, 'aoû': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'déc': 11
+            };
+            
+            const periodLower = period.toLowerCase();
+            
+            // Cas simple : "Mars à Juin"
+            const rangeMatch = periodLower.match(/(\w+)\s+à\s+(\w+)/);
+            if (rangeMatch) {
+                const startMonth = monthNames[rangeMatch[1]];
+                const endMonth = monthNames[rangeMatch[2]];
+                
+                if (startMonth !== undefined && endMonth !== undefined) {
+                    if (startMonth <= endMonth) {
+                        return monthIndex >= startMonth && monthIndex <= endMonth;
+                    } else {
+                        // Période qui traverse l'année (ex: Nov à Fév)
+                        return monthIndex >= startMonth || monthIndex <= endMonth;
+                    }
+                }
+            }
+            
+            // Cas multiple : "Mars à Avril, Septembre à Novembre"
+            const parts = periodLower.split(',');
+            for (const part of parts) {
+                const partRangeMatch = part.trim().match(/(\w+)\s+à\s+(\w+)/);
+                if (partRangeMatch) {
+                    const startMonth = monthNames[partRangeMatch[1]];
+                    const endMonth = monthNames[partRangeMatch[2]];
+                    
+                    if (startMonth !== undefined && endMonth !== undefined) {
+                        if (startMonth <= endMonth) {
+                            if (monthIndex >= startMonth && monthIndex <= endMonth) return true;
+                        } else {
+                            if (monthIndex >= startMonth || monthIndex <= endMonth) return true;
+                        }
+                    }
+                }
+                
+                // Cas mois unique dans la liste
+                for (const [name, index] of Object.entries(monthNames)) {
+                    if (part.trim().includes(name) && monthIndex === index) return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function showPlantDetailFromCalendrier(plantId) {
+            previousScreen = 'calendrier';
+            showPlantDetail(plantId);
+        }
+        
+        // ====== AMÉLIORATION TAGS ======
+        
+        function showPlantTagsDialog(plantId) {
+            const plant = allLibraryPlants.find(p => p.id === plantId);
+            if (!plant) return;
+            
+            const plantTags = getPlantTags(plantId);
+            const availableTags = allTags.filter(t => !plantTags.find(pt => pt.id === t.id));
+            
+            if (allTags.length === 0) {
+                alert('Créez d\'abord des tags dans "Gérer tags"');
+                return;
+            }
+            
+            let message = `Tags de "${plant.nom_francais}" :\n\n`;
+            message += `Actuels : ${plantTags.length > 0 ? plantTags.map(t => t.name).join(', ') : 'Aucun'}\n\n`;
+            
+            if (availableTags.length > 0) {
+                message += `Ajouter un tag ?\n`;
+                availableTags.forEach((tag, i) => {
+                    message += `${i + 1}. ${tag.name}\n`;
+                });
+                
+                const choice = prompt(message);
+                if (!choice) return;
+                
+                const index = parseInt(choice) - 1;
+                if (index >= 0 && index < availableTags.length) {
+                    addTagToPlant(plantId, availableTags[index].id);
+                }
+            } else {
+                alert(message + '\nTous les tags sont déjà ajoutés !');
+            }
+        }
 
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
@@ -3155,6 +3508,7 @@
                     <div class="card-quick-actions">
                         <button class="quick-action-btn" title="Diminuer quantité" onclick="changeQuantity(${plantId}, -1); return false;">−</button>
                         <button class="quick-action-btn" title="Augmenter quantité" onclick="changeQuantity(${plantId}, 1); return false;">+</button>
+                        <button class="quick-action-btn" title="Gérer tags" onclick="showPlantTagsDialog(${plantId}); return false;">🏷️</button>
                         <button class="quick-action-btn" title="Voir détails" onclick="showPlantDetailById(${plantId}); return false;">👁️</button>
                         <button class="quick-action-btn" title="Supprimer" onclick="deletePlant(${plantId}); return false;" style="color: #d32f2f;">🗑️</button>
                     </div>
