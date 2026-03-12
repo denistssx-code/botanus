@@ -1621,12 +1621,16 @@ def load_from_airtable():
                         # Descriptions
                         'description_courte': plant_fields.get('description_courte', ''),
                         'description_complete': plant_fields.get('description_complete', ''),
+                        'description_detaillee': plant_fields.get('description_complete', ''),  # Alias pour frontend
                         
-                        # Conditions de culture
+                        # Conditions de culture (MAPPING FRONTEND)
                         'exposition': plant_fields.get('exposition', ''),
+                        'rusticite': plant_fields.get('rusticite_zone', ''),  # Frontend cherche "rusticite"
                         'rusticite_zone': plant_fields.get('rusticite_zone', ''),
                         'rusticite_min_celsius': plant_fields.get('rusticite_min_celsius', ''),
+                        'type_sol': plant_fields.get('sol_type', ''),  # Frontend cherche "type_sol"
                         'sol_type': plant_fields.get('sol_type', ''),
+                        'ph_sol': plant_fields.get('sol_ph', ''),  # Frontend cherche "ph_sol"
                         'sol_ph': plant_fields.get('sol_ph', ''),
                         'sol_humidite': plant_fields.get('sol_humidite', ''),
                         'sol_drainage': plant_fields.get('sol_drainage', ''),
@@ -1636,10 +1640,13 @@ def load_from_airtable():
                         'largeur_maturite': plant_fields.get('largeur_maturite', ''),
                         'port': plant_fields.get('port', ''),
                         'feuillage': plant_fields.get('feuillage', ''),
+                        'persistance_feuillage': plant_fields.get('feuillage', ''),  # Alias pour frontend
                         
-                        # Floraison
+                        # Floraison (MAPPING FRONTEND)
                         'periode_floraison': plant_fields.get('periode_floraison', ''),
+                        'couleur_fleur': plant_fields.get('couleur_fleurs', ''),  # Frontend cherche "couleur_fleur"
                         'couleur_fleurs': plant_fields.get('couleur_fleurs', ''),
+                        'couleur_feuillage': plant_fields.get('couleur_feuillage', ''),
                         'duree_floraison': plant_fields.get('duree_floraison', ''),
                         
                         # Plantation
@@ -1647,11 +1654,14 @@ def load_from_airtable():
                         'periode_raisonnable_plantation': plant_fields.get('periode_raisonnable_plantation', ''),
                         'densite_plantation': plant_fields.get('densite_plantation', ''),
                         
-                        # Entretien
+                        # Entretien (MAPPING FRONTEND)
                         'taille_periode': plant_fields.get('taille_periode', ''),
                         'periode_taille': plant_fields.get('periode_taille', ''),
                         'periode_raisonnable_taille': plant_fields.get('periode_raisonnable_taille', ''),
                         'taille_technique': plant_fields.get('taille_technique', ''),
+                        'taille': plant_fields.get('taille_technique', ''),  # Alias pour frontend
+                        'frequence_taille': plant_fields.get('taille_periode', ''),  # Alias pour frontend
+                        'descriptif_taille_detaille': plant_fields.get('taille_technique', ''),  # Alias
                         'arrosage_frequence': plant_fields.get('arrosage_frequence', ''),
                         'arrosage_detail': plant_fields.get('arrosage_detail', ''),
                         'fertilisation': plant_fields.get('fertilisation', ''),
@@ -1660,15 +1670,22 @@ def load_from_airtable():
                         'tuteurage': plant_fields.get('tuteurage', ''),
                         'rabattage_periode': plant_fields.get('rabattage_periode', ''),
                         
-                        # Utilisations
+                        # Utilisation (MAPPING FRONTEND)
                         'utilisations': plant_fields.get('utilisations', ''),
+                        'type_utilisation': plant_fields.get('utilisations', ''),  # Frontend cherche "type_utilisation"
+                        
+                        # Culture
+                        'difficulte_culture': plant_fields.get('difficulte_culture', ''),
+                        'resistance_maladies': plant_fields.get('resistance_maladies', ''),
+                        'hivernage': plant_fields.get('hivernage', ''),
                         
                         # Autres
                         'prix': plant_fields.get('prix', ''),
                         'disponibilite': plant_fields.get('disponibilite', ''),
                         'source': plant_fields.get('source', ''),
                         'statut': plant_fields.get('statut', ''),
-                        'url_source': plant_fields.get('url_source', '')
+                        'url_source': plant_fields.get('url_source', ''),
+                        'image_principale': plant_fields.get('image_principale', '')
                     }
                 }
                 
