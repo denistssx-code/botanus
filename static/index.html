@@ -340,6 +340,7 @@
             width: 100%;
             overflow-y: auto;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
         
         .screen.active {
@@ -1095,7 +1096,9 @@
             background: white;
             border-radius: 12px;
             padding: 16px;
-            margin-bottom: 16px;
+            margin: 0 16px 16px 16px; /* Ajoute 16px de marge à gauche et à droite */
+    box-sizing: border-box;
+    width: auto; /* Permet à la marge de réduire la largeur réelle */
         }
         
         .calendrier-section-title {
