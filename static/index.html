@@ -20,7 +20,7 @@
         }
         
         .phone-container {
-            width: 100%;
+            width: calc(100% - 40px);
             max-width: 375px;
             margin: 20px auto;
             background: white;
@@ -30,6 +30,15 @@
             height: 812px;
             position: relative;
             contain: paint;
+        }
+        
+        @media (max-width: 400px) {
+            .phone-container {
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+            }
         }
         
         .status-bar {
@@ -42,20 +51,19 @@
             align-items: center;
             height: 36px;
             z-index: 1001;
-            max-width: 100%;
-            width: 100%;
             box-sizing: border-box;
         }
         
         .app-header {
             background: linear-gradient(135deg, #2E7D32, #4CAF50);
             color: white;
-            padding: 16px;
+            padding: 0;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             position: relative;
             z-index: 100;
-            max-width: 100%;
             width: 100%;
+            max-width: 100%;
+            overflow: hidden;
             box-sizing: border-box;
         }
         
@@ -63,15 +71,21 @@
             font-size: 22px;
             font-weight: 500;
             margin-bottom: 4px;
+            padding: 16px 16px 0 16px;
+            width: 100%;
             max-width: 100%;
             word-wrap: break-word;
+            box-sizing: border-box;
         }
         
         .app-subtitle {
             font-size: 14px;
             opacity: 0.9;
+            padding: 0 16px 16px 16px;
+            width: 100%;
             max-width: 100%;
             word-wrap: break-word;
+            box-sizing: border-box;
         }
         
         .search-container {
@@ -135,7 +149,8 @@
         .bottom-nav {
             position: absolute;
             bottom: 0;
-            width: 100%;
+            left: 0;
+            right: 0;
             background: white;
             border-top: 1px solid #e0e0e0;
             display: flex;
@@ -337,10 +352,10 @@
             position: absolute;
             top: 36px;
             bottom: 70px;
-            width: 100%;
+            left: 0;
+            right: 0;
             overflow-y: auto;
             overflow-x: hidden;
-            box-sizing: border-box;
         }
         
         .screen.active {
@@ -1096,9 +1111,7 @@
             background: white;
             border-radius: 12px;
             padding: 16px;
-            margin: 0 16px 16px 16px; /* Ajoute 16px de marge à gauche et à droite */
-    box-sizing: border-box;
-    width: auto; /* Permet à la marge de réduire la largeur réelle */
+            margin-bottom: 16px;
         }
         
         .calendrier-section-title {
@@ -1247,6 +1260,26 @@
                 <div class="library-stats" id="library-type-stats"></div>
             </div>
 
+            <!-- Barre de recherche -->
+            <div style="padding: 0 16px; margin-bottom: 12px; display: none;" id="library-search-container">
+                <div style="position: relative;">
+                    <input 
+                        type="text" 
+                        id="library-search-input" 
+                        placeholder="🔍 Rechercher une plante..."
+                        style="width: 100%; padding: 10px 40px 10px 16px; border: 2px solid #e0e0e0; border-radius: 25px; font-size: 14px; outline: none; transition: border-color 0.3s;"
+                        oninput="searchLibrary()"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    >
+                    <button 
+                        onclick="clearSearch()" 
+                        id="clear-search-btn"
+                        style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; font-size: 18px; display: none;"
+                    >✕</button>
+                </div>
+            </div>
+
             <!-- Filtres par type -->
             <div class="filter-chips" id="library-filters" style="display: none;">
                 <div class="chip active" data-type="Tous" onclick="filterLibrary('Tous')">Tous</div>
@@ -1259,6 +1292,9 @@
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: 1;">
                         <button onclick="toggleTagsManagement()" style="padding: 6px 12px; border: 1px solid #4CAF50; background: white; color: #4CAF50; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
                             <span>🏷️</span> Gérer tags
+                        </button>
+                        <button onclick="resetAllFilters()" style="padding: 6px 12px; border: 1px solid #999; background: white; color: #666; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                            <span>🔄</span> Réinitialiser
                         </button>
                         <div id="tags-filter-chips" style="display: flex; gap: 4px; flex-wrap: wrap;">
                             <!-- Tags chips générés dynamiquement -->
@@ -1735,6 +1771,60 @@
             </div>
         </div>
 
+        <!-- Écran Tâches -->
+        <div class="screen" id="tasks-screen">
+            <div class="app-header">
+                <div class="app-title">Mes Tâches</div>
+                <div class="app-subtitle" id="tasks-subtitle">Chargement...</div>
+            </div>
+
+            <!-- Indicateur de chargement -->
+            <div id="tasks-loading" style="display: none; text-align: center; padding: 40px;">
+                <div style="font-size: 32px;">⏳</div>
+                <div style="margin-top: 12px; color: #666;">Chargement des tâches...</div>
+            </div>
+
+            <!-- Filtres et bouton ajouter -->
+            <div id="tasks-filters-container" style="display: none; padding: 0 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <select id="tasks-category-filter" onchange="filterTasksByCategory(this.value)" style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;">
+                        <option value="Tous">Toutes catégories</option>
+                        <option value="Jardin">🌱 Jardin</option>
+                        <option value="Piscine">🏊 Piscine</option>
+                        <option value="Maison">🏠 Maison</option>
+                        <option value="Maçonnerie">🧱 Maçonnerie</option>
+                        <option value="Électrique">⚡ Électrique</option>
+                        <option value="Plomberie">🚿 Plomberie</option>
+                        <option value="Champs">🌾 Champs</option>
+                        <option value="Véhicules">🚗 Véhicules</option>
+                        <option value="Autre">📦 Autre</option>
+                    </select>
+                    <select id="tasks-status-filter" onchange="filterTasks(this.value)" style="padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;">
+                        <option value="all">Toutes</option>
+                        <option value="todo">À faire</option>
+                        <option value="done">Terminées</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Bouton ajouter -->
+            <div id="tasks-add-btn-container" style="display: none; padding: 0 16px; margin-bottom: 12px;">
+                <button onclick="showCreateTaskDialog()" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    + Nouvelle tâche
+                </button>
+            </div>
+
+            <!-- Liste des tâches -->
+            <div style="padding: 0 16px;">
+                <div id="tasks-list"></div>
+                <div id="tasks-empty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune tâche</div>
+                    <div style="font-size: 14px;">Ajoutez votre première tâche pour commencer</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Calendrier Screen -->
         <div class="screen" id="calendrier-screen">
             <div class="app-header">
@@ -1785,6 +1875,58 @@
                     <div style="font-size: 48px; margin-bottom: 16px;">📚</div>
                     <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Bibliothèque vide</div>
                     <div style="font-size: 14px;">Ajoutez des plantes pour voir le calendrier d'entretien</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran Tâches -->
+        <div class="screen" id="tasks-screen">
+            <div class="app-header">
+                <div class="app-title">✅ Tâches</div>
+                <div class="app-subtitle" id="tasks-subtitle">Chargement...</div>
+            </div>
+
+            <!-- Filtres catégories -->
+            <div style="padding: 0 16px; margin-bottom: 12px; display: none;" id="tasks-filters-container">
+                <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">
+                    <button onclick="filterTasks('all')" id="filter-all" class="chip active" style="flex-shrink: 0;">Toutes</button>
+                    <button onclick="filterTasks('todo')" id="filter-todo" class="chip" style="flex-shrink: 0;">À faire</button>
+                    <button onclick="filterTasks('done')" id="filter-done" class="chip" style="flex-shrink: 0;">Terminées</button>
+                </div>
+                <div style="display: flex; gap: 8px; overflow-x: auto; padding-top: 8px;">
+                    <button onclick="filterTasksByCategory('Tous')" id="cat-all" class="chip active" style="flex-shrink: 0; font-size: 12px;">📋 Tous</button>
+                    <button onclick="filterTasksByCategory('Jardin')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌱 Jardin</button>
+                    <button onclick="filterTasksByCategory('Piscine')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏊 Piscine</button>
+                    <button onclick="filterTasksByCategory('Maison')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏠 Maison</button>
+                    <button onclick="filterTasksByCategory('Maçonnerie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🧱 Maçonnerie</button>
+                    <button onclick="filterTasksByCategory('Électrique')" class="chip" style="flex-shrink: 0; font-size: 12px;">⚡ Électrique</button>
+                    <button onclick="filterTasksByCategory('Plomberie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚿 Plomberie</button>
+                    <button onclick="filterTasksByCategory('Champs')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌾 Champs</button>
+                    <button onclick="filterTasksByCategory('Véhicules')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚗 Véhicules</button>
+                    <button onclick="filterTasksByCategory('Autre')" class="chip" style="flex-shrink: 0; font-size: 12px;">📦 Autre</button>
+                </div>
+            </div>
+
+            <!-- Bouton nouvelle tâche -->
+            <div style="padding: 0 16px; margin-bottom: 16px; display: none;" id="tasks-add-btn-container">
+                <button onclick="showCreateTaskDialog()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span style="font-size: 20px;">+</span> Nouvelle tâche
+                </button>
+            </div>
+
+            <!-- Liste des tâches -->
+            <div class="main-content" id="tasks-main">
+                <div id="tasks-loading" style="display: block; text-align: center; padding: 60px 20px; color: #999;">
+                    <div class="loading-spinner"></div>
+                    <div style="margin-top: 16px;">Chargement des tâches...</div>
+                </div>
+
+                <div id="tasks-list" style="display: none;"></div>
+
+                <div id="tasks-empty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune tâche</div>
+                    <div style="font-size: 14px;">Créez votre première tâche</div>
                 </div>
             </div>
         </div>
@@ -2084,7 +2226,7 @@
                         <div class="info-title">ℹ️ À propos</div>
                         <div style="font-size: 13px; color: #666; line-height: 1.6;">
                             <p><strong>Ma Bibliothèque Végétale</strong></p>
-                            <p>Version 12.25 - Fix header débordement</p>
+                            <p>Version 12.30 - Recherche + Tâches</p>
                             <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
                             <p style="margin-top: 12px;">
                                 <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
@@ -2137,13 +2279,17 @@
                 <div class="nav-icon">📚</div>
                 <div class="nav-label">Bibliothèque</div>
             </div>
-            <div class="nav-item" onclick="showRappelsScreen()" id="nav-rappels">
-                <div class="nav-icon">🔔</div>
-                <div class="nav-label">Rappels</div>
+            <div class="nav-item" onclick="showTasksScreen()" id="nav-tasks">
+                <div class="nav-icon">✅</div>
+                <div class="nav-label">Tâches</div>
             </div>
             <div class="nav-item" onclick="showCalendrierScreen()" id="nav-calendrier">
                 <div class="nav-icon">📅</div>
                 <div class="nav-label">Calendrier</div>
+            </div>
+            <div class="nav-item" onclick="showProfilScreen()" id="nav-profil">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Profil</div>
             </div>
         </div>
 
@@ -2498,6 +2644,264 @@
         
         function goBackFromRappels() {
             showLibraryScreen();
+        }
+        
+        // ====== TÂCHES FUNCTIONS ======
+        
+        let allTasks = [];
+        let currentTaskStatusFilter = 'all';  // 'all', 'todo', 'done'
+        let currentTaskCategoryFilter = 'Tous';
+        
+        function showTasksScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('tasks-screen').classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            document.getElementById('nav-tasks').classList.add('active');
+            
+            currentScreen = 'tasks';
+            loadTasks();
+        }
+        
+        async function loadTasks() {
+            const loadingDiv = document.getElementById('tasks-loading');
+            const listDiv = document.getElementById('tasks-list');
+            const emptyDiv = document.getElementById('tasks-empty');
+            const subtitleDiv = document.getElementById('tasks-subtitle');
+            const filtersContainer = document.getElementById('tasks-filters-container');
+            const addBtnContainer = document.getElementById('tasks-add-btn-container');
+            
+            loadingDiv.style.display = 'block';
+            listDiv.style.display = 'none';
+            emptyDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/tasks`);
+                const data = await response.json();
+                
+                allTasks = data.tasks || [];
+                
+                const todoCount = allTasks.filter(t => t.status === 'todo').length;
+                const doneCount = allTasks.filter(t => t.status === 'done').length;
+                
+                subtitleDiv.textContent = `${todoCount} à faire • ${doneCount} terminée${doneCount > 1 ? 's' : ''}`;
+                
+                loadingDiv.style.display = 'none';
+                
+                if (allTasks.length === 0) {
+                    emptyDiv.style.display = 'block';
+                    addBtnContainer.style.display = 'block';
+                } else {
+                    filtersContainer.style.display = 'block';
+                    addBtnContainer.style.display = 'block';
+                    displayTasks();
+                }
+            } catch (error) {
+                console.error('Erreur chargement tâches:', error);
+                loadingDiv.style.display = 'none';
+                emptyDiv.style.display = 'block';
+            }
+        }
+        
+        function displayTasks() {
+            const listDiv = document.getElementById('tasks-list');
+            const emptyDiv = document.getElementById('tasks-empty');
+            
+            // Filtrer par statut
+            let filtered = allTasks;
+            if (currentTaskStatusFilter === 'todo') {
+                filtered = allTasks.filter(t => t.status === 'todo');
+            } else if (currentTaskStatusFilter === 'done') {
+                filtered = allTasks.filter(t => t.status === 'done');
+            }
+            
+            // Filtrer par catégorie
+            if (currentTaskCategoryFilter !== 'Tous') {
+                filtered = filtered.filter(t => t.category === currentTaskCategoryFilter);
+            }
+            
+            if (filtered.length === 0) {
+                listDiv.style.display = 'none';
+                emptyDiv.style.display = 'block';
+                emptyDiv.querySelector('div:nth-child(3)').textContent = 'Aucune tâche dans cette catégorie';
+                return;
+            }
+            
+            listDiv.style.display = 'block';
+            emptyDiv.style.display = 'none';
+            
+            // Trier : à faire en premier, puis terminées
+            filtered.sort((a, b) => {
+                if (a.status !== b.status) {
+                    return a.status === 'todo' ? -1 : 1;
+                }
+                return b.id - a.id;  // Plus récentes en premier
+            });
+            
+            const categoryEmojis = {
+                'Jardin': '🌱',
+                'Piscine': '🏊',
+                'Maison': '🏠',
+                'Maçonnerie': '🧱',
+                'Électrique': '⚡',
+                'Plomberie': '🚿',
+                'Champs': '🌾',
+                'Véhicules': '🚗',
+                'Autre': '📦'
+            };
+            
+            listDiv.innerHTML = filtered.map(task => {
+                const isDone = task.status === 'done';
+                const categoryEmoji = categoryEmojis[task.category] || '📦';
+                
+                return `
+                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); ${isDone ? 'opacity: 0.6;' : ''}">
+                        <div style="display: flex; align-items: start; gap: 12px;">
+                            <input 
+                                type="checkbox" 
+                                ${isDone ? 'checked' : ''} 
+                                onchange="toggleTaskStatus(${task.id})"
+                                style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer; flex-shrink: 0;"
+                            >
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; ${isDone ? 'text-decoration: line-through; color: #999;' : ''}">
+                                    ${task.title}
+                                </div>
+                                ${task.description ? `
+                                    <div style="font-size: 13px; color: #666; margin-bottom: 8px; ${isDone ? 'text-decoration: line-through;' : ''}">
+                                        ${task.description}
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                        ${categoryEmoji} ${task.category}
+                                    </span>
+                                    ${isDone && task.completed_at ? `
+                                        <span style="font-size: 11px; color: #999;">
+                                            ✓ ${task.completed_at}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <button 
+                                onclick="deleteTask(${task.id})" 
+                                style="background: none; border: none; color: #f44336; cursor: pointer; font-size: 18px; padding: 4px; flex-shrink: 0;"
+                                title="Supprimer"
+                            >🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterTasks(status) {
+            currentTaskStatusFilter = status;
+            
+            // Mettre à jour boutons actifs
+            document.querySelectorAll('#tasks-filters-container button[id^="filter-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`filter-${status}`).classList.add('active');
+            
+            displayTasks();
+        }
+        
+        function filterTasksByCategory(category) {
+            currentTaskCategoryFilter = category;
+            
+            // Mettre à jour boutons actifs
+            document.querySelectorAll('#tasks-filters-container button[id^="cat-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Trouver et activer le bon bouton
+            const buttons = document.querySelectorAll('#tasks-filters-container button');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(category)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            displayTasks();
+        }
+        
+        function showCreateTaskDialog() {
+            const categories = ['Jardin', 'Piscine', 'Maison', 'Maçonnerie', 'Électrique', 'Plomberie', 'Champs', 'Véhicules', 'Autre'];
+            
+            const title = prompt('Titre de la tâche :');
+            if (!title || title.trim() === '') return;
+            
+            const description = prompt('Description (optionnel) :') || '';
+            
+            const categoryIndex = prompt(`Catégorie :\n${categories.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\nEntrez le numéro (1-${categories.length}) :`);
+            const category = categories[parseInt(categoryIndex) - 1] || 'Autre';
+            
+            createTask(title.trim(), description.trim(), category);
+        }
+        
+        async function createTask(title, description, category) {
+            try {
+                const response = await fetch(`${API_URL}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, category })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadTasks();  // Recharger la liste
+                }
+            } catch (error) {
+                console.error('Erreur création tâche:', error);
+                alert('Erreur lors de la création de la tâche');
+            }
+        }
+        
+        async function toggleTaskStatus(taskId) {
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const newStatus = task.status === 'todo' ? 'done' : 'todo';
+            
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadTasks();  // Recharger
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour tâche:', error);
+            }
+        }
+        
+        async function deleteTask(taskId) {
+            if (!confirm('Supprimer cette tâche ?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadTasks();  // Recharger
+                }
+            } catch (error) {
+                console.error('Erreur suppression tâche:', error);
+                alert('Erreur lors de la suppression');
+            }
         }
         
         function showProfilScreen() {
@@ -3276,6 +3680,7 @@
         let currentSortMode = 'name_asc';
         let currentViewMode = 'grid';  // 'grid' ou 'list'
         let currentTagFilter = null;  // Tag actif
+        let currentSearchQuery = '';  // Requête de recherche
         let selectionMode = false;  // Mode sélection activé/désactivé
         let selectedPlants = new Set();  // IDs des plantes sélectionnées
         let allTags = [];  // Liste de tous les tags disponibles
@@ -3383,6 +3788,12 @@
                     filtersDiv.style.display = 'flex';
                 }
                 
+                // Afficher la barre de recherche et les contrôles
+                const searchContainer = document.getElementById('library-search-container');
+                const controlsDiv = document.getElementById('library-controls');
+                if (searchContainer) searchContainer.style.display = 'block';
+                if (controlsDiv) controlsDiv.style.display = 'block';
+                
                 // Afficher toutes les plantes
                 displayFilteredLibrary(allLibraryPlants);
                 
@@ -3412,12 +3823,53 @@
             // Filtrer par tag si actif
             if (currentTagFilter !== null) {
                 filtered = filtered.filter(p => {
-                    const plantNotes = notes_db_local[p.id] || {};
+                    const plantId = p.plant_id || p.id;
+                    const plantNotes = notes_db_local[plantId] || {};
                     return plantNotes.tags && plantNotes.tags.includes(currentTagFilter);
                 });
             }
             
+            // Filtrer par recherche si active
+            if (currentSearchQuery.trim() !== '') {
+                const query = currentSearchQuery.toLowerCase();
+                filtered = filtered.filter(p => {
+                    const nomFr = (p.nom_francais || '').toLowerCase();
+                    const nomLat = (p.nom_latin || '').toLowerCase();
+                    const famille = (p.details?.famille || '').toLowerCase();
+                    const type = (p.type_plante || '').toLowerCase();
+                    
+                    return nomFr.includes(query) || 
+                           nomLat.includes(query) || 
+                           famille.includes(query) || 
+                           type.includes(query);
+                });
+            }
+            
             displayFilteredLibrary(filtered);
+        }
+        
+        function searchLibrary() {
+            const input = document.getElementById('library-search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            currentSearchQuery = input.value;
+            
+            // Afficher/masquer le bouton X
+            clearBtn.style.display = currentSearchQuery.trim() !== '' ? 'block' : 'none';
+            
+            // Réappliquer tous les filtres
+            filterLibrary(currentLibraryFilter);
+        }
+        
+        function clearSearch() {
+            const input = document.getElementById('library-search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            
+            input.value = '';
+            currentSearchQuery = '';
+            clearBtn.style.display = 'none';
+            
+            // Réappliquer les filtres sans recherche
+            filterLibrary(currentLibraryFilter);
         }
         
         // NOUVEAU: Fonction de tri
@@ -3763,6 +4215,33 @@
             currentTagFilter = (currentTagFilter === tagId) ? null : tagId;
             displayTagsFilter();
             filterLibrary(currentLibraryFilter);
+        }
+        
+        function resetAllFilters() {
+            // Réinitialiser tous les filtres
+            currentLibraryFilter = 'Tous';
+            currentTagFilter = null;
+            currentSearchQuery = '';
+            
+            // Réinitialiser la barre de recherche
+            const searchInput = document.getElementById('library-search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (searchInput) searchInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            
+            // Mettre à jour l'affichage des filtres de type
+            document.querySelectorAll('#library-filters .chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.type === 'Tous') {
+                    chip.classList.add('active');
+                }
+            });
+            
+            // Mettre à jour l'affichage des tags
+            displayTagsFilter();
+            
+            // Réappliquer les filtres (qui vont tout afficher)
+            filterLibrary('Tous');
         }
         
         function toggleTagsManagement() {
