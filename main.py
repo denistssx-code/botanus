@@ -768,11 +768,21 @@ tags_db = {
     # Structure: { 'tag_id': { 'name': 'Massif Nord', 'color': '#4CAF50', 'created_at': '...' } }
 }
 
+tasks_db = {
+    # Structure: { 'task_id': { 'title': '...', 'description': '...', 'category': '...', 'status': 'todo/done', 'created_at': '...', 'completed_at': '...', 'airtable_id': '...' } }
+}
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
         return 1
     return max(tags_db.keys()) + 1
+
+def get_next_task_id():
+    """Génère un ID unique pour une tâche"""
+    if not tasks_db:
+        return 1
+    return max(tasks_db.keys()) + 1
 
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
@@ -1381,14 +1391,28 @@ def save_notes(plant_id):
     # Conserver la photo personnalisée si elle existe
     existing_photo = notes_db.get(plant_id, {}).get('custom_photo')
     
+    # Conserver les tags si ils existent
+    existing_tags = notes_db.get(plant_id, {}).get('tags', [])
+    
     notes_db[plant_id] = {
         'notes': data.get('notes', ''),
         'quantity': data.get('quantity', 0),
-        'custom_photo': existing_photo
+        'custom_photo': existing_photo,
+        'tags': existing_tags
     }
     
     print(f"✅ Notes/quantité sauvegardées pour plante {plant_id}: quantity={data.get('quantity', 0)}")
     print(f"📊 notes_db[{plant_id}] = {notes_db[plant_id]}")
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client and plant_id in library_db:
+        plant_data = library_db[plant_id]
+        if 'airtable_id' in plant_data and plant_data['airtable_id']:
+            airtable_client.update_plant_notes_quantity(
+                plant_data['airtable_id'],
+                data.get('notes', ''),
+                data.get('quantity', 0)
+            )
     
     return jsonify({'success': True})
 
@@ -1462,11 +1486,21 @@ def create_tag():
     
     tag_id = get_next_tag_id()
     
-    tags_db[tag_id] = {
+    tag_data = {
         'name': data['name'],
         'color': data.get('color', '#4CAF50'),
         'created_at': str(data.get('created_at', ''))
     }
+    
+    tags_db[tag_id] = tag_data
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        tag_data_with_id = {
+            'tag_id': tag_id,
+            **tag_data
+        }
+        airtable_client.create_tag(tag_data_with_id)
     
     return jsonify({
         'success': True,
@@ -1478,11 +1512,26 @@ def delete_tag(tag_id):
     """Supprime un tag"""
     if tag_id in tags_db:
         # Retirer le tag de toutes les plantes
-        for plant_notes in notes_db.values():
+        for plant_id, plant_notes in notes_db.items():
             if 'tags' in plant_notes and tag_id in plant_notes['tags']:
                 plant_notes['tags'].remove(tag_id)
+                
+                # Mettre à jour dans Airtable si disponible
+                if AIRTABLE_ENABLED and airtable_client and plant_id in library_db:
+                    plant_data = library_db[plant_id]
+                    if 'airtable_id' in plant_data:
+                        airtable_client.update_plant_tags(
+                            plant_data['airtable_id'],
+                            plant_notes['tags']
+                        )
         
+        # Supprimer le tag
         del tags_db[tag_id]
+        
+        # Supprimer d'Airtable
+        if AIRTABLE_ENABLED and airtable_client:
+            airtable_client.delete_tag(tag_id)
+        
         return jsonify({'success': True})
     
     return jsonify({'error': 'Tag non trouvé'}), 404
@@ -1505,6 +1554,15 @@ def add_tag_to_plant(plant_id):
     if tag_id not in notes_db[plant_id]['tags']:
         notes_db[plant_id]['tags'].append(tag_id)
     
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client and plant_id in library_db:
+        plant_data = library_db[plant_id]
+        if 'airtable_id' in plant_data and plant_data['airtable_id']:
+            airtable_client.update_plant_tags(
+                plant_data['airtable_id'],
+                notes_db[plant_id]['tags']
+            )
+    
     return jsonify({'success': True, 'tags': notes_db[plant_id]['tags']})
 
 @app.route('/api/library/<int:plant_id>/tags/<int:tag_id>', methods=['DELETE'])
@@ -1513,6 +1571,16 @@ def remove_tag_from_plant(plant_id, tag_id):
     if plant_id in notes_db and 'tags' in notes_db[plant_id]:
         if tag_id in notes_db[plant_id]['tags']:
             notes_db[plant_id]['tags'].remove(tag_id)
+            
+            # Synchroniser avec Airtable
+            if AIRTABLE_ENABLED and airtable_client and plant_id in library_db:
+                plant_data = library_db[plant_id]
+                if 'airtable_id' in plant_data and plant_data['airtable_id']:
+                    airtable_client.update_plant_tags(
+                        plant_data['airtable_id'],
+                        notes_db[plant_id]['tags']
+                    )
+            
             return jsonify({'success': True})
     
     return jsonify({'error': 'Tag ou plante non trouvé'}), 404
@@ -1536,6 +1604,15 @@ def bulk_action():
                 notes_db[plant_id]['tags'] = []
             if tag_id not in notes_db[plant_id]['tags']:
                 notes_db[plant_id]['tags'].append(tag_id)
+            
+            # Synchroniser avec Airtable
+            if AIRTABLE_ENABLED and airtable_client and plant_id in library_db:
+                plant_data = library_db[plant_id]
+                if 'airtable_id' in plant_data and plant_data['airtable_id']:
+                    airtable_client.update_plant_tags(
+                        plant_data['airtable_id'],
+                        notes_db[plant_id]['tags']
+                    )
         
         return jsonify({'success': True, 'affected': len(plant_ids)})
     
@@ -1550,6 +1627,102 @@ def bulk_action():
     
     return jsonify({'error': 'Action non supportée'}), 400
 
+# ====== ENDPOINTS TÂCHES ======
+
+@app.route('/api/tasks', methods=['GET'])
+def get_tasks():
+    """Récupère toutes les tâches"""
+    tasks_list = [{'id': task_id, **task_data} for task_id, task_data in tasks_db.items()]
+    return jsonify({
+        'success': True,
+        'tasks': tasks_list
+    })
+
+@app.route('/api/tasks', methods=['POST'])
+def create_task():
+    """Crée une nouvelle tâche"""
+    data = request.json
+    
+    if not data or 'title' not in data:
+        return jsonify({'error': 'Titre de la tâche requis'}), 400
+    
+    task_id = get_next_task_id()
+    
+    from datetime import datetime
+    task_data = {
+        'title': data['title'],
+        'description': data.get('description', ''),
+        'category': data.get('category', 'Autre'),
+        'status': 'todo',
+        'created_at': datetime.now().strftime('%Y-%m-%d'),
+        'completed_at': ''
+    }
+    
+    tasks_db[task_id] = task_data
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        task_data_with_id = {
+            'task_id': task_id,
+            **task_data
+        }
+        airtable_id = airtable_client.create_task(task_data_with_id)
+        if airtable_id:
+            tasks_db[task_id]['airtable_id'] = airtable_id
+    
+    return jsonify({
+        'success': True,
+        'task': {'id': task_id, **tasks_db[task_id]}
+    })
+
+@app.route('/api/tasks/<int:task_id>', methods=['PATCH'])
+def update_task(task_id):
+    """Met à jour une tâche (statut, description, etc.)"""
+    if task_id not in tasks_db:
+        return jsonify({'error': 'Tâche non trouvée'}), 404
+    
+    data = request.json
+    
+    # Mise à jour des champs
+    if 'title' in data:
+        tasks_db[task_id]['title'] = data['title']
+    if 'description' in data:
+        tasks_db[task_id]['description'] = data['description']
+    if 'category' in data:
+        tasks_db[task_id]['category'] = data['category']
+    if 'status' in data:
+        tasks_db[task_id]['status'] = data['status']
+        
+        # Si passage à "done", ajouter date de complétion
+        if data['status'] == 'done' and not tasks_db[task_id].get('completed_at'):
+            from datetime import datetime
+            tasks_db[task_id]['completed_at'] = datetime.now().strftime('%Y-%m-%d')
+        # Si retour à "todo", effacer date de complétion
+        elif data['status'] == 'todo':
+            tasks_db[task_id]['completed_at'] = ''
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client and 'airtable_id' in tasks_db[task_id]:
+        airtable_client.update_task(tasks_db[task_id]['airtable_id'], data)
+    
+    return jsonify({
+        'success': True,
+        'task': {'id': task_id, **tasks_db[task_id]}
+    })
+
+@app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+def delete_task_route(task_id):
+    """Supprime une tâche"""
+    if task_id in tasks_db:
+        # Supprimer d'Airtable
+        if AIRTABLE_ENABLED and airtable_client:
+            airtable_client.delete_task(task_id)
+        
+        del tasks_db[task_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Tâche non trouvée'}), 404
+
 @app.after_request
 def add_no_cache_headers(response):
     """Ajoute des headers pour éviter le cache navigateur"""
@@ -1562,10 +1735,10 @@ def add_no_cache_headers(response):
 
 def load_from_airtable():
     """
-    Charge toutes les plantes depuis Airtable au démarrage de l'application
+    Charge toutes les plantes ET les tags ET les tâches depuis Airtable au démarrage de l'application
     Évite la perte de données en cas de redémarrage
     """
-    global library_db, notes_db
+    global library_db, notes_db, tags_db, tasks_db
     
     print("\n" + "="*60)
     print("🔄 CHARGEMENT DEPUIS AIRTABLE")
@@ -1577,6 +1750,42 @@ def load_from_airtable():
         return
     
     try:
+        # ====== CHARGER LES TAGS ======
+        print("\n📥 Chargement des tags...")
+        airtable_tags = airtable_client.get_all_tags()
+        
+        tags_db.clear()
+        for tag in airtable_tags:
+            tag_id = tag['id']
+            tags_db[tag_id] = {
+                'name': tag['name'],
+                'color': tag['color'],
+                'created_at': tag['created_at']
+            }
+        
+        print(f"✅ {len(tags_db)} tags chargés")
+        
+        # ====== CHARGER LES TÂCHES ======
+        print("\n📥 Chargement des tâches...")
+        airtable_tasks = airtable_client.get_all_tasks()
+        
+        tasks_db.clear()
+        for task in airtable_tasks:
+            task_id = task['id']
+            tasks_db[task_id] = {
+                'title': task['title'],
+                'description': task['description'],
+                'category': task['category'],
+                'status': task['status'],
+                'created_at': task['created_at'],
+                'completed_at': task.get('completed_at', ''),
+                'airtable_id': task.get('airtable_id', '')
+            }
+        
+        print(f"✅ {len(tasks_db)} tâches chargées")
+        
+        # ====== CHARGER LES PLANTES ======
+        print("\n📥 Chargement des plantes...")
         # Récupérer toutes les plantes depuis Airtable
         airtable_plants = airtable_client.get_all_plants()
         
@@ -1610,8 +1819,14 @@ def load_from_airtable():
                 # Utiliser l'index comme ID (séquentiel)
                 plant_id = idx
                 
+                # Récupérer l'ID Airtable pour les mises à jour futures
+                airtable_record_id = plant_fields.get('airtable_record_id', '')
+                
                 # Construire l'objet plante au format library_db
                 library_db[plant_id] = {
+                    # ID Airtable pour synchronisation
+                    'airtable_id': airtable_record_id,
+                    
                     # Données de base
                     'nom_francais': nom_francais or 'Nom inconnu',
                     'nom_latin': nom_latin or '',
@@ -1714,12 +1929,27 @@ def load_from_airtable():
                     if v is not None and v != '' and v != []
                 }
                 
-                # Initialiser notes vides
+                # Charger les tags depuis Airtable (format JSON)
+                plant_tags = []
+                tags_json = plant_fields.get('tags', '')
+                if tags_json:
+                    try:
+                        plant_tags = json.loads(tags_json)
+                        if not isinstance(plant_tags, list):
+                            plant_tags = []
+                    except:
+                        plant_tags = []
+                
+                # Charger notes et quantité depuis Airtable
+                plant_notes = plant_fields.get('notes', '')
+                plant_quantity = plant_fields.get('quantity', 0)
+                
+                # Initialiser notes_db avec données depuis Airtable
                 notes_db[plant_id] = {
-                    'notes': '',
-                    'quantity': 0,
-                    'custom_photo': None,
-                    'tags': []
+                    'notes': plant_notes,
+                    'quantity': plant_quantity if isinstance(plant_quantity, int) else 0,
+                    'custom_photo': None,  # Photos custom non sauvegardées dans Airtable
+                    'tags': plant_tags
                 }
                 
                 loaded += 1

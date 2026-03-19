@@ -20,6 +20,8 @@ class AirtableClient:
         self.table_maladies = os.environ.get('AIRTABLE_TABLE_MALADIES', 'Maladies')
         self.table_parasites = os.environ.get('AIRTABLE_TABLE_PARASITES', 'Parasites')
         self.table_formats = os.environ.get('AIRTABLE_TABLE_FORMATS', 'Formats')
+        self.table_tags = os.environ.get('AIRTABLE_TABLE_TAGS', 'Tags')
+        self.table_taches = os.environ.get('AIRTABLE_TABLE_TACHES', 'Taches')
         
         self.base_url = f"https://api.airtable.com/v0/{self.base_id}"
         self.headers = {
@@ -572,7 +574,11 @@ class AirtableClient:
                 break
             
             records = response.get('records', [])
-            all_records.extend([r['fields'] for r in records])
+            # Retourner les fields ET l'ID du record
+            for r in records:
+                fields = r['fields'].copy()
+                fields['airtable_record_id'] = r['id']  # Ajouter l'ID Airtable
+                all_records.append(fields)
             
             # Pagination
             offset = response.get('offset')
@@ -613,6 +619,274 @@ class AirtableClient:
         
         print(f"✅ {len(formats)} formats synchronisés pour {nom_latin}")
         return True
+    
+    # ====== MÉTHODES TAGS ======
+    
+    def get_all_tags(self) -> List[Dict]:
+        """Récupère tous les tags depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            result = self._request('GET', self.table_tags)
+            if result and 'records' in result:
+                tags = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'tag_id' in fields:
+                        tags.append({
+                            'id': fields['tag_id'],
+                            'name': fields.get('name', ''),
+                            'color': fields.get('color', '#4CAF50'),
+                            'created_at': fields.get('created_at', ''),
+                            'airtable_id': record['id']  # Pour les mises à jour
+                        })
+                print(f"✅ {len(tags)} tags chargés depuis Airtable")
+                return tags
+        except Exception as e:
+            print(f"❌ Erreur chargement tags: {e}")
+        
+        return []
+    
+    def create_tag(self, tag_data: Dict) -> Optional[str]:
+        """Crée un tag dans Airtable
+        
+        Args:
+            tag_data: Dict avec 'tag_id', 'name', 'color', 'created_at'
+        
+        Returns:
+            Record ID si succès, None sinon
+        """
+        if not self.enabled:
+            return None
+        
+        try:
+            fields = {
+                'tag_id': tag_data['tag_id'],
+                'name': tag_data['name'],
+                'color': tag_data.get('color', '#4CAF50'),
+                'created_at': tag_data.get('created_at', '')
+            }
+            
+            data = {'fields': fields}
+            result = self._request('POST', self.table_tags, data)
+            
+            if result and 'id' in result:
+                print(f"✅ Tag '{tag_data['name']}' créé dans Airtable")
+                return result['id']
+        except Exception as e:
+            print(f"❌ Erreur création tag: {e}")
+        
+        return None
+    
+    def delete_tag(self, tag_id: int) -> bool:
+        """Supprime un tag d'Airtable
+        
+        Args:
+            tag_id: ID du tag à supprimer
+        
+        Returns:
+            True si succès, False sinon
+        """
+        if not self.enabled:
+            return False
+        
+        try:
+            # Trouver le record Airtable avec ce tag_id
+            from urllib.parse import quote
+            formula = f"{{tag_id}}={tag_id}"
+            
+            result = self._request('GET', f"{self.table_tags}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                delete_result = self._request('DELETE', f"{self.table_tags}/{record_id}")
+                
+                if delete_result:
+                    print(f"✅ Tag {tag_id} supprimé d'Airtable")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur suppression tag: {e}")
+        
+        return False
+    
+    def update_plant_tags(self, record_id: str, tags: List[int]) -> bool:
+        """Met à jour les tags d'une plante dans Airtable
+        
+        Args:
+            record_id: ID du record Airtable de la plante
+            tags: Liste des IDs de tags [1, 3, 5]
+        
+        Returns:
+            True si succès, False sinon
+        """
+        if not self.enabled:
+            return False
+        
+        try:
+            # Convertir la liste en JSON
+            tags_json = json.dumps(tags)
+            
+            data = {
+                'fields': {
+                    'tags': tags_json
+                }
+            }
+            
+            result = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+            
+            if result:
+                print(f"✅ Tags mis à jour pour plante {record_id}")
+                return True
+        except Exception as e:
+            print(f"❌ Erreur mise à jour tags plante: {e}")
+        
+        return False
+    
+    def update_plant_notes_quantity(self, record_id: str, notes: str, quantity: int) -> bool:
+        """Met à jour les notes et quantité d'une plante dans Airtable
+        
+        Args:
+            record_id: ID du record Airtable de la plante
+            notes: Texte des notes
+            quantity: Quantité (nombre entier)
+        
+        Returns:
+            True si succès, False sinon
+        """
+        if not self.enabled:
+            return False
+        
+        try:
+            data = {
+                'fields': {
+                    'notes': notes,
+                    'quantity': quantity
+                }
+            }
+            
+            result = self._request('PATCH', f"{self.table_plantes}/{record_id}", data)
+            
+            if result:
+                print(f"✅ Notes/quantité mis à jour pour plante {record_id}")
+                return True
+        except Exception as e:
+            print(f"❌ Erreur mise à jour notes/quantité plante: {e}")
+        
+        return False
+    
+    # ====== MÉTHODES TÂCHES ======
+    
+    def get_all_tasks(self) -> List[Dict]:
+        """Récupère toutes les tâches depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            result = self._request('GET', self.table_taches)
+            if result and 'records' in result:
+                tasks = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'task_id' in fields:
+                        tasks.append({
+                            'id': fields['task_id'],
+                            'title': fields.get('title', ''),
+                            'description': fields.get('description', ''),
+                            'category': fields.get('category', 'Autre'),
+                            'status': fields.get('status', 'todo'),
+                            'created_at': fields.get('created_at', ''),
+                            'completed_at': fields.get('completed_at', ''),
+                            'airtable_id': record['id']
+                        })
+                print(f"✅ {len(tasks)} tâches chargées depuis Airtable")
+                return tasks
+        except Exception as e:
+            print(f"❌ Erreur chargement tâches: {e}")
+        
+        return []
+    
+    def create_task(self, task_data: Dict) -> Optional[str]:
+        """Crée une tâche dans Airtable"""
+        if not self.enabled:
+            return None
+        
+        try:
+            fields = {
+                'task_id': task_data['task_id'],
+                'title': task_data['title'],
+                'description': task_data.get('description', ''),
+                'category': task_data.get('category', 'Autre'),
+                'status': task_data.get('status', 'todo'),
+                'created_at': task_data.get('created_at', '')
+            }
+            
+            if task_data.get('completed_at'):
+                fields['completed_at'] = task_data['completed_at']
+            
+            data = {'fields': fields}
+            result = self._request('POST', self.table_taches, data)
+            
+            if result and 'id' in result:
+                print(f"✅ Tâche '{task_data['title']}' créée dans Airtable")
+                return result['id']
+        except Exception as e:
+            print(f"❌ Erreur création tâche: {e}")
+        
+        return None
+    
+    def update_task(self, record_id: str, task_data: Dict) -> bool:
+        """Met à jour une tâche dans Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            fields = {}
+            
+            if 'title' in task_data:
+                fields['title'] = task_data['title']
+            if 'description' in task_data:
+                fields['description'] = task_data['description']
+            if 'category' in task_data:
+                fields['category'] = task_data['category']
+            if 'status' in task_data:
+                fields['status'] = task_data['status']
+            if 'completed_at' in task_data:
+                fields['completed_at'] = task_data['completed_at']
+            
+            data = {'fields': fields}
+            result = self._request('PATCH', f"{self.table_taches}/{record_id}", data)
+            
+            if result:
+                print(f"✅ Tâche {record_id} mise à jour")
+                return True
+        except Exception as e:
+            print(f"❌ Erreur mise à jour tâche: {e}")
+        
+        return False
+    
+    def delete_task(self, task_id: int) -> bool:
+        """Supprime une tâche d'Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            formula = f"{{task_id}}={task_id}"
+            
+            result = self._request('GET', f"{self.table_taches}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                delete_result = self._request('DELETE', f"{self.table_taches}/{record_id}")
+                
+                if delete_result:
+                    print(f"✅ Tâche {task_id} supprimée d'Airtable")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur suppression tâche: {e}")
+        
+        return False
     
     def test_connection(self) -> bool:
         """Test la connexion à Airtable"""
