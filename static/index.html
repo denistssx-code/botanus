@@ -50,6 +50,7 @@
             justify-content: space-between;
             align-items: center;
             height: 36px;
+            position: relative;
             z-index: 1001;
             box-sizing: border-box;
         }
@@ -187,7 +188,9 @@
         .main-content {
             padding: 16px;
             overflow-y: visible;
+            overflow-x: hidden;
             max-width: 100%;
+            box-sizing: border-box;
         }
         
         .stats-grid {
@@ -1771,60 +1774,6 @@
             </div>
         </div>
 
-        <!-- Écran Tâches -->
-        <div class="screen" id="tasks-screen">
-            <div class="app-header">
-                <div class="app-title">Mes Tâches</div>
-                <div class="app-subtitle" id="tasks-subtitle">Chargement...</div>
-            </div>
-
-            <!-- Indicateur de chargement -->
-            <div id="tasks-loading" style="display: none; text-align: center; padding: 40px;">
-                <div style="font-size: 32px;">⏳</div>
-                <div style="margin-top: 12px; color: #666;">Chargement des tâches...</div>
-            </div>
-
-            <!-- Filtres et bouton ajouter -->
-            <div id="tasks-filters-container" style="display: none; padding: 0 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
-                    <select id="tasks-category-filter" onchange="filterTasksByCategory(this.value)" style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;">
-                        <option value="Tous">Toutes catégories</option>
-                        <option value="Jardin">🌱 Jardin</option>
-                        <option value="Piscine">🏊 Piscine</option>
-                        <option value="Maison">🏠 Maison</option>
-                        <option value="Maçonnerie">🧱 Maçonnerie</option>
-                        <option value="Électrique">⚡ Électrique</option>
-                        <option value="Plomberie">🚿 Plomberie</option>
-                        <option value="Champs">🌾 Champs</option>
-                        <option value="Véhicules">🚗 Véhicules</option>
-                        <option value="Autre">📦 Autre</option>
-                    </select>
-                    <select id="tasks-status-filter" onchange="filterTasks(this.value)" style="padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;">
-                        <option value="all">Toutes</option>
-                        <option value="todo">À faire</option>
-                        <option value="done">Terminées</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Bouton ajouter -->
-            <div id="tasks-add-btn-container" style="display: none; padding: 0 16px; margin-bottom: 12px;">
-                <button onclick="showCreateTaskDialog()" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
-                    + Nouvelle tâche
-                </button>
-            </div>
-
-            <!-- Liste des tâches -->
-            <div style="padding: 0 16px;">
-                <div id="tasks-list"></div>
-                <div id="tasks-empty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune tâche</div>
-                    <div style="font-size: 14px;">Ajoutez votre première tâche pour commencer</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Calendrier Screen -->
         <div class="screen" id="calendrier-screen">
             <div class="app-header">
@@ -1835,7 +1784,7 @@
             <div class="main-content">
                 
                 <!-- Sélecteur de mois -->
-                <div style="padding: 12px; background: white; margin-bottom: 12px; overflow: hidden;">
+                <div style="background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <button onclick="previousMonth()" style="padding: 6px 12px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
                             ←
@@ -1866,7 +1815,7 @@
                 </div>
 
                 <!-- Sections par catégorie -->
-                <div id="calendrier-content" style="padding: 0 16px;">
+                <div id="calendrier-content">
                     <!-- Contenu généré dynamiquement -->
                 </div>
 
@@ -1886,36 +1835,36 @@
                 <div class="app-subtitle" id="tasks-subtitle">Chargement...</div>
             </div>
 
-            <!-- Filtres catégories -->
-            <div style="padding: 0 16px; margin-bottom: 12px; display: none;" id="tasks-filters-container">
-                <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">
-                    <button onclick="filterTasks('all')" id="filter-all" class="chip active" style="flex-shrink: 0;">Toutes</button>
-                    <button onclick="filterTasks('todo')" id="filter-todo" class="chip" style="flex-shrink: 0;">À faire</button>
-                    <button onclick="filterTasks('done')" id="filter-done" class="chip" style="flex-shrink: 0;">Terminées</button>
-                </div>
-                <div style="display: flex; gap: 8px; overflow-x: auto; padding-top: 8px;">
-                    <button onclick="filterTasksByCategory('Tous')" id="cat-all" class="chip active" style="flex-shrink: 0; font-size: 12px;">📋 Tous</button>
-                    <button onclick="filterTasksByCategory('Jardin')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌱 Jardin</button>
-                    <button onclick="filterTasksByCategory('Piscine')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏊 Piscine</button>
-                    <button onclick="filterTasksByCategory('Maison')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏠 Maison</button>
-                    <button onclick="filterTasksByCategory('Maçonnerie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🧱 Maçonnerie</button>
-                    <button onclick="filterTasksByCategory('Électrique')" class="chip" style="flex-shrink: 0; font-size: 12px;">⚡ Électrique</button>
-                    <button onclick="filterTasksByCategory('Plomberie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚿 Plomberie</button>
-                    <button onclick="filterTasksByCategory('Champs')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌾 Champs</button>
-                    <button onclick="filterTasksByCategory('Véhicules')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚗 Véhicules</button>
-                    <button onclick="filterTasksByCategory('Autre')" class="chip" style="flex-shrink: 0; font-size: 12px;">📦 Autre</button>
-                </div>
-            </div>
-
-            <!-- Bouton nouvelle tâche -->
-            <div style="padding: 0 16px; margin-bottom: 16px; display: none;" id="tasks-add-btn-container">
-                <button onclick="showCreateTaskDialog()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span style="font-size: 20px;">+</span> Nouvelle tâche
-                </button>
-            </div>
-
             <!-- Liste des tâches -->
             <div class="main-content" id="tasks-main">
+                <!-- Filtres catégories -->
+                <div style="margin-bottom: 12px; display: none;" id="tasks-filters-container">
+                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">
+                        <button onclick="filterTasks('all')" id="filter-all" class="chip active" style="flex-shrink: 0;">Toutes</button>
+                        <button onclick="filterTasks('todo')" id="filter-todo" class="chip" style="flex-shrink: 0;">À faire</button>
+                        <button onclick="filterTasks('done')" id="filter-done" class="chip" style="flex-shrink: 0;">Terminées</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-top: 8px;">
+                        <button onclick="filterTasksByCategory('Tous')" id="cat-all" class="chip active" style="flex-shrink: 0; font-size: 12px;">📋 Tous</button>
+                        <button onclick="filterTasksByCategory('Jardin')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌱 Jardin</button>
+                        <button onclick="filterTasksByCategory('Piscine')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏊 Piscine</button>
+                        <button onclick="filterTasksByCategory('Maison')" class="chip" style="flex-shrink: 0; font-size: 12px;">🏠 Maison</button>
+                        <button onclick="filterTasksByCategory('Maçonnerie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🧱 Maçonnerie</button>
+                        <button onclick="filterTasksByCategory('Électrique')" class="chip" style="flex-shrink: 0; font-size: 12px;">⚡ Électrique</button>
+                        <button onclick="filterTasksByCategory('Plomberie')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚿 Plomberie</button>
+                        <button onclick="filterTasksByCategory('Champs')" class="chip" style="flex-shrink: 0; font-size: 12px;">🌾 Champs</button>
+                        <button onclick="filterTasksByCategory('Véhicules')" class="chip" style="flex-shrink: 0; font-size: 12px;">🚗 Véhicules</button>
+                        <button onclick="filterTasksByCategory('Autre')" class="chip" style="flex-shrink: 0; font-size: 12px;">📦 Autre</button>
+                    </div>
+                </div>
+
+                <!-- Bouton nouvelle tâche -->
+                <div style="margin-bottom: 16px; display: none;" id="tasks-add-btn-container">
+                    <button onclick="showCreateTaskDialog()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 20px;">+</span> Nouvelle tâche
+                    </button>
+                </div>
+
                 <div id="tasks-loading" style="display: block; text-align: center; padding: 60px 20px; color: #999;">
                     <div class="loading-spinner"></div>
                     <div style="margin-top: 16px;">Chargement des tâches...</div>
