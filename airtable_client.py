@@ -7,6 +7,7 @@ import os
 import requests
 from typing import Dict, List, Optional
 from dataclasses import asdict
+from datetime import datetime
 import json
 
 class AirtableClient:
@@ -665,7 +666,7 @@ class AirtableClient:
                 'tag_id': tag_data['tag_id'],
                 'name': tag_data['name'],
                 'color': tag_data.get('color', '#4CAF50'),
-                'created_at': tag_data.get('created_at', '')
+                'created_at': tag_data.get('created_at', datetime.now().strftime('%Y-%m-%d'))
             }
             
             data = {'fields': fields}
@@ -818,7 +819,7 @@ class AirtableClient:
                 'description': task_data.get('description', ''),
                 'category': task_data.get('category', 'Autre'),
                 'status': task_data.get('status', 'todo'),
-                'created_at': task_data.get('created_at', '')
+                'created_at': task_data.get('created_at', datetime.now().strftime('%Y-%m-%d'))
             }
             
             if task_data.get('completed_at'):
@@ -852,7 +853,10 @@ class AirtableClient:
             if 'status' in task_data:
                 fields['status'] = task_data['status']
             if 'completed_at' in task_data:
-                fields['completed_at'] = task_data['completed_at']
+                # Envoyer completed_at même si None (pour vider le champ)
+                # Ne l'envoyer que s'il est présent dans task_data
+                if task_data['completed_at'] is None or task_data['completed_at']:
+                    fields['completed_at'] = task_data['completed_at']
             
             data = {'fields': fields}
             result = self._request('PATCH', f"{self.table_taches}/{record_id}", data)

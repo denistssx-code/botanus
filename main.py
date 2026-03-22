@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional
+from datetime import datetime
 import json
 import os
 import requests
@@ -1489,7 +1490,7 @@ def create_tag():
     tag_data = {
         'name': data['name'],
         'color': data.get('color', '#4CAF50'),
-        'created_at': str(data.get('created_at', ''))
+        'created_at': datetime.now().strftime('%Y-%m-%d')
     }
     
     tags_db[tag_id] = tag_data
@@ -1654,8 +1655,7 @@ def create_task():
         'description': data.get('description', ''),
         'category': data.get('category', 'Autre'),
         'status': 'todo',
-        'created_at': datetime.now().strftime('%Y-%m-%d'),
-        'completed_at': ''
+        'created_at': datetime.now().strftime('%Y-%m-%d')
     }
     
     tasks_db[task_id] = task_data
@@ -1695,15 +1695,25 @@ def update_task(task_id):
         
         # Si passage à "done", ajouter date de complétion
         if data['status'] == 'done' and not tasks_db[task_id].get('completed_at'):
-            from datetime import datetime
             tasks_db[task_id]['completed_at'] = datetime.now().strftime('%Y-%m-%d')
-        # Si retour à "todo", effacer date de complétion
+        # Si retour à "todo", supprimer date de complétion
         elif data['status'] == 'todo':
-            tasks_db[task_id]['completed_at'] = ''
+            if 'completed_at' in tasks_db[task_id]:
+                del tasks_db[task_id]['completed_at']
     
     # Synchroniser avec Airtable
     if AIRTABLE_ENABLED and airtable_client and 'airtable_id' in tasks_db[task_id]:
-        airtable_client.update_task(tasks_db[task_id]['airtable_id'], data)
+        # Préparer les données pour Airtable
+        airtable_data = data.copy()
+        
+        # Si on est passé à "done", ajouter completed_at
+        if 'status' in data and data['status'] == 'done' and 'completed_at' in tasks_db[task_id]:
+            airtable_data['completed_at'] = tasks_db[task_id]['completed_at']
+        # Si on est repassé à "todo", vider completed_at dans Airtable
+        elif 'status' in data and data['status'] == 'todo':
+            airtable_data['completed_at'] = None  # None devient null en JSON
+        
+        airtable_client.update_task(tasks_db[task_id]['airtable_id'], airtable_data)
     
     return jsonify({
         'success': True,
@@ -1772,15 +1782,20 @@ def load_from_airtable():
         tasks_db.clear()
         for task in airtable_tasks:
             task_id = task['id']
-            tasks_db[task_id] = {
+            task_data = {
                 'title': task['title'],
                 'description': task['description'],
                 'category': task['category'],
                 'status': task['status'],
                 'created_at': task['created_at'],
-                'completed_at': task.get('completed_at', ''),
                 'airtable_id': task.get('airtable_id', '')
             }
+            
+            # N'ajouter completed_at que s'il existe et n'est pas vide
+            if task.get('completed_at'):
+                task_data['completed_at'] = task['completed_at']
+            
+            tasks_db[task_id] = task_data
         
         print(f"✅ {len(tasks_db)} tâches chargées")
         
