@@ -2819,6 +2819,36 @@
                 const isDone = task.status === 'done';
                 const categoryEmoji = categoryEmojis[task.category] || '📦';
                 
+                // Préparer l'affichage des subtasks
+                let subtasksHtml = '';
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const completedCount = task.subtasks.filter(st => st.completed).length;
+                    const totalCount = task.subtasks.length;
+                    
+                    subtasksHtml = `
+                        <div style="margin-top: 12px; margin-bottom: 8px;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 500;">
+                                Sous-tâches (${completedCount}/${totalCount})
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                ${task.subtasks.map((subtask, idx) => `
+                                    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: ${subtask.completed ? '#f0f8f0' : '#f9f9f9'}; border-radius: 6px; border-left: 3px solid ${subtask.completed ? '#4CAF50' : '#e0e0e0'};">
+                                        <input 
+                                            type="checkbox" 
+                                            ${subtask.completed ? 'checked' : ''}
+                                            onchange="toggleSubtask(${task.id}, ${idx})"
+                                            style="width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;"
+                                        >
+                                        <span style="font-size: 13px; ${subtask.completed ? 'text-decoration: line-through; color: #999;' : 'color: #333;'}">
+                                            ${subtask.text}
+                                        </span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 return `
                     <div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); ${isDone ? 'opacity: 0.6;' : ''}">
                         <div style="display: flex; align-items: start; gap: 12px;">
@@ -2837,6 +2867,7 @@
                                         ${task.description}
                                     </div>
                                 ` : ''}
+                                ${subtasksHtml}
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                                         ${categoryEmoji} ${task.category}
@@ -2905,6 +2936,10 @@
             document.getElementById('task-modal-description').value = '';
             document.getElementById('task-modal-category').value = 'Jardin';
             document.getElementById('task-modal-submit-text').textContent = 'Créer';
+            
+            // Vider les subtasks
+            document.getElementById('subtasks-list').innerHTML = '';
+            
             document.getElementById('task-modal').style.display = 'block';
         }
         
@@ -2920,11 +2955,64 @@
             document.getElementById('task-modal-description').value = task.description || '';
             document.getElementById('task-modal-category').value = task.category || 'Jardin';
             document.getElementById('task-modal-submit-text').textContent = 'Enregistrer';
+            
+            // Charger les subtasks
+            const subtasksList = document.getElementById('subtasks-list');
+            subtasksList.innerHTML = '';
+            if (task.subtasks && task.subtasks.length > 0) {
+                task.subtasks.forEach(subtask => {
+                    addSubtask(subtask.text, subtask.completed);
+                });
+            }
+            
             document.getElementById('task-modal').style.display = 'block';
         }
         
         function closeTaskModal() {
             document.getElementById('task-modal').style.display = 'none';
+        }
+        
+        function addSubtask(text = '', completed = false) {
+            const subtasksList = document.getElementById('subtasks-list');
+            const subtaskId = Date.now();
+            
+            const subtaskHtml = `
+                <div class="subtask-item" data-id="${subtaskId}" style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f9f9f9; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <input 
+                        type="checkbox" 
+                        class="subtask-checkbox"
+                        ${completed ? 'checked' : ''}
+                        style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;"
+                    >
+                    <input 
+                        type="text" 
+                        class="subtask-input"
+                        placeholder="Ex: Laurier"
+                        value="${text}"
+                        style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; outline: none;"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    >
+                    <button 
+                        type="button"
+                        onclick="removeSubtask(${subtaskId})"
+                        style="padding: 6px 10px; background: #ffebee; color: #f44336; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0;"
+                        onmouseover="this.style.background='#ffcdd2'"
+                        onmouseout="this.style.background='#ffebee'"
+                    >
+                        ×
+                    </button>
+                </div>
+            `;
+            
+            subtasksList.insertAdjacentHTML('beforeend', subtaskHtml);
+        }
+        
+        function removeSubtask(subtaskId) {
+            const item = document.querySelector(`.subtask-item[data-id="${subtaskId}"]`);
+            if (item) {
+                item.remove();
+            }
         }
         
         async function saveTask(event) {
@@ -2935,14 +3023,26 @@
             const description = document.getElementById('task-modal-description').value.trim();
             const category = document.getElementById('task-modal-category').value;
             
+            // Collecter les subtasks
+            const subtasks = [];
+            document.querySelectorAll('.subtask-item').forEach(item => {
+                const text = item.querySelector('.subtask-input').value.trim();
+                if (text) {
+                    subtasks.push({
+                        text: text,
+                        completed: item.querySelector('.subtask-checkbox').checked
+                    });
+                }
+            });
+            
             if (!title) return;
             
             if (taskId) {
                 // Mode édition
-                await updateTaskDetails(parseInt(taskId), { title, description, category });
+                await updateTaskDetails(parseInt(taskId), { title, description, category, subtasks });
             } else {
                 // Mode création
-                await createTask(title, description, category);
+                await createTask(title, description, category, subtasks);
             }
             
             closeTaskModal();
@@ -2967,12 +3067,12 @@
             }
         }
         
-        async function createTask(title, description, category) {
+        async function createTask(title, description, category, subtasks = []) {
             try {
                 const response = await fetch(`${API_URL}/tasks`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, description, category })
+                    body: JSON.stringify({ title, description, category, subtasks })
                 });
                 
                 const data = await response.json();
@@ -3006,6 +3106,31 @@
                 }
             } catch (error) {
                 console.error('Erreur mise à jour tâche:', error);
+            }
+        }
+        
+        async function toggleSubtask(taskId, subtaskIndex) {
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task || !task.subtasks || !task.subtasks[subtaskIndex]) return;
+            
+            // Inverser l'état de la sous-tâche
+            const updatedSubtasks = [...task.subtasks];
+            updatedSubtasks[subtaskIndex].completed = !updatedSubtasks[subtaskIndex].completed;
+            
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subtasks: updatedSubtasks })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadTasks();  // Recharger
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour sous-tâche:', error);
             }
         }
         
@@ -5877,6 +6002,22 @@
                         <option value="Véhicules">🚗 Véhicules</option>
                         <option value="Autre">📦 Autre</option>
                     </select>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Sous-tâches</label>
+                    <div id="subtasks-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+                        <!-- Sous-tâches générées dynamiquement -->
+                    </div>
+                    <button 
+                        type="button"
+                        onclick="addSubtask()"
+                        style="width: 100%; padding: 10px; background: #f0f8ff; color: #2196F3; border: 2px dashed #2196F3; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='#e3f2fd'"
+                        onmouseout="this.style.background='#f0f8ff'"
+                    >
+                        + Ajouter une sous-tâche
+                    </button>
                 </div>
                 
                 <div style="display: flex; gap: 12px;">
