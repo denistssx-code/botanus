@@ -1018,6 +1018,29 @@
             border-color: #4CAF50;
         }
         
+        .calendrier-filter-btn {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .calendrier-filter-btn:hover {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .calendrier-filter-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
         .quantity-control {
             display: flex;
             align-items: center;
@@ -1180,6 +1203,15 @@
         .calendrier-plant-action {
             font-size: 12px;
             color: #666;
+        }
+        
+        /* Espacement dans l'onglet entretien */
+        #tab-entretien .info-group {
+            margin-bottom: 24px;
+        }
+        
+        #tab-entretien .info-group:last-child {
+            margin-bottom: 0;
         }
         
         /* Responsive 2 colonnes pour les tâches sur écran large */
@@ -1533,9 +1565,18 @@
                         <div class="info-group" id="detail-description-group">
                             <div class="info-text" id="detail-description">Description de la plante...</div>
                         </div>
-                        <div class="info-group" id="detail-botanique-group" style="display: none;">
+                        
+                        <!-- SECTION : Tags -->
+                        <div class="info-group" id="detail-tags-group" style="display: none; margin-top: 20px;">
+                            <div class="info-title">🏷️ Tags</div>
+                            <div id="detail-tags-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                <!-- Tags générés dynamiquement -->
+                            </div>
+                        </div>
+                        
+                        <div class="info-group" id="detail-botanique-group" style="display: none; margin-top: 24px;">
                             <div class="info-title">🔬 Détails botaniques</div>
-                            <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px;"></div>
+                            <div id="detail-botanique" style="display: grid; gap: 6px; font-size: 14px; margin-top: 12px;"></div>
                         </div>
                     </div>
 
@@ -1843,6 +1884,22 @@
                         <button onclick="jumpToMonth(9)" class="month-mini-btn" data-month="9">Oct</button>
                         <button onclick="jumpToMonth(10)" class="month-mini-btn" data-month="10">Nov</button>
                         <button onclick="jumpToMonth(11)" class="month-mini-btn" data-month="11">Déc</button>
+                    </div>
+                    
+                    <!-- Filtres par type d'action -->
+                    <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; justify-content: center;">
+                        <button class="calendrier-filter-btn active" data-filter="tout" onclick="filterCalendrier('tout')">
+                            Tout
+                        </button>
+                        <button class="calendrier-filter-btn" data-filter="plantation" onclick="filterCalendrier('plantation')">
+                            🌱 Plantation
+                        </button>
+                        <button class="calendrier-filter-btn" data-filter="taille" onclick="filterCalendrier('taille')">
+                            ✂️ Taille
+                        </button>
+                        <button class="calendrier-filter-btn" data-filter="floraison" onclick="filterCalendrier('floraison')">
+                            🌺 Floraison
+                        </button>
                     </div>
                 </div>
 
@@ -2218,26 +2275,26 @@
                     </div>
 
                     <!-- Stockage des données -->
-                    <div class="info-group" style="border: 2px solid #2196F3; border-radius: 12px;">
-                        <div class="info-title" style="color: #2196F3;">💾 Stockage des données</div>
+                    <div class="info-group" style="border: 2px solid #4CAF50; border-radius: 12px;">
+                        <div class="info-title" style="color: #4CAF50;">💾 Stockage des données</div>
                         <div style="font-size: 12px; color: #666; line-height: 1.6;">
                             <p style="margin-bottom: 8px;"><strong>✅ Sauvegardé dans Airtable (persistant) :</strong></p>
                             <ul style="margin-left: 16px; margin-bottom: 12px;">
-                                <li>Plantes de votre bibliothèque</li>
-                                <li>Informations botaniques complètes</li>
-                                <li>Images et descriptions</li>
+                                <li>Plantes de votre bibliothèque 📚</li>
+                                <li>Informations botaniques complètes 🌿</li>
+                                <li>Tags personnalisés 🏷️</li>
+                                <li>Notes sur les plantes 📝</li>
+                                <li>Quantités actuelles 🔢</li>
+                                <li>Tâches de jardinage ✅</li>
                             </ul>
                             
                             <p style="margin-bottom: 8px;"><strong>⚠️ En mémoire seulement (perdu au redémarrage) :</strong></p>
                             <ul style="margin-left: 16px; color: #FF9800;">
-                                <li>Tags personnalisés 🏷️</li>
-                                <li>Notes sur les plantes 📝</li>
-                                <li>Quantités actuelles 🔢</li>
-                                <li>Photos personnalisées 📸</li>
+                                <li>Photos personnalisées 📸 (nécessite stockage cloud)</li>
                             </ul>
                             
-                            <p style="margin-top: 12px; padding: 8px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #FF9800;">
-                                💡 <strong>Astuce :</strong> Exportez régulièrement votre bibliothèque pour sauvegarder vos notes et tags !
+                            <p style="margin-top: 12px; padding: 8px; background: #e8f5e9; border-radius: 6px; border-left: 3px solid #4CAF50;">
+                                💡 <strong>Astuce :</strong> Vos données (tags, notes, quantités, tâches) sont automatiquement sauvegardées dans Airtable ! 🎉
                             </p>
                         </div>
                     </div>
@@ -2285,6 +2342,7 @@
         let currentPlantDetail = null;
         let previousScreen = 'profil';
         let currentCalendrierMonth = new Date().getMonth(); // 0-11
+        let currentCalendrierFilter = 'tout'; // Filtre par défaut: tout afficher
         
         // ====== CALENDRIER FUNCTIONS ======
         
@@ -2306,6 +2364,19 @@
         
         function jumpToMonth(monthIndex) {
             currentCalendrierMonth = monthIndex;
+            loadCalendrier();
+        }
+        
+        function filterCalendrier(filter) {
+            currentCalendrierFilter = filter;
+            
+            // Mettre à jour boutons actifs
+            document.querySelectorAll('.calendrier-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.calendrier-filter-btn[data-filter="${filter}"]`).classList.add('active');
+            
+            // Recharger le calendrier avec le filtre
             loadCalendrier();
         }
         
@@ -2358,19 +2429,25 @@
                 }
             });
             
-            // Générer HTML
+            // Générer HTML en fonction du filtre
             let html = '';
             
-            if (toPlant.length > 0) {
-                html += createCalendrierSection('🌱 À planter', toPlant, 'Plantation');
+            if (currentCalendrierFilter === 'tout' || currentCalendrierFilter === 'plantation') {
+                if (toPlant.length > 0) {
+                    html += createCalendrierSection('🌱 À planter', toPlant, 'Plantation');
+                }
             }
             
-            if (toPrune.length > 0) {
-                html += createCalendrierSection('✂️ À tailler', toPrune, 'Taille');
+            if (currentCalendrierFilter === 'tout' || currentCalendrierFilter === 'taille') {
+                if (toPrune.length > 0) {
+                    html += createCalendrierSection('✂️ À tailler', toPrune, 'Taille');
+                }
             }
             
-            if (flowering.length > 0) {
-                html += createCalendrierSection('🌸 En fleur', flowering, 'Floraison');
+            if (currentCalendrierFilter === 'tout' || currentCalendrierFilter === 'floraison') {
+                if (flowering.length > 0) {
+                    html += createCalendrierSection('🌸 En fleur', flowering, 'Floraison');
+                }
             }
             
             if (html === '') {
@@ -4931,6 +5008,11 @@
                 });
                 
                 document.getElementById('detail-formats-group').style.display = 'block';
+            } else {
+                // Pas de formats disponibles
+                const formatsListe = document.getElementById('detail-formats-liste');
+                formatsListe.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; font-size: 13px;">Aucun format disponible</div>';
+                document.getElementById('detail-formats-group').style.display = 'block';
             }
             
             // ONGLET ENTRETIEN
@@ -5251,6 +5333,29 @@
                     if (libInfo.in_library) {
                         document.getElementById('detail-quantity').textContent = libInfo.quantity;
                         document.getElementById('detail-notes').value = libInfo.notes || '';
+                        
+                        // Afficher les tags si disponibles
+                        if (libInfo.tags && libInfo.tags.length > 0) {
+                            const tagsContainer = document.getElementById('detail-tags-list');
+                            tagsContainer.innerHTML = libInfo.tags.map(tag => `
+                                <span style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    padding: 6px 12px;
+                                    background: ${tag.color || '#4CAF50'};
+                                    color: white;
+                                    border-radius: 16px;
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    gap: 4px;
+                                ">
+                                    ${tag.name}
+                                </span>
+                            `).join('');
+                            document.getElementById('detail-tags-group').style.display = 'block';
+                        } else {
+                            document.getElementById('detail-tags-group').style.display = 'none';
+                        }
                         
                         // IMPORTANT: Récupérer les détails depuis la bibliothèque
                         if (libInfo.plant && libInfo.plant.details) {
