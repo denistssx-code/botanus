@@ -1655,7 +1655,8 @@ def create_task():
         'description': data.get('description', ''),
         'category': data.get('category', 'Autre'),
         'status': 'todo',
-        'created_at': datetime.now().strftime('%Y-%m-%d')
+        'created_at': datetime.now().strftime('%Y-%m-%d'),
+        'subtasks': data.get('subtasks', [])  # Liste de {text: str, completed: bool}
     }
     
     tasks_db[task_id] = task_data
@@ -1690,6 +1691,8 @@ def update_task(task_id):
         tasks_db[task_id]['description'] = data['description']
     if 'category' in data:
         tasks_db[task_id]['category'] = data['category']
+    if 'subtasks' in data:
+        tasks_db[task_id]['subtasks'] = data['subtasks']
     if 'status' in data:
         tasks_db[task_id]['status'] = data['status']
         
@@ -1790,6 +1793,16 @@ def load_from_airtable():
                 'created_at': task['created_at'],
                 'airtable_id': task.get('airtable_id', '')
             }
+            
+            # Charger les subtasks si présentes
+            if task.get('subtasks'):
+                import json
+                try:
+                    task_data['subtasks'] = json.loads(task['subtasks'])
+                except:
+                    task_data['subtasks'] = []
+            else:
+                task_data['subtasks'] = []
             
             # N'ajouter completed_at que s'il existe et n'est pas vide
             if task.get('completed_at'):

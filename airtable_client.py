@@ -813,6 +813,7 @@ class AirtableClient:
             return None
         
         try:
+            import json
             fields = {
                 'task_id': task_data['task_id'],
                 'title': task_data['title'],
@@ -824,6 +825,10 @@ class AirtableClient:
             
             if task_data.get('completed_at'):
                 fields['completed_at'] = task_data['completed_at']
+            
+            # Stocker les subtasks en JSON
+            if task_data.get('subtasks'):
+                fields['subtasks'] = json.dumps(task_data['subtasks'])
             
             data = {'fields': fields}
             result = self._request('POST', self.table_taches, data)
@@ -842,6 +847,7 @@ class AirtableClient:
             return False
         
         try:
+            import json
             fields = {}
             
             if 'title' in task_data:
@@ -852,6 +858,8 @@ class AirtableClient:
                 fields['category'] = task_data['category']
             if 'status' in task_data:
                 fields['status'] = task_data['status']
+            if 'subtasks' in task_data:
+                fields['subtasks'] = json.dumps(task_data['subtasks'])
             if 'completed_at' in task_data:
                 # Envoyer completed_at même si None (pour vider le champ)
                 # Ne l'envoyer que s'il est présent dans task_data
