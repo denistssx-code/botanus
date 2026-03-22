@@ -2736,11 +2736,18 @@
                                     ` : ''}
                                 </div>
                             </div>
-                            <button 
-                                onclick="deleteTask(${task.id})" 
-                                style="background: none; border: none; color: #f44336; cursor: pointer; font-size: 18px; padding: 4px; flex-shrink: 0;"
-                                title="Supprimer"
-                            >🗑️</button>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                                <button 
+                                    onclick="showEditTaskDialog(${task.id})" 
+                                    style="background: none; border: none; color: #2196F3; cursor: pointer; font-size: 18px; padding: 4px;"
+                                    title="Modifier"
+                                >✏️</button>
+                                <button 
+                                    onclick="deleteTask(${task.id})" 
+                                    style="background: none; border: none; color: #f44336; cursor: pointer; font-size: 18px; padding: 4px;"
+                                    title="Supprimer"
+                                >🗑️</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2779,17 +2786,73 @@
         }
         
         function showCreateTaskDialog() {
-            const categories = ['Jardin', 'Piscine', 'Maison', 'Maçonnerie', 'Électrique', 'Plomberie', 'Champs', 'Véhicules', 'Autre'];
+            // Ouvrir le modal en mode création
+            document.getElementById('task-modal-title').textContent = 'Nouvelle tâche';
+            document.getElementById('task-modal-id').value = '';
+            document.getElementById('task-modal-title-input').value = '';
+            document.getElementById('task-modal-description').value = '';
+            document.getElementById('task-modal-category').value = 'Jardin';
+            document.getElementById('task-modal-submit-text').textContent = 'Créer';
+            document.getElementById('task-modal').style.display = 'block';
+        }
+        
+        function showEditTaskDialog(taskId) {
+            // Trouver la tâche
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
             
-            const title = prompt('Titre de la tâche :');
-            if (!title || title.trim() === '') return;
+            // Ouvrir le modal en mode édition
+            document.getElementById('task-modal-title').textContent = 'Modifier la tâche';
+            document.getElementById('task-modal-id').value = taskId;
+            document.getElementById('task-modal-title-input').value = task.title;
+            document.getElementById('task-modal-description').value = task.description || '';
+            document.getElementById('task-modal-category').value = task.category || 'Jardin';
+            document.getElementById('task-modal-submit-text').textContent = 'Enregistrer';
+            document.getElementById('task-modal').style.display = 'block';
+        }
+        
+        function closeTaskModal() {
+            document.getElementById('task-modal').style.display = 'none';
+        }
+        
+        async function saveTask(event) {
+            event.preventDefault();
             
-            const description = prompt('Description (optionnel) :') || '';
+            const taskId = document.getElementById('task-modal-id').value;
+            const title = document.getElementById('task-modal-title-input').value.trim();
+            const description = document.getElementById('task-modal-description').value.trim();
+            const category = document.getElementById('task-modal-category').value;
             
-            const categoryIndex = prompt(`Catégorie :\n${categories.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\nEntrez le numéro (1-${categories.length}) :`);
-            const category = categories[parseInt(categoryIndex) - 1] || 'Autre';
+            if (!title) return;
             
-            createTask(title.trim(), description.trim(), category);
+            if (taskId) {
+                // Mode édition
+                await updateTaskDetails(parseInt(taskId), { title, description, category });
+            } else {
+                // Mode création
+                await createTask(title, description, category);
+            }
+            
+            closeTaskModal();
+        }
+        
+        async function updateTaskDetails(taskId, updates) {
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadTasks();  // Recharger
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour tâche:', error);
+                alert('Erreur lors de la mise à jour');
+            }
         }
         
         async function createTask(title, description, category) {
@@ -5618,6 +5681,85 @@
     <div id="image-zoom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; padding: 20px; box-sizing: border-box;" onclick="closeImageZoom()">
         <div style="position: absolute; top: 20px; right: 20px; color: white; font-size: 40px; cursor: pointer; z-index: 10001;" onclick="closeImageZoom()">×</div>
         <img id="zoomed-image" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="event.stopPropagation()">
+    </div>
+    
+    <!-- Modal Formulaire Tâche -->
+    <div id="task-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; padding: 20px; box-sizing: border-box;" onclick="closeTaskModal()">
+        <div style="background: white; border-radius: 16px; max-width: 500px; margin: 40px auto; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="task-modal-title" style="margin: 0; font-size: 20px; color: #333;">Nouvelle tâche</h2>
+                <button onclick="closeTaskModal()" style="background: none; border: none; font-size: 28px; color: #999; cursor: pointer; padding: 0; width: 32px; height: 32px; line-height: 1;">&times;</button>
+            </div>
+            
+            <form id="task-form" onsubmit="saveTask(event)">
+                <input type="hidden" id="task-modal-id" value="">
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Titre *</label>
+                    <input 
+                        type="text" 
+                        id="task-modal-title-input" 
+                        required
+                        placeholder="Ex: Nettoyer la piscine"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; transition: border-color 0.3s;"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    >
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Description</label>
+                    <textarea 
+                        id="task-modal-description" 
+                        rows="3"
+                        placeholder="Détails de la tâche (optionnel)"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; resize: vertical; outline: none; font-family: inherit; transition: border-color 0.3s;"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    ></textarea>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Catégorie</label>
+                    <select 
+                        id="task-modal-category"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; cursor: pointer; background: white; transition: border-color 0.3s;"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    >
+                        <option value="Jardin">🌱 Jardin</option>
+                        <option value="Piscine">🏊 Piscine</option>
+                        <option value="Maison">🏠 Maison</option>
+                        <option value="Maçonnerie">🧱 Maçonnerie</option>
+                        <option value="Électrique">⚡ Électrique</option>
+                        <option value="Plomberie">🚿 Plomberie</option>
+                        <option value="Champs">🌾 Champs</option>
+                        <option value="Véhicules">🚗 Véhicules</option>
+                        <option value="Autre">📦 Autre</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button 
+                        type="button" 
+                        onclick="closeTaskModal()"
+                        style="flex: 1; padding: 14px; background: #f5f5f5; color: #666; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.3s;"
+                        onmouseover="this.style.background='#e0e0e0'"
+                        onmouseout="this.style.background='#f5f5f5'"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        type="submit"
+                        style="flex: 1; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.3s;"
+                        onmouseover="this.style.background='#45a049'"
+                        onmouseout="this.style.background='#4CAF50'"
+                    >
+                        <span id="task-modal-submit-text">Créer</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
     
 </body>
