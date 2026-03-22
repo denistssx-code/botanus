@@ -1162,6 +1162,20 @@
             font-size: 12px;
             color: #666;
         }
+        
+        /* Responsive 2 colonnes pour les tâches sur écran large */
+        #tasks-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        @media (min-width: 600px) {
+            #tasks-list {
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2678,7 +2692,7 @@
                 return;
             }
             
-            listDiv.style.display = 'block';
+            listDiv.style.display = 'grid';
             emptyDiv.style.display = 'none';
             
             // Trier : à faire en premier, puis terminées
@@ -2706,7 +2720,7 @@
                 const categoryEmoji = categoryEmojis[task.category] || '📦';
                 
                 return `
-                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); ${isDone ? 'opacity: 0.6;' : ''}">
+                    <div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); ${isDone ? 'opacity: 0.6;' : ''}">
                         <div style="display: flex; align-items: start; gap: 12px;">
                             <input 
                                 type="checkbox" 
