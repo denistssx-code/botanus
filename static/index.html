@@ -21,7 +21,7 @@
         
         .phone-container {
             width: calc(100% - 40px);
-            max-width: 750px;
+            max-width: 1500px;
             margin: 20px auto;
             background: white;
             border-radius: 25px;
@@ -474,6 +474,13 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+        }
+        
+        @media (min-width: 900px) {
+            .library-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 16px;
+            }
         }
         
         .library-card {
@@ -1126,11 +1133,23 @@
             gap: 8px;
         }
         
+        .calendrier-items-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        @media (min-width: 600px) {
+            .calendrier-items-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+        }
+        
         .calendrier-plant-item {
             padding: 12px;
             background: #f9f9f9;
             border-radius: 8px;
-            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -2371,6 +2390,7 @@
             let html = `
                 <div class="calendrier-section">
                     <div class="calendrier-section-title">${title} (${plants.length})</div>
+                    <div class="calendrier-items-grid">
             `;
             
             plants.forEach(plant => {
@@ -2387,7 +2407,10 @@
                 `;
             });
             
-            html += `</div>`;
+            html += `
+                    </div>
+                </div>
+            `;
             return html;
         }
         
