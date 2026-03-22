@@ -21,7 +21,7 @@
         
         .phone-container {
             width: calc(100% - 40px);
-            max-width: 375px;
+            max-width: 750px;
             margin: 20px auto;
             background: white;
             border-radius: 25px;
@@ -2214,15 +2214,15 @@
 
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
-            <div class="nav-item" onclick="showHomeScreen()" id="nav-home">
-                <div class="nav-icon">🏠</div>
-                <div class="nav-label">Accueil</div>
+            <div class="nav-item active" onclick="showProfilScreen()" id="nav-profil">
+                <div class="nav-icon">👤</div>
+                <div class="nav-label">Profil</div>
             </div>
             <div class="nav-item" onclick="showSearchScreen()" id="nav-search">
                 <div class="nav-icon">🔍</div>
                 <div class="nav-label">Recherche</div>
             </div>
-            <div class="nav-item active" onclick="showLibraryScreen()" id="nav-library">
+            <div class="nav-item" onclick="showLibraryScreen()" id="nav-library">
                 <div class="nav-icon">📚</div>
                 <div class="nav-label">Bibliothèque</div>
             </div>
@@ -2238,10 +2238,6 @@
                 <div class="nav-icon">📆</div>
                 <div class="nav-label">Calendrier</div>
             </div>
-            <div class="nav-item" onclick="showProfilScreen()" id="nav-profil">
-                <div class="nav-icon">👤</div>
-                <div class="nav-label">Profil</div>
-            </div>
         </div>
 
     </div>
@@ -2250,11 +2246,11 @@
         // Configuration API - s'adapte automatiquement à Railway
         const API_URL = window.location.origin + '/api';
         
-        let currentScreen = 'home';
+        let currentScreen = 'profil';
         let searchTimeout = null;
         let currentFilter = 'Tous';
         let currentPlantDetail = null;
-        let previousScreen = 'home';
+        let previousScreen = 'profil';
         let currentCalendrierMonth = new Date().getMonth(); // 0-11
         
         // ====== CALENDRIER FUNCTIONS ======
@@ -2488,8 +2484,8 @@
             // Charger la bibliothèque en arrière-plan pour les recherches
             loadLibraryData();
             
-            // Afficher la bibliothèque par défaut
-            showLibraryScreen();
+            // Afficher le profil par défaut
+            showProfilScreen();
             
             // Charger les suggestions pour la recherche
             loadSuggestions();
