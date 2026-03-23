@@ -1205,7 +1205,8 @@ def add_to_library():
     # Initialiser notes vides
     notes_db[plant_id] = {
         'notes': '',
-        'quantity': 0
+        'quantity': 0,
+        'tags': []
     }
     
     # Synchroniser avec Airtable si activé
@@ -1307,7 +1308,8 @@ def get_or_create_plant_id():
     # Initialiser notes vides
     notes_db[plant_id] = {
         'notes': '',
-        'quantity': 0
+        'quantity': 0,
+        'tags': []
     }
     
     return jsonify({
@@ -1438,7 +1440,7 @@ def save_custom_photo(plant_id):
     
     # Initialiser notes_db si nécessaire
     if plant_id not in notes_db:
-        notes_db[plant_id] = {'notes': '', 'quantity': 0}
+        notes_db[plant_id] = {'notes': '', 'quantity': 0, 'tags': []}
     
     notes_db[plant_id]['custom_photo'] = photo
     
@@ -1963,16 +1965,27 @@ def load_from_airtable():
                     if v is not None and v != '' and v != []
                 }
                 
-                # Charger les tags depuis Airtable (format JSON)
+                # Charger les tags depuis Airtable (format JSON ou liste directe)
                 plant_tags = []
-                tags_json = plant_fields.get('tags', '')
-                if tags_json:
+                tags_data = plant_fields.get('tags', '')
+                print(f"   🔍 DEBUG tags_data brut: {repr(tags_data)} (type: {type(tags_data).__name__})")
+                if tags_data:
                     try:
-                        plant_tags = json.loads(tags_json)
-                        if not isinstance(plant_tags, list):
-                            plant_tags = []
-                    except:
+                        # Si c'est déjà une liste Python (Airtable peut retourner ça)
+                        if isinstance(tags_data, list):
+                            plant_tags = tags_data
+                            print(f"   📋 Tags (liste directe): {plant_tags}")
+                        # Si c'est une string JSON
+                        elif isinstance(tags_data, str):
+                            plant_tags = json.loads(tags_data)
+                            if not isinstance(plant_tags, list):
+                                plant_tags = []
+                            print(f"   📋 Tags (JSON parsé): {plant_tags}")
+                    except Exception as e:
+                        print(f"   ⚠️ Erreur parsing tags: {e}")
                         plant_tags = []
+                else:
+                    print(f"   ℹ️ Pas de tags pour cette plante")
                 
                 # Charger notes et quantité depuis Airtable
                 plant_notes = plant_fields.get('notes', '')
