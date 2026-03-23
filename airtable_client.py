@@ -174,6 +174,10 @@ class AirtableClient:
             if details.get('periode_floraison'):
                 fields['periode_floraison'] = details['periode_floraison']
             
+            # Récolte (pour fruitiers)
+            if details.get('periode_recolte'):
+                fields['periode_recolte'] = details['periode_recolte']
+            
             # Couleur fleurs (IMPORTANT: doit être "Texte long" dans Airtable)
             if details.get('couleur_fleur'):
                 try:
@@ -365,7 +369,7 @@ class AirtableClient:
         ALLOWED_FIELDS = {
             'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'type_plante', 'url_source',
             'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
-            'periode_floraison', 'couleur_fleurs', 'duree_floraison',
+            'periode_floraison', 'periode_recolte', 'couleur_fleurs', 'duree_floraison',
             'exposition', 'rusticite_zone', 'rusticite_min_celsius',
             'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
             'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
