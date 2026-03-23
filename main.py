@@ -86,6 +86,9 @@ class PlantDetailInfo:
     periode_floraison: str = ""
     inflorescence: str = ""
     
+    # Récolte (pour fruitiers)
+    periode_recolte: str = ""
+    
     # Feuillage
     persistance_feuillage: str = ""
     couleur_feuillage: str = ""
@@ -525,6 +528,8 @@ class PromesseDeFleursScraper:
                                     detail.periode_floraison = value
                                 elif 'Inflorescence' in label:
                                     detail.inflorescence = value
+                                elif 'récolte' in label.lower():
+                                    detail.periode_recolte = value
                             
                             elif section_title == 'Feuillage':
                                 if 'Persistance' in label:
@@ -1906,6 +1911,7 @@ def load_from_airtable():
                         
                         # Floraison (MAPPING FRONTEND)
                         'periode_floraison': plant_fields.get('periode_floraison', ''),
+                        'periode_recolte': plant_fields.get('periode_recolte', ''),
                         'couleur_fleur': plant_fields.get('couleur_fleurs', ''),  # Frontend cherche "couleur_fleur"
                         'couleur_fleurs': plant_fields.get('couleur_fleurs', ''),
                         'couleur_feuillage': plant_fields.get('couleur_feuillage', ''),
