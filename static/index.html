@@ -1897,6 +1897,9 @@
                         <button class="calendrier-filter-btn" data-filter="floraison" onclick="filterCalendrier('floraison')">
                             🌺 Floraison
                         </button>
+                        <button class="calendrier-filter-btn" data-filter="recolte" onclick="filterCalendrier('recolte')">
+                            🍎 Récolte
+                        </button>
                     </div>
                 </div>
 
@@ -2404,6 +2407,7 @@
             const toPlant = [];
             const toPrune = [];
             const flowering = [];
+            const toHarvest = [];  // ← NOUVEAU : Récolte
             
             allLibraryPlants.forEach(plant => {
                 const details = plant.details || {};
@@ -2423,6 +2427,11 @@
                 // Floraison
                 if (isMonthInPeriod(currentCalendrierMonth, details.periode_floraison)) {
                     flowering.push(plant);
+                }
+                
+                // Récolte (pour fruitiers)
+                if (isMonthInPeriod(currentCalendrierMonth, details.periode_recolte)) {
+                    toHarvest.push(plant);
                 }
             });
             
@@ -2447,6 +2456,12 @@
                 }
             }
             
+            if (currentCalendrierFilter === 'tout' || currentCalendrierFilter === 'recolte') {
+                if (toHarvest.length > 0) {
+                    html += createCalendrierSection('🍎 À récolter', toHarvest, 'Récolte');
+                }
+            }
+            
             if (html === '') {
                 html = `
                     <div style="text-align: center; padding: 60px 20px; color: #999;">
@@ -2468,10 +2483,11 @@
             `;
             
             plants.forEach(plant => {
+                const plantId = plant.plant_id || plant.id;  // Support des deux formats
                 const emoji = plant.icon || '🌿';
                 const name = plant.nom_francais || plant.nom_latin;
                 html += `
-                    <div class="calendrier-plant-item" onclick="showPlantDetailFromCalendrier(${plant.id})">
+                    <div class="calendrier-plant-item" onclick="showPlantDetailFromCalendrier(${plantId})">
                         <div class="calendrier-plant-emoji">${emoji}</div>
                         <div class="calendrier-plant-info">
                             <div class="calendrier-plant-name">${name}</div>
@@ -2545,7 +2561,7 @@
         
         function showPlantDetailFromCalendrier(plantId) {
             previousScreen = 'calendrier';
-            showPlantDetail(plantId);
+            showPlantDetailById(plantId);  // ← CORRIGÉ : utilise showPlantDetailById au lieu de showPlantDetail
         }
         
         // ====== AMÉLIORATION TAGS ======
