@@ -1803,7 +1803,6 @@ def load_from_airtable():
             
             # Charger les subtasks si présentes
             if task.get('subtasks'):
-                import json
                 try:
                     task_data['subtasks'] = json.loads(task['subtasks'])
                 except:
