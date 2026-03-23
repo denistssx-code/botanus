@@ -1810,14 +1810,11 @@
                             <button class="rappel-filter-btn active" data-filter="tout" onclick="filterRappels('tout')">
                                 Tout
                             </button>
-                            <button class="rappel-filter-btn" data-filter="plantation" onclick="filterRappels('plantation')">
-                                🌱 Plantation
-                            </button>
                             <button class="rappel-filter-btn" data-filter="taille" onclick="filterRappels('taille')">
                                 ✂️ Taille
                             </button>
-                            <button class="rappel-filter-btn" data-filter="floraison" onclick="filterRappels('floraison')">
-                                🌺 Floraison
+                            <button class="rappel-filter-btn" data-filter="recolte" onclick="filterRappels('recolte')">
+                                🍎 Récolte
                             </button>
                         </div>
                     </div>
@@ -3339,10 +3336,12 @@
                     if (details.periode_taille) {
                         const rappel = {
                             plante: plant.nom_francais,
+                            plantId: plant.plant_id || plant.id,
                             action: 'Taille',
                             periode: details.periode_taille,
                             description: details.descriptif_taille_detaille || details.taille || 'Tailler la plante',
-                            icon: '✂️'
+                            icon: '✂️',
+                            type: 'taille'
                         };
                         
                         console.log(`   📅 Vérification période taille: "${details.periode_taille}"`);
@@ -3368,45 +3367,27 @@
                         }
                     }
                     
-                    // Rappel de plantation
-                    if (details.meilleure_periode_plantation) {
+                    // Rappel de récolte (pour fruitiers)
+                    console.log(`   🍎 periode_recolte:`, details.periode_recolte || 'NON PRÉSENT');
+                    if (details.periode_recolte) {
                         const rappel = {
                             plante: plant.nom_francais,
-                            action: 'Plantation',
-                            periode: details.meilleure_periode_plantation,
-                            description: 'Période idéale pour planter',
-                            icon: '🌱'
+                            plantId: plant.plant_id || plant.id,
+                            action: 'Récolte',
+                            periode: details.periode_recolte,
+                            description: 'Période de récolte',
+                            icon: '🍎',
+                            type: 'recolte'
                         };
                         
                         try {
-                            if (isCurrentMonth(details.meilleure_periode_plantation, maintenant)) {
+                            if (isCurrentMonth(details.periode_recolte, maintenant)) {
                                 rappelsMois.push(rappel);
-                            } else if (isNextMonths(details.meilleure_periode_plantation, maintenant, 3)) {
+                            } else if (isNextMonths(details.periode_recolte, maintenant, 3)) {
                                 rappelsProchains.push(rappel);
                             }
                         } catch (e) {
-                            console.error('Erreur periode plantation:', e);
-                        }
-                    }
-                    
-                    // Rappel de floraison
-                    if (details.periode_floraison) {
-                        const rappel = {
-                            plante: plant.nom_francais,
-                            action: 'Floraison',
-                            periode: details.periode_floraison,
-                            description: 'Période de floraison à admirer',
-                            icon: '🌸'
-                        };
-                        
-                        try {
-                            if (isCurrentMonth(details.periode_floraison, maintenant)) {
-                                rappelsMois.push(rappel);
-                            } else if (isNextMonths(details.periode_floraison, maintenant, 3)) {
-                                rappelsProchains.push(rappel);
-                            }
-                        } catch (e) {
-                            console.error('Erreur periode floraison:', e);
+                            console.error('Erreur periode recolte:', e);
                         }
                     }
                 });
@@ -3487,24 +3468,37 @@
             }
             
             rappels.forEach(rappel => {
+                const rappelKey = `${rappel.plante}_${rappel.action}`;
+                const isCompleted = rappelsCompleted[rappelKey] || false;
+                
                 const rappelEl = document.createElement('div');
-                rappelEl.style.cssText = 'padding: 16px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; cursor: pointer; transition: all 0.2s;';
-                rappelEl.onmouseover = () => rappelEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                rappelEl.onmouseout = () => rappelEl.style.boxShadow = 'none';
+                rappelEl.style.cssText = `padding: 16px; background: ${isCompleted ? '#f0f8f0' : 'white'}; border: 1px solid ${isCompleted ? '#4CAF50' : '#e0e0e0'}; border-radius: 12px; transition: all 0.2s; ${isCompleted ? 'opacity: 0.7;' : ''}`;
                 
                 rappelEl.innerHTML = `
                     <div style="display: flex; align-items: start; gap: 12px;">
-                        <div style="font-size: 32px;">${rappel.icon}</div>
+                        <input 
+                            type="checkbox" 
+                            ${isCompleted ? 'checked' : ''}
+                            onchange="toggleRappelCompletion('${rappelKey.replace(/'/g, "\\'")}', this.checked)"
+                            style="width: 20px; height: 20px; margin-top: 6px; cursor: pointer; flex-shrink: 0;"
+                        >
+                        <div style="font-size: 32px; ${isCompleted ? 'opacity: 0.5;' : ''}">${rappel.icon}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">${rappel.plante}</div>
-                            <div style="font-size: 13px; color: #4CAF50; font-weight: 600; margin-bottom: 6px;">${rappel.action} • ${rappel.periode}</div>
-                            <div style="font-size: 13px; color: #666; line-height: 1.4;">${rappel.description.substring(0, 100)}${rappel.description.length > 100 ? '...' : ''}</div>
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; ${isCompleted ? 'text-decoration: line-through; color: #999;' : ''}">${rappel.plante}</div>
+                            <div style="font-size: 13px; color: ${isCompleted ? '#999' : '#4CAF50'}; font-weight: 600; margin-bottom: 6px; ${isCompleted ? 'text-decoration: line-through;' : ''}">${rappel.action} • ${rappel.periode}</div>
+                            <div style="font-size: 13px; color: #666; line-height: 1.4; ${isCompleted ? 'text-decoration: line-through;' : ''}">${rappel.description.substring(0, 100)}${rappel.description.length > 100 ? '...' : ''}</div>
                         </div>
                     </div>
                 `;
                 
                 container.appendChild(rappelEl);
             });
+        }
+        
+        function toggleRappelCompletion(rappelKey, isCompleted) {
+            rappelsCompleted[rappelKey] = isCompleted;
+            // Réafficher les rappels avec le nouveau état
+            filterRappels(currentRappelFilter);
         }
         
         function filterRappels(filter) {
@@ -3524,8 +3518,8 @@
             let filteredProchains = allRappelsProchains;
             
             if (filter !== 'tout') {
-                filteredMois = allRappelsMois.filter(r => r.action.toLowerCase().includes(filter));
-                filteredProchains = allRappelsProchains.filter(r => r.action.toLowerCase().includes(filter));
+                filteredMois = allRappelsMois.filter(r => r.type === filter);
+                filteredProchains = allRappelsProchains.filter(r => r.type === filter);
             }
             
             // Afficher les rappels filtrés
@@ -3938,7 +3932,8 @@
         // Variables globales pour filtrage rappels
         let allRappelsMois = [];  // Tous les rappels du mois
         let allRappelsProchains = [];  // Tous les rappels prochains
-        let currentRappelFilter = 'tout';  // Filtre actif : 'tout', 'plantation', 'taille', 'floraison'
+        let currentRappelFilter = 'tout';  // Filtre actif : 'tout', 'taille', 'recolte'
+        let rappelsCompleted = {};  // État coché des rappels (en mémoire) - clé: plante_action, valeur: bool
         
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
@@ -4202,6 +4197,8 @@
             listDiv.innerHTML = '';
             
             if (plants.length === 0) {
+                gridDiv.style.display = 'block';
+                listDiv.style.display = 'none';
                 gridDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Aucune plante de ce type</div>';
                 controlsDiv.style.display = 'none';
                 return;
@@ -4215,8 +4212,12 @@
             
             // Afficher selon la vue active
             if (currentViewMode === 'grid') {
+                gridDiv.style.display = 'grid';
+                listDiv.style.display = 'none';
                 displayGridView(sortedPlants, gridDiv);
             } else {
+                gridDiv.style.display = 'none';
+                listDiv.style.display = 'block';
                 displayListView(sortedPlants, listDiv);
             }
         }
