@@ -514,6 +514,12 @@ class PromesseDeFleursScraper:
                             value = self.clean_text(spans[1].get_text())
                             print(f"    • {label}: {value[:50]}...")
                             
+                            # VÉRIFICATION GLOBALE : Période de récolte (pour fruitiers)
+                            # Chercher dans TOUTES les sections, pas seulement Floraison
+                            if 'récolte' in label.lower() and 'période' in label.lower():
+                                detail.periode_recolte = value
+                                print(f"    ✅ Période de récolte trouvée: {value}")
+                            
                             # Mapper selon la section
                             if section_title == 'Port':
                                 if label == 'Port':
@@ -524,12 +530,10 @@ class PromesseDeFleursScraper:
                             elif section_title == 'Floraison':
                                 if 'couleur' in label.lower():
                                     detail.couleur_fleur = value
-                                elif 'Période' in label:
+                                elif 'Période' in label and 'floraison' in label.lower():
                                     detail.periode_floraison = value
                                 elif 'Inflorescence' in label:
                                     detail.inflorescence = value
-                                elif 'récolte' in label.lower():
-                                    detail.periode_recolte = value
                             
                             elif section_title == 'Feuillage':
                                 if 'Persistance' in label:
