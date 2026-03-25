@@ -1932,9 +1932,7 @@ def load_from_airtable():
                         'periode_taille': plant_fields.get('periode_taille', ''),
                         'periode_raisonnable_taille': plant_fields.get('periode_raisonnable_taille', ''),
                         'taille_technique': plant_fields.get('taille_technique', ''),
-                        'taille': plant_fields.get('taille_technique', ''),  # Alias pour frontend
-                        'frequence_taille': plant_fields.get('taille_periode', ''),  # Alias pour frontend
-                        'descriptif_taille_detaille': plant_fields.get('taille_technique', ''),  # Alias
+                        'descriptif_taille_detaille': plant_fields.get('taille_technique', ''),  # Alias pour frontend
                         'arrosage_frequence': plant_fields.get('arrosage_frequence', ''),
                         'arrosage_detail': plant_fields.get('arrosage_detail', ''),
                         'fertilisation': plant_fields.get('fertilisation', ''),

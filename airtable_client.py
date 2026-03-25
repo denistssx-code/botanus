@@ -182,6 +182,7 @@ class AirtableClient:
             if details.get('couleur_fleur'):
                 try:
                     fields['couleur_fleurs'] = details['couleur_fleur']
+
                 except Exception as e:
                     print(f"⚠️ Erreur couleur_fleurs: {e}")
                     print(f"   💡 Dans Airtable, change le type du champ 'couleur_fleurs' en 'Texte long'")
@@ -190,9 +191,6 @@ class AirtableClient:
                     fields['couleur_fleurs'] = details['couleur_fleurs']
                 except Exception as e:
                     print(f"⚠️ Erreur couleur_fleurs: {e}")
-            
-            if details.get('duree_floraison'):
-                fields['duree_floraison'] = details['duree_floraison']
             
             # Feuillage et port
             # persistance_feuillage (pas feuillage !)
@@ -255,10 +253,10 @@ class AirtableClient:
             
             # Taille
             if details.get('periode_taille'):
-                fields['taille_periode'] = details['periode_taille']
-                # Dupliquer dans periode_taille (autre champ) pour compatibilité
                 fields['periode_taille'] = details['periode_taille']
             
+            # taille_technique = SEULEMENT le descriptif (comment tailler)
+            # La période et fréquence sont dans des champs séparés
             if details.get('descriptif_taille_detaille'):
                 fields['taille_technique'] = details['descriptif_taille_detaille']
             elif details.get('taille'):
@@ -266,13 +264,6 @@ class AirtableClient:
             
             if details.get('periode_raisonnable_taille'):
                 fields['periode_raisonnable_taille'] = details['periode_raisonnable_taille']
-            
-            if details.get('frequence_taille'):
-                # Ajouter à taille_technique si existe déjà
-                if fields.get('taille_technique'):
-                    fields['taille_technique'] = f"{details['frequence_taille']}. {fields['taille_technique']}"
-                else:
-                    fields['taille_technique'] = details['frequence_taille']
             
             # Entretien supplémentaire
             if details.get('paillage'):
@@ -293,9 +284,6 @@ class AirtableClient:
                     fields['rusticite_zone'] += f" (Zone USDA: {details['zone_usda']})"
                 else:
                     fields['rusticite_zone'] = f"Zone USDA: {details['zone_usda']}"
-            
-            if details.get('rusticite_min_celsius'):
-                fields['rusticite_min_celsius'] = details['rusticite_min_celsius']
             
             # Botanique
             if details.get('famille'):
@@ -336,12 +324,6 @@ class AirtableClient:
         if plant_data.get('fertilisation_detail'):
             fields['fertilisation'] = plant_data['fertilisation_detail']
         
-        if plant_data.get('taille_periode') and not fields.get('taille_periode'):
-            fields['taille_periode'] = plant_data['taille_periode']
-        
-        if plant_data.get('taille_technique') and not fields.get('taille_technique'):
-            fields['taille_technique'] = plant_data['taille_technique']
-        
         if plant_data.get('multiplication'):
             fields['multiplication'] = plant_data['multiplication']
         
@@ -369,12 +351,12 @@ class AirtableClient:
         ALLOWED_FIELDS = {
             'nom_francais', 'nom_latin', 'autres_noms', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'type_plante', 'url_source',
             'hauteur_maturite', 'largeur_maturite', 'feuillage', 'port',
-            'periode_floraison', 'periode_recolte', 'couleur_fleurs', 'duree_floraison',
-            'exposition', 'rusticite_zone', 'rusticite_min_celsius',
+            'periode_floraison', 'periode_recolte', 'couleur_fleurs',
+            'exposition', 'rusticite_zone',
             'sol_type', 'sol_ph', 'sol_humidite', 'sol_drainage',
             'meilleure_periode_plantation', 'periode_raisonnable_plantation', 'densite_plantation',
             'arrosage_frequence', 'arrosage_detail', 'fertilisation',
-            'taille_periode', 'taille_technique', 'multiplication',
+            'taille_technique', 'multiplication',
             'periode_taille', 'periode_raisonnable_taille', 'paillage', 'tuteurage', 'rabattage_periode',
             'description_courte', 'description_complete', 'utilisations',
             'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes'
