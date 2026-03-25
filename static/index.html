@@ -1625,7 +1625,6 @@
                         <div id="detail-taille-visuel" style="display: flex; gap: 4px; margin-top: 8px;">
                             <!-- Graphique généré dynamiquement -->
                         </div>
-                        <div class="info-text" id="detail-taille-technique" style="font-size: 13px; color: #666; margin-top: 8px;"></div>
                     </div>
 
                     <div class="info-group" id="detail-recolte-group" style="display: none;">
@@ -5204,21 +5203,6 @@
             if (details.periode_taille) {
                 // Créer le graphique visuel pour la période de taille (orange)
                 createMonthCalendar(details.periode_taille, 'detail-taille-visuel', 'orange');
-                
-                // Afficher la technique de taille en dessous si disponible
-                if (details.taille || details.frequence_taille) {
-                    let tailleText = '';
-                    if (details.frequence_taille) {
-                        tailleText += details.frequence_taille;
-                    }
-                    if (details.taille && details.frequence_taille) {
-                        tailleText += ' - ';
-                    }
-                    if (details.taille) {
-                        tailleText += details.taille;
-                    }
-                    document.getElementById('detail-taille-technique').textContent = tailleText;
-                }
                 
                 document.getElementById('detail-taille-group').style.display = 'block';
                 hasEntretienInfo = true;
