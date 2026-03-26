@@ -1747,6 +1747,181 @@ def delete_task_route(task_id):
     
     return jsonify({'error': 'Tâche non trouvée'}), 404
 
+@app.route('/api/weather', methods=['GET'])
+def get_weather():
+    """Récupère la météo et génère des alertes pour Malaucène"""
+    try:
+        # Coordonnées Malaucène (Vaucluse, Provence)
+        lat = 44.1736
+        lon = 5.1314
+        
+        # API OpenWeatherMap gratuite (pas besoin de clé pour test, mais tu devras en créer une)
+        # Pour production: https://openweathermap.org/api (gratuit jusqu'à 1000 appels/jour)
+        api_key = os.environ.get('OPENWEATHER_API_KEY', 'demo')  # À configurer dans Railway
+        
+        # Prévisions 5 jours (gratuit)
+        url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&units=metric&lang=fr&appid={api_key}"
+        
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code != 200:
+            # Si API ne marche pas, retourner données de demo
+            return jsonify({
+                'current': {
+                    'temp': 15,
+                    'description': 'Ensoleillé',
+                    'icon': '☀️'
+                },
+                'forecast': [
+                    {'day': 'Demain', 'temp_min': 10, 'temp_max': 18, 'icon': '🌤️'},
+                    {'day': 'Mercredi', 'temp_min': 12, 'temp_max': 20, 'icon': '☀️'}
+                ],
+                'alerts': [],
+                'demo': True
+            })
+        
+        data = response.json()
+        
+        # Météo actuelle (premier élément)
+        current = data['list'][0]
+        current_temp = round(current['main']['temp'])
+        current_desc = current['weather'][0]['description'].capitalize()
+        
+        # Icône météo
+        weather_icons = {
+            'clear': '☀️',
+            'clouds': '☁️',
+            'rain': '🌧️',
+            'drizzle': '🌦️',
+            'thunderstorm': '⛈️',
+            'snow': '❄️',
+            'mist': '🌫️',
+            'fog': '🌫️'
+        }
+        weather_main = current['weather'][0]['main'].lower()
+        current_icon = weather_icons.get(weather_main, '🌤️')
+        
+        # Prévisions prochains jours (prendre midi de chaque jour)
+        forecast = []
+        days_processed = set()
+        for item in data['list']:
+            dt = datetime.fromtimestamp(item['dt'])
+            day_key = dt.strftime('%Y-%m-%d')
+            
+            if day_key not in days_processed and dt.hour == 12:
+                days_processed.add(day_key)
+                
+                day_name = 'Demain' if len(forecast) == 0 else dt.strftime('%A').capitalize()
+                
+                forecast.append({
+                    'day': day_name,
+                    'temp_min': round(item['main']['temp_min']),
+                    'temp_max': round(item['main']['temp_max']),
+                    'icon': weather_icons.get(item['weather'][0]['main'].lower(), '🌤️'),
+                    'rain': item.get('rain', {}).get('3h', 0)
+                })
+                
+                if len(forecast) >= 3:
+                    break
+        
+        # Générer alertes
+        alerts = []
+        
+        for item in data['list'][:16]:  # Prochains 2 jours (3h x 16 = 48h)
+            dt = datetime.fromtimestamp(item['dt'])
+            temp = item['main']['temp']
+            temp_min = item['main']['temp_min']
+            rain = item.get('rain', {}).get('3h', 0)
+            wind = item.get('wind', {}).get('speed', 0) * 3.6  # m/s → km/h
+            
+            day_str = 'aujourd\'hui' if dt.date() == datetime.now().date() else 'demain'
+            time_str = dt.strftime('%Hh')
+            
+            # Alerte GEL
+            if temp_min < 2:
+                alerts.append({
+                    'type': 'gel',
+                    'icon': '❄️',
+                    'title': f'Gel prévu {day_str}',
+                    'message': f'{round(temp_min)}°C à {time_str}',
+                    'action': 'Préparer voiles d\'hivernage',
+                    'severity': 'high' if temp_min < 0 else 'medium'
+                })
+                break  # Une seule alerte gel
+            
+            # Alerte PLUIE FORTE
+            if rain > 10:
+                alerts.append({
+                    'type': 'rain',
+                    'icon': '💧',
+                    'title': f'Pluie forte {day_str}',
+                    'message': f'{round(rain)}mm attendus à {time_str}',
+                    'action': 'Rentrer outils, protéger semis',
+                    'severity': 'medium'
+                })
+                break  # Une seule alerte pluie
+            
+            # Alerte VENT FORT
+            if wind > 60:
+                alerts.append({
+                    'type': 'wind',
+                    'icon': '💨',
+                    'title': f'Vent fort {day_str}',
+                    'message': f'Rafales {round(wind)} km/h à {time_str}',
+                    'action': 'Tuteurer plantes fragiles',
+                    'severity': 'high' if wind > 80 else 'medium'
+                })
+                break  # Une seule alerte vent
+            
+            # Alerte CANICULE
+            if temp > 35:
+                alerts.append({
+                    'type': 'heat',
+                    'icon': '☀️',
+                    'title': f'Canicule {day_str}',
+                    'message': f'{round(temp)}°C à {time_str}',
+                    'action': 'Prévoir arrosage renforcé',
+                    'severity': 'high'
+                })
+                break  # Une seule alerte canicule
+        
+        # Retirer doublons alertes
+        seen_types = set()
+        unique_alerts = []
+        for alert in alerts:
+            if alert['type'] not in seen_types:
+                seen_types.add(alert['type'])
+                unique_alerts.append(alert)
+        
+        return jsonify({
+            'current': {
+                'temp': current_temp,
+                'description': current_desc,
+                'icon': current_icon
+            },
+            'forecast': forecast,
+            'alerts': unique_alerts,
+            'location': 'Malaucène'
+        })
+        
+    except Exception as e:
+        print(f"⚠️ Erreur météo: {e}")
+        # Retourner données de demo en cas d'erreur
+        return jsonify({
+            'current': {
+                'temp': 15,
+                'description': 'Ensoleillé',
+                'icon': '☀️'
+            },
+            'forecast': [
+                {'day': 'Demain', 'temp_min': 10, 'temp_max': 18, 'icon': '🌤️'},
+                {'day': 'Mercredi', 'temp_min': 12, 'temp_max': 20, 'icon': '☀️'}
+            ],
+            'alerts': [],
+            'error': str(e),
+            'demo': True
+        })
+
 @app.after_request
 def add_no_cache_headers(response):
     """Ajoute des headers pour éviter le cache navigateur"""
