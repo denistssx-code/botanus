@@ -2198,6 +2198,37 @@
                         </div>
                     </div>
 
+                    <!-- Météo & Alertes -->
+                    <div class="info-group">
+                        <div class="info-title">🌤️ Météo & Alertes - Malaucène</div>
+                        
+                        <!-- Météo actuelle -->
+                        <div id="weather-current" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 12px; margin-top: 12px; text-align: center;">
+                            <div style="font-size: 48px;" id="weather-icon">☀️</div>
+                            <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="weather-temp">--°C</div>
+                            <div style="font-size: 14px; opacity: 0.9;" id="weather-desc">Chargement...</div>
+                        </div>
+                        
+                        <!-- Prévisions 3 jours -->
+                        <div id="weather-forecast" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
+                            <!-- Rempli dynamiquement -->
+                        </div>
+                        
+                        <!-- Alertes -->
+                        <div id="weather-alerts-container" style="margin-top: 12px; display: none;">
+                            <div style="font-weight: 600; color: #f44336; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                ⚠️ <span id="weather-alerts-count">0</span> ALERTE(S)
+                            </div>
+                            <div id="weather-alerts" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Alertes remplies dynamiquement -->
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
+                            Mis à jour automatiquement
+                        </div>
+                    </div>
+
                     <!-- Import/Export -->
                     <div class="info-group">
                         <div class="info-title">💾 Données</div>
@@ -3220,8 +3251,104 @@
                 });
                 document.getElementById('profil-total-rappels').textContent = totalRappels;
                 
+                // Charger météo
+                loadWeather();
+                
             } catch (error) {
                 console.error('Erreur chargement stats profil:', error);
+            }
+        }
+        
+        async function loadWeather() {
+            try {
+                const response = await fetch(`${API_URL}/weather`);
+                const data = await response.json();
+                
+                // Météo actuelle
+                document.getElementById('weather-icon').textContent = data.current.icon;
+                document.getElementById('weather-temp').textContent = `${data.current.temp}°C`;
+                document.getElementById('weather-desc').textContent = data.current.description;
+                
+                // Prévisions 3 jours
+                const forecastContainer = document.getElementById('weather-forecast');
+                forecastContainer.innerHTML = '';
+                
+                data.forecast.forEach(day => {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.style.cssText = 'background: white; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #e0e0e0;';
+                    dayDiv.innerHTML = `
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">${day.day}</div>
+                        <div style="font-size: 24px;">${day.icon}</div>
+                        <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">${day.temp_max}°C</div>
+                        <div style="font-size: 11px; color: #999;">${day.temp_min}°C</div>
+                    `;
+                    forecastContainer.appendChild(dayDiv);
+                });
+                
+                // Alertes
+                const alertsContainer = document.getElementById('weather-alerts');
+                const alertsWrapper = document.getElementById('weather-alerts-container');
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    alertsWrapper.style.display = 'block';
+                    document.getElementById('weather-alerts-count').textContent = data.alerts.length;
+                    
+                    alertsContainer.innerHTML = '';
+                    
+                    data.alerts.forEach(alert => {
+                        const alertDiv = document.createElement('div');
+                        const bgColor = alert.severity === 'high' ? '#ffebee' : '#fff3e0';
+                        const borderColor = alert.severity === 'high' ? '#f44336' : '#ff9800';
+                        
+                        alertDiv.style.cssText = `background: ${bgColor}; padding: 12px; border-radius: 10px; border-left: 4px solid ${borderColor};`;
+                        alertDiv.innerHTML = `
+                            <div style="display: flex; align-items: start; gap: 8px;">
+                                <div style="font-size: 24px;">${alert.icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 4px;">
+                                        ${alert.title}
+                                    </div>
+                                    <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
+                                        ${alert.message}
+                                    </div>
+                                    <div style="font-size: 12px; color: ${borderColor}; font-weight: 600;">
+                                        → ${alert.action}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        alertsContainer.appendChild(alertDiv);
+                    });
+                    
+                    // Badge sur icône navigation si alertes
+                    updateNavBadge(data.alerts.length);
+                } else {
+                    alertsWrapper.style.display = 'none';
+                    updateNavBadge(0);
+                }
+                
+            } catch (error) {
+                console.error('Erreur chargement météo:', error);
+                document.getElementById('weather-desc').textContent = 'Météo indisponible';
+            }
+        }
+        
+        function updateNavBadge(alertCount) {
+            // Ajouter/retirer badge sur icône Profil
+            const navProfil = document.getElementById('nav-profil');
+            let badge = navProfil.querySelector('.nav-badge');
+            
+            if (alertCount > 0) {
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'nav-badge';
+                    badge.style.cssText = 'position: absolute; top: 8px; right: 8px; background: #f44336; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; min-width: 16px; text-align: center;';
+                    navProfil.style.position = 'relative';
+                    navProfil.appendChild(badge);
+                }
+                badge.textContent = alertCount;
+            } else if (badge) {
+                badge.remove();
             }
         }
         
