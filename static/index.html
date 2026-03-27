@@ -3310,6 +3310,7 @@
                 if (!response.ok) {
                     console.warn('Table Inventaire non disponible (normal si pas encore créée)');
                     inventoryItems = [];
+                    displayInventory();  // Afficher message vide
                     updateInventoryAlerts();
                     return;
                 }
@@ -3322,6 +3323,7 @@
             } catch (error) {
                 console.error('Erreur chargement inventaire:', error);
                 inventoryItems = [];
+                displayInventory();  // Afficher message vide
                 updateInventoryAlerts();
             }
         }
@@ -3329,6 +3331,12 @@
         function displayInventory() {
             const container = document.getElementById('inventory-categories');
             const emptyDiv = document.getElementById('inventory-empty');
+            
+            // Vérifier que les éléments existent
+            if (!container || !emptyDiv) {
+                console.warn('Éléments inventory-categories ou inventory-empty non trouvés');
+                return;
+            }
             
             // Filtrer items
             let filteredItems = inventoryItems;
