@@ -2229,6 +2229,27 @@
                         </div>
                     </div>
 
+                    <!-- Inventaire Rapide -->
+                    <div class="info-group">
+                        <div class="info-title">🔧 Inventaire</div>
+                        
+                        <div id="inventory-alerts-container" style="margin-top: 12px;">
+                            <div id="inventory-alerts-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;" id="inventory-total-items">0 items</div>
+                                    <div style="font-size: 12px; color: #666;" id="inventory-alerts-text">Aucune alerte</div>
+                                </div>
+                                <button onclick="showInventoryScreen()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                    Gérer →
+                                </button>
+                            </div>
+                            
+                            <div id="inventory-alerts-list" style="display: none; flex-direction: column; gap: 8px;">
+                                <!-- Alertes remplies dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Import/Export -->
                     <div class="info-group">
                         <div class="info-title">💾 Données</div>
@@ -2339,6 +2360,48 @@
                 </div>
             </div>
 
+        <!-- Écran Inventaire -->
+        <div class="screen" id="inventory-screen" style="display: none;">
+            <div class="app-header" style="background: linear-gradient(135deg, #FF9800, #F57C00);">
+                <div class="app-title">📦 Inventaire Matériel</div>
+                <div class="app-subtitle">Outils, matériaux, produits</div>
+            </div>
+
+            <div class="main-content">
+                
+                <!-- Filtres -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <button onclick="filterInventory('all')" id="filter-inv-all" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        Tout
+                    </button>
+                    <button onclick="filterInventory('alerts')" id="filter-inv-alerts" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        ⚠️ Alertes
+                    </button>
+                    <button onclick="filterInventory('À acheter')" id="filter-inv-acheter" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        ❌ À acheter
+                    </button>
+                </div>
+
+                <!-- Bouton ajouter -->
+                <button onclick="showAddInventoryForm()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    ➕ Ajouter un item
+                </button>
+
+                <!-- Liste items par catégorie -->
+                <div id="inventory-categories">
+                    <!-- Rempli dynamiquement -->
+                </div>
+
+                <!-- Message vide -->
+                <div id="inventory-empty" style="display: none; text-align: center; padding: 40px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Inventaire vide</div>
+                    <div style="font-size: 14px;">Commencez par ajouter vos outils et matériaux</div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showProfilScreen()" id="nav-profil">
@@ -2356,6 +2419,10 @@
             <div class="nav-item" onclick="showTasksScreen()" id="nav-tasks">
                 <div class="nav-icon">✅</div>
                 <div class="nav-label">Tâches</div>
+            </div>
+            <div class="nav-item" onclick="showInventoryScreen()" id="nav-inventory">
+                <div class="nav-icon">📦</div>
+                <div class="nav-label">Inventaire</div>
             </div>
             <div class="nav-item" onclick="showRappelsScreen()" id="nav-rappels">
                 <div class="nav-icon">📅</div>
@@ -3203,6 +3270,338 @@
             }
         }
         
+        // ========== INVENTAIRE ==========
+        
+        let currentInventoryFilter = 'all';
+        let inventoryItems = [];
+        
+        function showInventoryScreen() {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById('inventory-screen').classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById('nav-inventory').classList.add('active');
+            
+            currentScreen = 'inventory';
+            loadInventory();
+        }
+        
+        async function loadInventory() {
+            try {
+                const response = await fetch(`${API_URL}/inventory`);
+                const data = await response.json();
+                inventoryItems = data.items || [];
+                
+                displayInventory();
+                updateInventoryAlerts();
+            } catch (error) {
+                console.error('Erreur chargement inventaire:', error);
+            }
+        }
+        
+        function displayInventory() {
+            const container = document.getElementById('inventory-categories');
+            const emptyDiv = document.getElementById('inventory-empty');
+            
+            // Filtrer items
+            let filteredItems = inventoryItems;
+            
+            if (currentInventoryFilter === 'alerts') {
+                filteredItems = inventoryItems.filter(item => hasAlert(item));
+            } else if (currentInventoryFilter === 'À acheter') {
+                filteredItems = inventoryItems.filter(item => item.statut === 'À acheter');
+            }
+            
+            // Grouper par catégorie
+            const categories = {
+                'Outil': [],
+                'Matériau': [],
+                'Produit': [],
+                'Équipement': []
+            };
+            
+            filteredItems.forEach(item => {
+                if (categories[item.categorie]) {
+                    categories[item.categorie].push(item);
+                }
+            });
+            
+            // Afficher
+            if (filteredItems.length === 0) {
+                container.innerHTML = '';
+                emptyDiv.style.display = 'block';
+                return;
+            }
+            
+            emptyDiv.style.display = 'none';
+            container.innerHTML = '';
+            
+            for (const [cat, items] of Object.entries(categories)) {
+                if (items.length === 0) continue;
+                
+                const catIcon = {'Outil': '🔨', 'Matériau': '🧱', 'Produit': '🧪', 'Équipement': '⚙️'}[cat];
+                
+                const section = document.createElement('div');
+                section.style.cssText = 'margin-bottom: 20px;';
+                
+                section.innerHTML = `
+                    <div style="font-weight: 600; font-size: 15px; color: #333; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        ${catIcon} ${cat}s (${items.length})
+                    </div>
+                `;
+                
+                items.forEach(item => {
+                    const itemDiv = createInventoryItemCard(item);
+                    section.appendChild(itemDiv);
+                });
+                
+                container.appendChild(section);
+            }
+        }
+        
+        function createInventoryItemCard(item) {
+            const div = document.createElement('div');
+            const alerts = getItemAlerts(item);
+            const hasAlerts = alerts.length > 0;
+            
+            div.style.cssText = `
+                background: white;
+                border: 2px solid ${hasAlerts ? '#ff9800' : '#e0e0e0'};
+                border-radius: 12px;
+                padding: 14px;
+                margin-bottom: 10px;
+            `;
+            
+            const statutBadge = item.statut === 'Possédé' 
+                ? '<span style="background: #4CAF50; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">✅ Possédé</span>'
+                : '<span style="background: #f44336; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">❌ À acheter</span>';
+            
+            const etatText = item.statut === 'Possédé' ? `
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                    État: ${item.etat === 'Bon' ? '✅' : item.etat === 'À réparer' ? '🔧' : '⚠️'} ${item.etat}
+                </div>
+            ` : '';
+            
+            const quantiteText = item.quantite > 0 ? `
+                <div style="font-size: 13px; color: #666; margin-top: 4px;">
+                    ${item.quantite} ${item.unite || 'unité(s)'}
+                    ${item.seuil_alerte > 0 && item.quantite <= item.seuil_alerte ? '<span style="color: #ff9800; font-weight: 600;">⚠️ Stock bas</span>' : ''}
+                </div>
+            ` : '';
+            
+            const alertsHTML = hasAlerts ? `
+                <div style="margin-top: 8px; padding: 8px; background: #fff3e0; border-radius: 8px; border-left: 3px solid #ff9800;">
+                    ${alerts.map(a => `<div style="font-size: 12px; color: #e65100;">${a.icon} ${a.text}</div>`).join('')}
+                </div>
+            ` : '';
+            
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 4px;">
+                            ${item.nom}
+                        </div>
+                        ${statutBadge}
+                        ${etatText}
+                        ${quantiteText}
+                        ${item.prix_estime > 0 ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">Prix: ${item.prix_estime}€</div>` : ''}
+                        ${item.notes ? `<div style="font-size: 12px; color: #999; margin-top: 6px; font-style: italic;">"${item.notes}"</div>` : ''}
+                        ${alertsHTML}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="editInventoryItem(${item.id})" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                            ✏️
+                        </button>
+                        <button onclick="deleteInventoryItem(${item.id})" style="padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        function hasAlert(item) {
+            return getItemAlerts(item).length > 0;
+        }
+        
+        function getItemAlerts(item) {
+            const alerts = [];
+            
+            // Stock bas
+            if (item.statut === 'Possédé' && item.seuil_alerte > 0 && item.quantite <= item.seuil_alerte) {
+                alerts.push({icon: '📉', text: `Stock bas (${item.quantite} ${item.unite})`});
+            }
+            
+            // Expire bientôt
+            if (item.date_expiration) {
+                const expDate = new Date(item.date_expiration);
+                const today = new Date();
+                const diffDays = Math.floor((expDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 30 && diffDays >= 0) {
+                    alerts.push({icon: '📅', text: `Expire dans ${diffDays}j`});
+                } else if (diffDays < 0) {
+                    alerts.push({icon: '⚠️', text: 'Expiré'});
+                }
+            }
+            
+            // Entretien dû
+            if (item.dernier_entretien) {
+                const entDate = new Date(item.dernier_entretien);
+                const today = new Date();
+                const diffMonths = Math.floor((today - entDate) / (1000 * 60 * 60 * 24 * 30));
+                if (diffMonths > 6) {
+                    alerts.push({icon: '🔧', text: `Entretien dû (${diffMonths} mois)`});
+                }
+            }
+            
+            // À réparer
+            if (item.etat === 'À réparer') {
+                alerts.push({icon: '🔧', text: 'À réparer'});
+            }
+            
+            // À remplacer
+            if (item.etat === 'À remplacer') {
+                alerts.push({icon: '⚠️', text: 'À remplacer'});
+            }
+            
+            return alerts;
+        }
+        
+        function filterInventory(filter) {
+            currentInventoryFilter = filter;
+            
+            // Update button styles
+            document.querySelectorAll('[id^="filter-inv-"]').forEach(btn => {
+                btn.style.background = 'white';
+                btn.style.color = '#666';
+                btn.style.border = '1px solid #ddd';
+            });
+            
+            const btnId = filter === 'all' ? 'filter-inv-all' : filter === 'alerts' ? 'filter-inv-alerts' : 'filter-inv-acheter';
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) {
+                activeBtn.style.background = '#667eea';
+                activeBtn.style.color = 'white';
+                activeBtn.style.border = 'none';
+            }
+            
+            displayInventory();
+        }
+        
+        function updateInventoryAlerts() {
+            const totalItems = inventoryItems.length;
+            const itemsWithAlerts = inventoryItems.filter(hasAlert);
+            const alertCount = itemsWithAlerts.length;
+            
+            // Mise à jour widget Profil
+            document.getElementById('inventory-total-items').textContent = `${totalItems} item${totalItems > 1 ? 's' : ''}`;
+            
+            if (alertCount > 0) {
+                document.getElementById('inventory-alerts-text').textContent = `${alertCount} alerte${alertCount > 1 ? 's' : ''}`;
+                document.getElementById('inventory-alerts-list').style.display = 'flex';
+                
+                const alertsList = document.getElementById('inventory-alerts-list');
+                alertsList.innerHTML = '';
+                
+                itemsWithAlerts.slice(0, 3).forEach(item => {
+                    const alerts = getItemAlerts(item);
+                    const alertDiv = document.createElement('div');
+                    alertDiv.style.cssText = 'background: #fff3e0; padding: 10px; border-radius: 8px; border-left: 3px solid #ff9800;';
+                    alertDiv.innerHTML = `
+                        <div style="font-weight: 600; font-size: 13px; color: #333;">${item.nom}</div>
+                        ${alerts.map(a => `<div style="font-size: 11px; color: #e65100;">${a.icon} ${a.text}</div>`).join('')}
+                    `;
+                    alertsList.appendChild(alertDiv);
+                });
+            } else {
+                document.getElementById('inventory-alerts-text').textContent = 'Aucune alerte';
+                document.getElementById('inventory-alerts-list').style.display = 'none';
+            }
+        }
+        
+        function showAddInventoryForm() {
+            const nom = prompt("Nom de l'item:");
+            if (!nom) return;
+            
+            const categorie = prompt("Catégorie (Outil/Matériau/Produit/Équipement):", "Outil");
+            const statut = confirm("Possédé ? (OK = Possédé, Annuler = À acheter)") ? "Possédé" : "À acheter";
+            
+            addInventoryItem({
+                nom,
+                categorie,
+                statut,
+                etat: 'Bon',
+                quantite: 1,
+                unite: '',
+                seuil_alerte: 1,
+                prix_estime: 0,
+                date_expiration: '',
+                dernier_entretien: '',
+                notes: ''
+            });
+        }
+        
+        async function addInventoryItem(data) {
+            try {
+                const response = await fetch(`${API_URL}/inventory`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    await loadInventory();
+                }
+            } catch (error) {
+                console.error('Erreur ajout item:', error);
+                alert('Erreur lors de l\'ajout');
+            }
+        }
+        
+        function editInventoryItem(itemId) {
+            const item = inventoryItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            const quantite = prompt(`Quantité (${item.unite || 'unité'}):", item.quantite);
+            if (quantite === null) return;
+            
+            updateInventoryItem(itemId, {quantite: parseInt(quantite) || 0});
+        }
+        
+        async function updateInventoryItem(itemId, data) {
+            try {
+                const response = await fetch(`${API_URL}/inventory/${itemId}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    await loadInventory();
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour item:', error);
+            }
+        }
+        
+        async function deleteInventoryItem(itemId) {
+            if (!confirm('Supprimer cet item ?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/inventory/${itemId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadInventory();
+                }
+            } catch (error) {
+                console.error('Erreur suppression item:', error);
+            }
+        }
+        
         function showProfilScreen() {
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
@@ -3253,6 +3652,9 @@
                 
                 // Charger météo
                 loadWeather();
+                
+                // Charger inventaire
+                await loadInventory();
                 
             } catch (error) {
                 console.error('Erreur chargement stats profil:', error);
