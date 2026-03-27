@@ -2418,6 +2418,126 @@
             </div>
         </div>
 
+        <!-- Modal Ajout Inventaire -->
+        <div id="inventory-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 500px; border-radius: 16px; padding: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;">➕ Ajouter un item</h2>
+                    <button onclick="closeInventoryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #999;">×</button>
+                </div>
+
+                <form id="inventory-form" onsubmit="submitInventoryForm(event)">
+                    
+                    <!-- Nom -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Nom *</label>
+                        <input type="text" id="inv-nom" required 
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;"
+                            placeholder="Ex: Bêche, NHL 5, Anti-limaces...">
+                    </div>
+
+                    <!-- Catégorie -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Catégorie *</label>
+                        <select id="inv-categorie" required onchange="updateInventoryFormFields()"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            <option value="Outil">🔨 Outil</option>
+                            <option value="Matériau">🧱 Matériau</option>
+                            <option value="Produit">🧪 Produit</option>
+                            <option value="Équipement">⚙️ Équipement</option>
+                        </select>
+                    </div>
+
+                    <!-- Statut -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Statut *</label>
+                        <select id="inv-statut" required onchange="updateInventoryFormFields()"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            <option value="Possédé">✅ Possédé</option>
+                            <option value="À acheter">❌ À acheter</option>
+                        </select>
+                    </div>
+
+                    <!-- État (si Possédé) -->
+                    <div id="inv-etat-container" style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">État</label>
+                        <select id="inv-etat"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            <option value="Bon">✅ Bon état</option>
+                            <option value="À réparer">🔧 À réparer</option>
+                            <option value="À remplacer">⚠️ À remplacer</option>
+                        </select>
+                    </div>
+
+                    <!-- Quantité + Unité -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Quantité</label>
+                            <input type="number" id="inv-quantite" value="1" min="0" step="0.1"
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Unité</label>
+                            <input type="text" id="inv-unite" placeholder="kg, L, sacs..."
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                        </div>
+                    </div>
+
+                    <!-- Seuil alerte + Prix -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Seuil alerte</label>
+                            <input type="number" id="inv-seuil" value="1" min="0" step="0.1"
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;"
+                                placeholder="Stock minimum">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Prix (€)</label>
+                            <input type="number" id="inv-prix" value="0" min="0" step="0.01"
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                        </div>
+                    </div>
+
+                    <!-- Date expiration (Produits) -->
+                    <div id="inv-expiration-container" style="margin-bottom: 16px; display: none;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📅 Date d'expiration</label>
+                        <input type="date" id="inv-expiration"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Dernier entretien (Outils/Équipements) -->
+                    <div id="inv-entretien-container" style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">🔧 Dernier entretien</label>
+                        <input type="date" id="inv-entretien"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Notes -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📝 Notes</label>
+                        <textarea id="inv-notes" rows="3"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; resize: vertical;"
+                            placeholder="Remarques, emplacement..."></textarea>
+                    </div>
+
+                    <!-- Boutons -->
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="closeInventoryModal()" 
+                            style="flex: 1; padding: 14px; background: white; color: #666; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            style="flex: 1; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            ✅ Ajouter
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showProfilScreen()" id="nav-profil">
@@ -3565,25 +3685,59 @@
         }
         
         function showAddInventoryForm() {
-            const nom = prompt("Nom de l'item:");
-            if (!nom) return;
+            // Réinitialiser le formulaire
+            document.getElementById('inventory-form').reset();
+            document.getElementById('inv-quantite').value = 1;
+            document.getElementById('inv-seuil').value = 1;
+            document.getElementById('inv-prix').value = 0;
             
-            const categorie = prompt("Catégorie (Outil/Matériau/Produit/Équipement):", "Outil");
-            const statut = confirm("Possédé ? (OK = Possédé, Annuler = À acheter)") ? "Possédé" : "À acheter";
+            // Afficher le modal
+            document.getElementById('inventory-modal').style.display = 'block';
             
-            addInventoryItem({
-                nom,
-                categorie,
-                statut,
-                etat: 'Bon',
-                quantite: 1,
-                unite: '',
-                seuil_alerte: 1,
-                prix_estime: 0,
-                date_expiration: '',
-                dernier_entretien: '',
-                notes: ''
-            });
+            // Mettre à jour les champs visibles selon catégorie
+            updateInventoryFormFields();
+        }
+        
+        function closeInventoryModal() {
+            document.getElementById('inventory-modal').style.display = 'none';
+        }
+        
+        function updateInventoryFormFields() {
+            const categorie = document.getElementById('inv-categorie').value;
+            const statut = document.getElementById('inv-statut').value;
+            
+            // État : visible seulement si Possédé
+            const etatContainer = document.getElementById('inv-etat-container');
+            etatContainer.style.display = statut === 'Possédé' ? 'block' : 'none';
+            
+            // Expiration : visible seulement pour Produits
+            const expirationContainer = document.getElementById('inv-expiration-container');
+            expirationContainer.style.display = categorie === 'Produit' ? 'block' : 'none';
+            
+            // Entretien : visible pour Outils et Équipements
+            const entretienContainer = document.getElementById('inv-entretien-container');
+            entretienContainer.style.display = (categorie === 'Outil' || categorie === 'Équipement') ? 'block' : 'none';
+        }
+        
+        function submitInventoryForm(event) {
+            event.preventDefault();
+            
+            const data = {
+                nom: document.getElementById('inv-nom').value,
+                categorie: document.getElementById('inv-categorie').value,
+                statut: document.getElementById('inv-statut').value,
+                etat: document.getElementById('inv-etat').value,
+                quantite: parseFloat(document.getElementById('inv-quantite').value) || 0,
+                unite: document.getElementById('inv-unite').value,
+                seuil_alerte: parseFloat(document.getElementById('inv-seuil').value) || 0,
+                prix_estime: parseFloat(document.getElementById('inv-prix').value) || 0,
+                date_expiration: document.getElementById('inv-expiration').value,
+                dernier_entretien: document.getElementById('inv-entretien').value,
+                notes: document.getElementById('inv-notes').value
+            };
+            
+            addInventoryItem(data);
+            closeInventoryModal();
         }
         
         async function addInventoryItem(data) {
