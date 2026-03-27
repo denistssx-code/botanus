@@ -3599,7 +3599,7 @@
             const item = inventoryItems.find(i => i.id === itemId);
             if (!item) return;
             
-            const quantite = prompt(`Quantité (${item.unite || 'unité'}):", item.quantite);
+            const quantite = prompt("Quantité (" + (item.unite || "unité") + "):", item.quantite);
             if (quantite === null) return;
             
             updateInventoryItem(itemId, {quantite: parseInt(quantite) || 0});
