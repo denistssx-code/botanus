@@ -157,10 +157,19 @@
             display: flex;
             padding: 8px 0;
             z-index: 1000;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .bottom-nav::-webkit-scrollbar {
+            height: 0;
+            display: none;
         }
         
         .nav-item {
-            flex: 1;
+            min-width: 70px;
+            flex-shrink: 0;
             text-align: center;
             padding: 8px;
             cursor: pointer;
@@ -310,11 +319,18 @@
             background: white;
             border-top: 1px solid #e0e0e0;
             display: flex;
-            justify-content: space-around;
             align-items: center;
             padding: 0 10px;
             z-index: 1000;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .bottom-nav::-webkit-scrollbar {
+            height: 0;
+            display: none;
         }
         
         .nav-btn {
@@ -3289,6 +3305,15 @@
         async function loadInventory() {
             try {
                 const response = await fetch(`${API_URL}/inventory`);
+                
+                // Si erreur API (table n'existe pas), utiliser tableau vide
+                if (!response.ok) {
+                    console.warn('Table Inventaire non disponible (normal si pas encore créée)');
+                    inventoryItems = [];
+                    updateInventoryAlerts();
+                    return;
+                }
+                
                 const data = await response.json();
                 inventoryItems = data.items || [];
                 
@@ -3296,6 +3321,8 @@
                 updateInventoryAlerts();
             } catch (error) {
                 console.error('Erreur chargement inventaire:', error);
+                inventoryItems = [];
+                updateInventoryAlerts();
             }
         }
         
@@ -3495,15 +3522,23 @@
             const itemsWithAlerts = inventoryItems.filter(hasAlert);
             const alertCount = itemsWithAlerts.length;
             
-            // Mise à jour widget Profil
-            document.getElementById('inventory-total-items').textContent = `${totalItems} item${totalItems > 1 ? 's' : ''}`;
+            // Mise à jour widget Profil (seulement si éléments existent)
+            const totalItemsEl = document.getElementById('inventory-total-items');
+            const alertsTextEl = document.getElementById('inventory-alerts-text');
+            const alertsListEl = document.getElementById('inventory-alerts-list');
+            
+            if (!totalItemsEl || !alertsTextEl || !alertsListEl) {
+                // Éléments pas encore chargés, pas grave
+                return;
+            }
+            
+            totalItemsEl.textContent = `${totalItems} item${totalItems > 1 ? 's' : ''}`;
             
             if (alertCount > 0) {
-                document.getElementById('inventory-alerts-text').textContent = `${alertCount} alerte${alertCount > 1 ? 's' : ''}`;
-                document.getElementById('inventory-alerts-list').style.display = 'flex';
+                alertsTextEl.textContent = `${alertCount} alerte${alertCount > 1 ? 's' : ''}`;
+                alertsListEl.style.display = 'flex';
                 
-                const alertsList = document.getElementById('inventory-alerts-list');
-                alertsList.innerHTML = '';
+                alertsListEl.innerHTML = '';
                 
                 itemsWithAlerts.slice(0, 3).forEach(item => {
                     const alerts = getItemAlerts(item);
@@ -3513,11 +3548,11 @@
                         <div style="font-weight: 600; font-size: 13px; color: #333;">${item.nom}</div>
                         ${alerts.map(a => `<div style="font-size: 11px; color: #e65100;">${a.icon} ${a.text}</div>`).join('')}
                     `;
-                    alertsList.appendChild(alertDiv);
+                    alertsListEl.appendChild(alertDiv);
                 });
             } else {
-                document.getElementById('inventory-alerts-text').textContent = 'Aucune alerte';
-                document.getElementById('inventory-alerts-list').style.display = 'none';
+                alertsTextEl.textContent = 'Aucune alerte';
+                alertsListEl.style.display = 'none';
             }
         }
         
