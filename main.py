@@ -782,6 +782,10 @@ tasks_db = {
     # Structure: { 'task_id': { 'title': '...', 'description': '...', 'category': '...', 'status': 'todo/done', 'created_at': '...', 'completed_at': '...', 'airtable_id': '...' } }
 }
 
+inventory_db = {
+    # Structure: { 'inventory_id': { 'nom': '...', 'categorie': 'Outil/Matériau/Produit/Équipement', 'statut': 'Possédé/À acheter', 'etat': 'Bon/À réparer/À remplacer', 'quantite': 0, 'unite': '', 'seuil_alerte': 0, 'prix_estime': 0, 'date_expiration': '', 'dernier_entretien': '', 'notes': '', 'airtable_id': '' } }
+}
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
@@ -793,6 +797,12 @@ def get_next_task_id():
     if not tasks_db:
         return 1
     return max(tasks_db.keys()) + 1
+
+def get_next_inventory_id():
+    """Génère un ID unique pour un item d'inventaire"""
+    if not inventory_db:
+        return 1
+    return max(inventory_db.keys()) + 1
 
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
@@ -1747,6 +1757,90 @@ def delete_task_route(task_id):
     
     return jsonify({'error': 'Tâche non trouvée'}), 404
 
+# ========== ROUTES INVENTAIRE ==========
+
+@app.route('/api/inventory', methods=['GET'])
+def get_inventory():
+    """Récupère tout l'inventaire"""
+    items = [
+        {'id': item_id, **item_data}
+        for item_id, item_data in inventory_db.items()
+    ]
+    return jsonify({'items': items})
+
+@app.route('/api/inventory', methods=['POST'])
+def add_inventory_item():
+    """Ajoute un item à l'inventaire"""
+    data = request.json
+    
+    item_id = get_next_inventory_id()
+    
+    item = {
+        'nom': data.get('nom', ''),
+        'categorie': data.get('categorie', 'Outil'),  # Outil / Matériau / Produit / Équipement
+        'statut': data.get('statut', 'Possédé'),  # Possédé / À acheter
+        'etat': data.get('etat', 'Bon'),  # Bon / À réparer / À remplacer
+        'quantite': data.get('quantite', 1),
+        'unite': data.get('unite', ''),  # pièce / kg / L / sacs / etc.
+        'seuil_alerte': data.get('seuil_alerte', 1),
+        'prix_estime': data.get('prix_estime', 0),
+        'date_expiration': data.get('date_expiration', ''),  # YYYY-MM-DD ou vide
+        'dernier_entretien': data.get('dernier_entretien', ''),  # YYYY-MM-DD ou vide
+        'notes': data.get('notes', ''),
+        'airtable_id': '',
+        'created_at': datetime.now().isoformat()
+    }
+    
+    inventory_db[item_id] = item
+    
+    # Sauvegarder dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_id = airtable_client.upsert_inventory_item(item_id, item)
+        if airtable_id:
+            inventory_db[item_id]['airtable_id'] = airtable_id
+    
+    return jsonify({
+        'success': True,
+        'item': {'id': item_id, **item}
+    })
+
+@app.route('/api/inventory/<int:item_id>', methods=['PATCH'])
+def update_inventory_item(item_id):
+    """Modifie un item de l'inventaire"""
+    if item_id not in inventory_db:
+        return jsonify({'error': 'Item non trouvé'}), 404
+    
+    data = request.json
+    
+    # Mettre à jour les champs fournis
+    for key in ['nom', 'categorie', 'statut', 'etat', 'quantite', 'unite', 'seuil_alerte', 'prix_estime', 'date_expiration', 'dernier_entretien', 'notes']:
+        if key in data:
+            inventory_db[item_id][key] = data[key]
+    
+    inventory_db[item_id]['updated_at'] = datetime.now().isoformat()
+    
+    # Mettre à jour dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_client.upsert_inventory_item(item_id, inventory_db[item_id])
+    
+    return jsonify({
+        'success': True,
+        'item': {'id': item_id, **inventory_db[item_id]}
+    })
+
+@app.route('/api/inventory/<int:item_id>', methods=['DELETE'])
+def delete_inventory_item(item_id):
+    """Supprime un item de l'inventaire"""
+    if item_id in inventory_db:
+        # Supprimer d'Airtable
+        if AIRTABLE_ENABLED and airtable_client:
+            airtable_client.delete_inventory_item(item_id)
+        
+        del inventory_db[item_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Item non trouvé'}), 404
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Récupère la météo et génère des alertes pour Malaucène"""
@@ -1937,7 +2031,7 @@ def load_from_airtable():
     Charge toutes les plantes ET les tags ET les tâches depuis Airtable au démarrage de l'application
     Évite la perte de données en cas de redémarrage
     """
-    global library_db, notes_db, tags_db, tasks_db
+    global library_db, notes_db, tags_db, tasks_db, inventory_db
     
     print("\n" + "="*60)
     print("🔄 CHARGEMENT DEPUIS AIRTABLE")
@@ -1996,6 +2090,31 @@ def load_from_airtable():
             tasks_db[task_id] = task_data
         
         print(f"✅ {len(tasks_db)} tâches chargées")
+        
+        # ====== CHARGER L'INVENTAIRE ======
+        print("\n📥 Chargement de l'inventaire...")
+        airtable_inventory = airtable_client.get_all_inventory_items()
+        
+        inventory_db.clear()
+        for item in airtable_inventory:
+            item_id = item['id']
+            inventory_db[item_id] = {
+                'nom': item.get('nom', ''),
+                'categorie': item.get('categorie', 'Outil'),
+                'statut': item.get('statut', 'Possédé'),
+                'etat': item.get('etat', 'Bon'),
+                'quantite': item.get('quantite', 1),
+                'unite': item.get('unite', ''),
+                'seuil_alerte': item.get('seuil_alerte', 1),
+                'prix_estime': item.get('prix_estime', 0),
+                'date_expiration': item.get('date_expiration', ''),
+                'dernier_entretien': item.get('dernier_entretien', ''),
+                'notes': item.get('notes', ''),
+                'airtable_id': item.get('airtable_id', ''),
+                'created_at': item.get('created_at', '')
+            }
+        
+        print(f"✅ {len(inventory_db)} items d'inventaire chargés")
         
         # ====== CHARGER LES PLANTES ======
         print("\n📥 Chargement des plantes...")
@@ -2188,6 +2307,9 @@ def load_from_airtable():
         print(f"📊 État final:")
         print(f"   - library_db: {len(library_db)} plantes")
         print(f"   - notes_db: {len(notes_db)} entrées")
+        print(f"   - tags_db: {len(tags_db)} tags")
+        print(f"   - tasks_db: {len(tasks_db)} tâches")
+        print(f"   - inventory_db: {len(inventory_db)} items")
         print("="*60 + "\n")
         
     except Exception as e:

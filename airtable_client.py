@@ -886,6 +886,113 @@ class AirtableClient:
         
         return False
     
+    # ========== GESTION INVENTAIRE ==========
+    
+    def get_all_inventory_items(self) -> List[Dict]:
+        """Récupère tous les items d'inventaire depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_INVENTAIRE', 'Inventaire')
+            result = self._request('GET', table_name)
+            if result and 'records' in result:
+                items = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'inventory_id' in fields:
+                        items.append({
+                            'id': fields['inventory_id'],
+                            'nom': fields.get('nom', ''),
+                            'categorie': fields.get('categorie', 'Outil'),
+                            'statut': fields.get('statut', 'Possédé'),
+                            'etat': fields.get('etat', 'Bon'),
+                            'quantite': fields.get('quantite', 1),
+                            'unite': fields.get('unite', ''),
+                            'seuil_alerte': fields.get('seuil_alerte', 1),
+                            'prix_estime': fields.get('prix_estime', 0),
+                            'date_expiration': fields.get('date_expiration', ''),
+                            'dernier_entretien': fields.get('dernier_entretien', ''),
+                            'notes': fields.get('notes', ''),
+                            'airtable_id': record['id'],
+                            'created_at': fields.get('created_at', '')
+                        })
+                print(f"✅ {len(items)} items d'inventaire chargés depuis Airtable")
+                return items
+        except Exception as e:
+            print(f"❌ Erreur chargement inventaire: {e}")
+        
+        return []
+    
+    def upsert_inventory_item(self, item_id: int, item_data: Dict) -> Optional[str]:
+        """Crée ou met à jour un item d'inventaire dans Airtable"""
+        if not self.enabled:
+            return None
+        
+        try:
+            from datetime import datetime
+            table_name = os.environ.get('AIRTABLE_TABLE_INVENTAIRE', 'Inventaire')
+            
+            fields = {
+                'inventory_id': item_id,
+                'nom': item_data.get('nom', ''),
+                'categorie': item_data.get('categorie', 'Outil'),
+                'statut': item_data.get('statut', 'Possédé'),
+                'etat': item_data.get('etat', 'Bon'),
+                'quantite': item_data.get('quantite', 1),
+                'unite': item_data.get('unite', ''),
+                'seuil_alerte': item_data.get('seuil_alerte', 1),
+                'prix_estime': item_data.get('prix_estime', 0),
+                'date_expiration': item_data.get('date_expiration', ''),
+                'dernier_entretien': item_data.get('dernier_entretien', ''),
+                'notes': item_data.get('notes', ''),
+                'created_at': item_data.get('created_at', datetime.now().strftime('%Y-%m-%d'))
+            }
+            
+            # Si airtable_id existe, UPDATE
+            if item_data.get('airtable_id'):
+                data = {'fields': fields}
+                result = self._request('PATCH', f"{table_name}/{item_data['airtable_id']}", data)
+                if result:
+                    print(f"✅ Item inventaire {item_id} mis à jour dans Airtable")
+                    return result['id']
+            # Sinon, CREATE
+            else:
+                data = {'fields': fields}
+                result = self._request('POST', table_name, data)
+                if result:
+                    print(f"✅ Item inventaire {item_id} créé dans Airtable (ID: {result['id']})")
+                    return result['id']
+        
+        except Exception as e:
+            print(f"❌ Erreur sauvegarde item inventaire: {e}")
+        
+        return None
+    
+    def delete_inventory_item(self, item_id: int) -> bool:
+        """Supprime un item d'inventaire depuis Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            table_name = os.environ.get('AIRTABLE_TABLE_INVENTAIRE', 'Inventaire')
+            formula = f"{{inventory_id}}={item_id}"
+            
+            result = self._request('GET', f"{table_name}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                delete_result = self._request('DELETE', f"{table_name}/{record_id}")
+                
+                if delete_result:
+                    print(f"✅ Item inventaire {item_id} supprimé d'Airtable")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur suppression item inventaire: {e}")
+        
+        return False
+    
     def test_connection(self) -> bool:
         """Test la connexion à Airtable"""
         if not self.enabled:
