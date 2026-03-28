@@ -958,9 +958,7 @@ class AirtableClient:
             if item_data.get('dernier_entretien'):
                 fields['dernier_entretien'] = item_data['dernier_entretien']
             
-            # created_at seulement si fourni
-            if item_data.get('created_at'):
-                fields['created_at'] = item_data['created_at']
+            # NE PAS envoyer created_at - Airtable le gère automatiquement
             
             # Si airtable_id existe, UPDATE
             if item_data.get('airtable_id'):
