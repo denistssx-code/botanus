@@ -3731,10 +3731,19 @@
                 unite: document.getElementById('inv-unite').value,
                 seuil_alerte: parseFloat(document.getElementById('inv-seuil').value) || 0,
                 prix_estime: parseFloat(document.getElementById('inv-prix').value) || 0,
-                date_expiration: document.getElementById('inv-expiration').value,
-                dernier_entretien: document.getElementById('inv-entretien').value,
                 notes: document.getElementById('inv-notes').value
             };
+            
+            // Ajouter dates seulement si remplies
+            const dateExpiration = document.getElementById('inv-expiration').value;
+            if (dateExpiration) {
+                data.date_expiration = dateExpiration;
+            }
+            
+            const dernierEntretien = document.getElementById('inv-entretien').value;
+            if (dernierEntretien) {
+                data.dernier_entretien = dernierEntretien;
+            }
             
             addInventoryItem(data);
             closeInventoryModal();
