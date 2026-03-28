@@ -1784,12 +1784,17 @@ def add_inventory_item():
         'unite': data.get('unite', ''),  # pièce / kg / L / sacs / etc.
         'seuil_alerte': data.get('seuil_alerte', 1),
         'prix_estime': data.get('prix_estime', 0),
-        'date_expiration': data.get('date_expiration', ''),  # YYYY-MM-DD ou vide
-        'dernier_entretien': data.get('dernier_entretien', ''),  # YYYY-MM-DD ou vide
         'notes': data.get('notes', ''),
         'airtable_id': '',
         'created_at': datetime.now().isoformat()
     }
+    
+    # Ajouter dates seulement si présentes
+    if 'date_expiration' in data and data['date_expiration']:
+        item['date_expiration'] = data['date_expiration']
+    
+    if 'dernier_entretien' in data and data['dernier_entretien']:
+        item['dernier_entretien'] = data['dernier_entretien']
     
     inventory_db[item_id] = item
     

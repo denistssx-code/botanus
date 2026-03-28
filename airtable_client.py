@@ -940,14 +940,27 @@ class AirtableClient:
                 'statut': item_data.get('statut', 'Possédé'),
                 'etat': item_data.get('etat', 'Bon'),
                 'quantite': item_data.get('quantite', 1),
-                'unite': item_data.get('unite', ''),
                 'seuil_alerte': item_data.get('seuil_alerte', 1),
                 'prix_estime': item_data.get('prix_estime', 0),
-                'date_expiration': item_data.get('date_expiration', ''),
-                'dernier_entretien': item_data.get('dernier_entretien', ''),
-                'notes': item_data.get('notes', ''),
-                'created_at': item_data.get('created_at', datetime.now().strftime('%Y-%m-%d'))
             }
+            
+            # Champs optionnels - seulement si non vides
+            if item_data.get('unite'):
+                fields['unite'] = item_data['unite']
+            
+            if item_data.get('notes'):
+                fields['notes'] = item_data['notes']
+            
+            # Dates - seulement si non vides
+            if item_data.get('date_expiration'):
+                fields['date_expiration'] = item_data['date_expiration']
+            
+            if item_data.get('dernier_entretien'):
+                fields['dernier_entretien'] = item_data['dernier_entretien']
+            
+            # created_at seulement si fourni
+            if item_data.get('created_at'):
+                fields['created_at'] = item_data['created_at']
             
             # Si airtable_id existe, UPDATE
             if item_data.get('airtable_id'):
