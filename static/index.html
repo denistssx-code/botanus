@@ -2784,12 +2784,39 @@
                             placeholder="Détails de l'intervention..."></textarea>
                     </div>
 
-                    <!-- Météo (lecture seule - rempli auto) -->
+                    <!-- Météo -->
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">🌡️ Météo du jour</label>
-                        <input type="text" id="journal-meteo" readonly
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #f5f5f5; cursor: not-allowed;"
-                            placeholder="Chargement...">
+                        
+                        <!-- Mode AUTO (aujourd'hui) -->
+                        <div id="journal-meteo-auto-container">
+                            <input type="text" id="journal-meteo-auto" readonly
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #f5f5f5; cursor: not-allowed;"
+                                placeholder="Chargement...">
+                        </div>
+                        
+                        <!-- Mode MANUEL (date passée) -->
+                        <div id="journal-meteo-manual-container" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                                <select id="journal-meteo-condition"
+                                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="☀️ Ensoleillé">☀️ Ensoleillé</option>
+                                    <option value="⛅ Partiellement nuageux">⛅ Partiellement nuageux</option>
+                                    <option value="☁️ Nuageux">☁️ Nuageux</option>
+                                    <option value="🌤️ Éclaircies">🌤️ Éclaircies</option>
+                                    <option value="🌦️ Averses">🌦️ Averses</option>
+                                    <option value="🌧️ Pluvieux">🌧️ Pluvieux</option>
+                                    <option value="⛈️ Orageux">⛈️ Orageux</option>
+                                    <option value="❄️ Neigeux">❄️ Neigeux</option>
+                                    <option value="🌫️ Brumeux">🌫️ Brumeux</option>
+                                    <option value="💨 Venteux">💨 Venteux</option>
+                                </select>
+                                <input type="number" id="journal-meteo-temp" placeholder="Temp °C"
+                                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-top: 6px;">Température optionnelle</div>
+                        </div>
                     </div>
 
                     <!-- Boutons -->
@@ -4334,10 +4361,51 @@
             document.getElementById('journal-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('journal-heure').value = new Date().toTimeString().slice(0, 5);
             
-            // Charger météo du jour
-            await loadCurrentWeather();
+            // Mettre à jour mode météo selon date
+            updateMeteoMode();
+            
+            // Si aujourd'hui, charger météo auto
+            if (isToday(document.getElementById('journal-date').value)) {
+                await loadCurrentWeather();
+            }
             
             document.getElementById('journal-modal').style.display = 'block';
+            
+            // Ajouter listener sur changement de date
+            document.getElementById('journal-date').removeEventListener('change', onJournalDateChange);
+            document.getElementById('journal-date').addEventListener('change', onJournalDateChange);
+        }
+        
+        function isToday(dateString) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateString === today;
+        }
+        
+        function updateMeteoMode() {
+            const selectedDate = document.getElementById('journal-date').value;
+            const isDateToday = isToday(selectedDate);
+            
+            const autoContainer = document.getElementById('journal-meteo-auto-container');
+            const manualContainer = document.getElementById('journal-meteo-manual-container');
+            
+            if (isDateToday) {
+                // Mode AUTO (aujourd'hui)
+                autoContainer.style.display = 'block';
+                manualContainer.style.display = 'none';
+            } else {
+                // Mode MANUEL (date passée/future)
+                autoContainer.style.display = 'none';
+                manualContainer.style.display = 'block';
+            }
+        }
+        
+        async function onJournalDateChange() {
+            updateMeteoMode();
+            
+            // Si changé vers aujourd'hui, charger météo
+            if (isToday(document.getElementById('journal-date').value)) {
+                await loadCurrentWeather();
+            }
         }
         
         async function loadCurrentWeather() {
@@ -4351,12 +4419,12 @@
                         const temp = Math.round(data.current.temp);
                         const icon = data.current.icon || '☀️';
                         const desc = data.current.description || '';
-                        document.getElementById('journal-meteo').value = `${icon} ${temp}°C${desc ? ' - ' + desc : ''}`;
+                        document.getElementById('journal-meteo-auto').value = `${icon} ${temp}°C${desc ? ' - ' + desc : ''}`;
                     }
                 }
             } catch (error) {
                 console.error('Erreur chargement météo:', error);
-                document.getElementById('journal-meteo').value = '';
+                document.getElementById('journal-meteo-auto').value = '';
             }
         }
         
@@ -4368,14 +4436,31 @@
         function submitJournalForm(event) {
             event.preventDefault();
             
+            // Construire valeur météo selon mode
+            let meteoValue = '';
+            const selectedDate = document.getElementById('journal-date').value;
+            
+            if (isToday(selectedDate)) {
+                // Mode AUTO
+                meteoValue = document.getElementById('journal-meteo-auto').value;
+            } else {
+                // Mode MANUEL
+                const condition = document.getElementById('journal-meteo-condition').value;
+                const temp = document.getElementById('journal-meteo-temp').value;
+                
+                if (condition) {
+                    meteoValue = temp ? `${condition} - ${temp}°C` : condition;
+                }
+            }
+            
             const data = {
-                date: document.getElementById('journal-date').value,
+                date: selectedDate,
                 heure: document.getElementById('journal-heure').value,
                 categorie: document.getElementById('journal-categorie').value,
                 emplacement: document.getElementById('journal-emplacement').value,
                 titre: document.getElementById('journal-titre').value,
                 notes: document.getElementById('journal-notes').value,
-                meteo: document.getElementById('journal-meteo').value
+                meteo: meteoValue
             };
             
             if (currentEditingJournalId) {
@@ -4417,9 +4502,33 @@
             document.getElementById('journal-emplacement').value = entry.emplacement || '';
             document.getElementById('journal-titre').value = entry.titre || '';
             document.getElementById('journal-notes').value = entry.notes || '';
-            document.getElementById('journal-meteo').value = entry.meteo || '';
+            
+            // Mettre à jour mode météo
+            updateMeteoMode();
+            
+            // Remplir météo selon mode
+            const meteoValue = entry.meteo || '';
+            if (isToday(entry.date)) {
+                // Mode AUTO
+                document.getElementById('journal-meteo-auto').value = meteoValue;
+            } else {
+                // Mode MANUEL - Parser la valeur
+                // Format possible: "☀️ Ensoleillé - 18°C" ou "☀️ Ensoleillé"
+                const tempMatch = meteoValue.match(/(\d+)°C/);
+                const temp = tempMatch ? tempMatch[1] : '';
+                
+                // Extraire condition (avant " - ")
+                const condition = meteoValue.split(' - ')[0];
+                
+                document.getElementById('journal-meteo-condition').value = condition;
+                document.getElementById('journal-meteo-temp').value = temp;
+            }
             
             document.getElementById('journal-modal').style.display = 'block';
+            
+            // Ajouter listener sur changement de date
+            document.getElementById('journal-date').removeEventListener('change', onJournalDateChange);
+            document.getElementById('journal-date').addEventListener('change', onJournalDateChange);
         }
         
         async function updateJournalEntry(entryId, data) {
