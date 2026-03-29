@@ -2266,6 +2266,26 @@
                         </div>
                     </div>
 
+                    <!-- Journal de bord -->
+                    <div class="info-group">
+                        <div class="info-title">📔 Journal de bord</div>
+                        
+                        <div id="journal-widget-container" style="margin-top: 12px;">
+                            <div id="journal-widget-summary">
+                                <div style="font-size: 13px; color: #666; margin-bottom: 12px;" id="journal-widget-text">
+                                    Aucune entrée
+                                </div>
+                                <div id="journal-widget-last" style="display: none; background: #f5f5f5; padding: 12px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #9B59B6;">
+                                    <!-- Dernière entrée -->
+                                </div>
+                            </div>
+                            
+                            <button onclick="showJournalScreen()" style="width: 100%; padding: 12px; background: #9B59B6; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Voir le journal →
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Import/Export -->
                     <div class="info-group">
                         <div class="info-title">💾 Données</div>
@@ -2657,6 +2677,138 @@
             </div>
         </div>
 
+        <!-- Écran Journal -->
+        <div class="screen" id="journal-screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #8E44AD, #9B59B6);">
+                <div class="app-title">📔 Journal de Bord</div>
+                <div class="app-subtitle">Observations et travaux</div>
+            </div>
+
+            <div class="main-content">
+                
+                <!-- Filtres -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <button onclick="filterJournal('all')" id="filter-journal-all" style="padding: 8px 16px; background: #9B59B6; color: white; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                        Tout
+                    </button>
+                    <button onclick="filterJournal('7days')" id="filter-journal-7days" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                        7 jours
+                    </button>
+                    <button onclick="filterJournal('30days')" id="filter-journal-30days" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                        30 jours
+                    </button>
+                </div>
+
+                <!-- Bouton ajouter -->
+                <button onclick="showAddJournalForm()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    ➕ Nouvelle entrée
+                </button>
+
+                <!-- Timeline -->
+                <div id="journal-timeline">
+                    <!-- Rempli dynamiquement -->
+                </div>
+
+                <!-- Message vide -->
+                <div id="journal-empty" style="display: none; text-align: center; padding: 40px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📔</div>
+                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Journal vide</div>
+                    <div style="font-size: 14px;">Commencez par ajouter une entrée</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modal Ajout/Édition Journal -->
+        <div id="journal-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 500px; border-radius: 16px; padding: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;" id="journal-modal-title">➕ Nouvelle entrée</h2>
+                    <button onclick="closeJournalModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #999;">×</button>
+                </div>
+
+                <form id="journal-form" onsubmit="submitJournalForm(event)">
+                    
+                    <!-- Date -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📅 Date *</label>
+                        <input type="date" id="journal-date" required 
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Heure -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">⏰ Heure</label>
+                        <input type="time" id="journal-heure"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Catégorie -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">🏷️ Catégorie *</label>
+                        <select id="journal-categorie" required
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            <option value="Semis / Plantation">🌱 Semis / Plantation</option>
+                            <option value="Entretien / Taille">🔧 Entretien / Taille</option>
+                            <option value="Arrosage">💧 Arrosage</option>
+                            <option value="Traitement">🧪 Traitement</option>
+                            <option value="Travaux / Aménagement">🏗️ Travaux / Aménagement</option>
+                            <option value="Piscine">🏊 Piscine</option>
+                            <option value="Observation">📸 Observation</option>
+                            <option value="Problème détecté">⚠️ Problème détecté</option>
+                            <option value="Récolte">✅ Récolte</option>
+                            <option value="Autre">📝 Autre</option>
+                        </select>
+                    </div>
+
+                    <!-- Emplacement -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📍 Emplacement</label>
+                        <input type="text" id="journal-emplacement" placeholder="Potager, Serre, Piscine..."
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Titre -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📋 Titre *</label>
+                        <input type="text" id="journal-titre" required placeholder="Ex: Semis tomates..."
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+
+                    <!-- Notes -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📝 Notes</label>
+                        <textarea id="journal-notes" rows="4"
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; resize: vertical;"
+                            placeholder="Détails de l'intervention..."></textarea>
+                    </div>
+
+                    <!-- Météo (lecture seule - rempli auto) -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">🌡️ Météo du jour</label>
+                        <input type="text" id="journal-meteo" readonly
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #f5f5f5; cursor: not-allowed;"
+                            placeholder="Chargement...">
+                    </div>
+
+                    <!-- Boutons -->
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="closeJournalModal()" 
+                            style="flex: 1; padding: 14px; background: white; color: #666; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            Annuler
+                        </button>
+                        <button type="submit" id="journal-submit-btn"
+                            style="flex: 1; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            ✅ Ajouter
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showProfilScreen()" id="nav-profil">
@@ -2686,6 +2838,10 @@
             <div class="nav-item" onclick="showCalendrierScreen()" id="nav-calendrier">
                 <div class="nav-icon">📆</div>
                 <div class="nav-label">Calendrier</div>
+            </div>
+            <div class="nav-item" onclick="showJournalScreen()" id="nav-journal">
+                <div class="nav-icon">📔</div>
+                <div class="nav-label">Journal</div>
             </div>
         </div>
 
@@ -3999,6 +4155,351 @@
             }
         }
         
+        // ========== JOURNAL ==========
+        
+        let currentJournalFilter = 'all';
+        let journalEntries = [];
+        let currentEditingJournalId = null;
+        let currentWeatherData = null;
+        
+        function showJournalScreen() {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById('journal-screen').classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById('nav-journal').classList.add('active');
+            
+            currentScreen = 'journal';
+            loadJournal();
+        }
+        
+        async function loadJournal() {
+            try {
+                const response = await fetch(`${API_URL}/journal`);
+                const data = await response.json();
+                journalEntries = data.entries || [];
+                
+                displayJournal();
+                updateJournalWidget();
+            } catch (error) {
+                console.error('Erreur chargement journal:', error);
+                journalEntries = [];
+                displayJournal();
+            }
+        }
+        
+        function displayJournal() {
+            const timeline = document.getElementById('journal-timeline');
+            const emptyDiv = document.getElementById('journal-empty');
+            
+            if (!timeline || !emptyDiv) return;
+            
+            // Filtrer entrées
+            let filteredEntries = journalEntries;
+            
+            if (currentJournalFilter === '7days') {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                filteredEntries = journalEntries.filter(e => new Date(e.date) >= sevenDaysAgo);
+            } else if (currentJournalFilter === '30days') {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                filteredEntries = journalEntries.filter(e => new Date(e.date) >= thirtyDaysAgo);
+            }
+            
+            // Afficher
+            if (filteredEntries.length === 0) {
+                timeline.innerHTML = '';
+                emptyDiv.style.display = 'block';
+                return;
+            }
+            
+            emptyDiv.style.display = 'none';
+            timeline.innerHTML = '';
+            
+            // Grouper par date
+            const groupedByDate = {};
+            filteredEntries.forEach(entry => {
+                const date = entry.date || '';
+                if (!groupedByDate[date]) {
+                    groupedByDate[date] = [];
+                }
+                groupedByDate[date].push(entry);
+            });
+            
+            // Afficher chaque groupe
+            Object.keys(groupedByDate).sort().reverse().forEach(date => {
+                const entries = groupedByDate[date];
+                const dateObj = new Date(date);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                let dateLabel = date;
+                if (date === today.toISOString().split('T')[0]) {
+                    dateLabel = "Aujourd'hui";
+                } else if (date === yesterday.toISOString().split('T')[0]) {
+                    dateLabel = "Hier";
+                } else {
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    dateLabel = dateObj.toLocaleDateString('fr-FR', options);
+                }
+                
+                const dateHeader = document.createElement('div');
+                dateHeader.style.cssText = 'font-weight: 600; font-size: 14px; color: #9B59B6; margin: 20px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #9B59B6;';
+                dateHeader.textContent = `📅 ${dateLabel}`;
+                timeline.appendChild(dateHeader);
+                
+                entries.forEach(entry => {
+                    const entryCard = createJournalEntryCard(entry);
+                    timeline.appendChild(entryCard);
+                });
+            });
+        }
+        
+        function createJournalEntryCard(entry) {
+            const div = document.createElement('div');
+            div.style.cssText = 'background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 14px; margin-bottom: 12px;';
+            
+            const catIcon = {
+                'Semis / Plantation': '🌱',
+                'Entretien / Taille': '🔧',
+                'Arrosage': '💧',
+                'Traitement': '🧪',
+                'Travaux / Aménagement': '🏗️',
+                'Piscine': '🏊',
+                'Observation': '📸',
+                'Problème détecté': '⚠️',
+                'Récolte': '✅',
+                'Autre': '📝'
+            }[entry.categorie] || '📝';
+            
+            const heureText = entry.heure ? `${entry.heure}` : '';
+            const emplacementText = entry.emplacement ? ` · ${entry.emplacement}` : '';
+            const meteoText = entry.meteo ? `<div style="font-size: 12px; color: #999; margin-top: 6px;">${entry.meteo}</div>` : '';
+            
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 15px; color: #333; margin-bottom: 4px;">
+                            ${catIcon} ${entry.titre}
+                        </div>
+                        <div style="font-size: 12px; color: #9B59B6; margin-bottom: 8px;">
+                            ${entry.categorie}${heureText ? ' · ' + heureText : ''}${emplacementText}
+                        </div>
+                        ${entry.notes ? `<div style="font-size: 13px; color: #666; line-height: 1.5; white-space: pre-wrap;">${entry.notes}</div>` : ''}
+                        ${meteoText}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="editJournalEntry(${entry.id})" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                            ✏️
+                        </button>
+                        <button onclick="deleteJournalEntry(${entry.id})" style="padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        function filterJournal(filter) {
+            currentJournalFilter = filter;
+            
+            document.querySelectorAll('[id^="filter-journal-"]').forEach(btn => {
+                btn.style.background = 'white';
+                btn.style.color = '#666';
+                btn.style.border = '1px solid #ddd';
+            });
+            
+            const btnId = `filter-journal-${filter}`;
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) {
+                activeBtn.style.background = '#9B59B6';
+                activeBtn.style.color = 'white';
+                activeBtn.style.border = 'none';
+            }
+            
+            displayJournal();
+        }
+        
+        async function showAddJournalForm() {
+            currentEditingJournalId = null;
+            document.getElementById('journal-modal-title').textContent = '➕ Nouvelle entrée';
+            document.getElementById('journal-submit-btn').textContent = '✅ Ajouter';
+            
+            // Réinitialiser formulaire
+            document.getElementById('journal-form').reset();
+            document.getElementById('journal-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('journal-heure').value = new Date().toTimeString().slice(0, 5);
+            
+            // Charger météo du jour
+            await loadCurrentWeather();
+            
+            document.getElementById('journal-modal').style.display = 'block';
+        }
+        
+        async function loadCurrentWeather() {
+            try {
+                const response = await fetch(`${API_URL}/weather`);
+                if (response.ok) {
+                    const data = await response.json();
+                    currentWeatherData = data;
+                    
+                    if (data.current) {
+                        const temp = Math.round(data.current.temp);
+                        const icon = data.current.icon || '☀️';
+                        const desc = data.current.description || '';
+                        document.getElementById('journal-meteo').value = `${icon} ${temp}°C${desc ? ' - ' + desc : ''}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement météo:', error);
+                document.getElementById('journal-meteo').value = '';
+            }
+        }
+        
+        function closeJournalModal() {
+            document.getElementById('journal-modal').style.display = 'none';
+            currentEditingJournalId = null;
+        }
+        
+        function submitJournalForm(event) {
+            event.preventDefault();
+            
+            const data = {
+                date: document.getElementById('journal-date').value,
+                heure: document.getElementById('journal-heure').value,
+                categorie: document.getElementById('journal-categorie').value,
+                emplacement: document.getElementById('journal-emplacement').value,
+                titre: document.getElementById('journal-titre').value,
+                notes: document.getElementById('journal-notes').value,
+                meteo: document.getElementById('journal-meteo').value
+            };
+            
+            if (currentEditingJournalId) {
+                updateJournalEntry(currentEditingJournalId, data);
+            } else {
+                addJournalEntry(data);
+            }
+            
+            closeJournalModal();
+        }
+        
+        async function addJournalEntry(data) {
+            try {
+                const response = await fetch(`${API_URL}/journal`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    await loadJournal();
+                }
+            } catch (error) {
+                console.error('Erreur ajout entrée:', error);
+            }
+        }
+        
+        function editJournalEntry(entryId) {
+            const entry = journalEntries.find(e => e.id === entryId);
+            if (!entry) return;
+            
+            currentEditingJournalId = entryId;
+            document.getElementById('journal-modal-title').textContent = '✏️ Modifier l\'entrée';
+            document.getElementById('journal-submit-btn').textContent = '💾 Sauvegarder';
+            
+            document.getElementById('journal-date').value = entry.date || '';
+            document.getElementById('journal-heure').value = entry.heure || '';
+            document.getElementById('journal-categorie').value = entry.categorie || 'Autre';
+            document.getElementById('journal-emplacement').value = entry.emplacement || '';
+            document.getElementById('journal-titre').value = entry.titre || '';
+            document.getElementById('journal-notes').value = entry.notes || '';
+            document.getElementById('journal-meteo').value = entry.meteo || '';
+            
+            document.getElementById('journal-modal').style.display = 'block';
+        }
+        
+        async function updateJournalEntry(entryId, data) {
+            try {
+                const response = await fetch(`${API_URL}/journal/${entryId}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    await loadJournal();
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour entrée:', error);
+            }
+        }
+        
+        async function deleteJournalEntry(entryId) {
+            if (!confirm('Supprimer cette entrée ?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/journal/${entryId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadJournal();
+                }
+            } catch (error) {
+                console.error('Erreur suppression entrée:', error);
+            }
+        }
+        
+        function updateJournalWidget() {
+            const widgetText = document.getElementById('journal-widget-text');
+            const widgetLast = document.getElementById('journal-widget-last');
+            
+            if (!widgetText || !widgetLast) return;
+            
+            if (journalEntries.length === 0) {
+                widgetText.textContent = 'Aucune entrée';
+                widgetLast.style.display = 'none';
+                return;
+            }
+            
+            const count = journalEntries.length;
+            widgetText.textContent = `${count} entrée${count > 1 ? 's' : ''}`;
+            
+            // Dernière entrée
+            const lastEntry = journalEntries[0]; // Déjà triées par date décroissante
+            if (lastEntry) {
+                const catIcon = {
+                    'Semis / Plantation': '🌱',
+                    'Entretien / Taille': '🔧',
+                    'Arrosage': '💧',
+                    'Traitement': '🧪',
+                    'Travaux / Aménagement': '🏗️',
+                    'Piscine': '🏊',
+                    'Observation': '📸',
+                    'Problème détecté': '⚠️',
+                    'Récolte': '✅',
+                    'Autre': '📝'
+                }[lastEntry.categorie] || '📝';
+                
+                const dateLabel = lastEntry.date === new Date().toISOString().split('T')[0] ? "Aujourd'hui" : lastEntry.date;
+                const heureText = lastEntry.heure ? ` ${lastEntry.heure}` : '';
+                
+                widgetLast.innerHTML = `
+                    <div style="font-weight: 600; font-size: 13px; color: #333; margin-bottom: 4px;">
+                        ${catIcon} ${lastEntry.titre}
+                    </div>
+                    <div style="font-size: 11px; color: #999;">
+                        ${dateLabel}${heureText}
+                    </div>
+                `;
+                widgetLast.style.display = 'block';
+            }
+        }
+        
         function showProfilScreen() {
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
@@ -4052,6 +4553,9 @@
                 
                 // Charger inventaire
                 await loadInventory();
+                
+                // Charger journal
+                await loadJournal();
                 
             } catch (error) {
                 console.error('Erreur chargement stats profil:', error);
