@@ -786,6 +786,10 @@ inventory_db = {
     # Structure: { 'inventory_id': { 'nom': '...', 'categorie': 'Outil/Matériau/Produit/Équipement', 'statut': 'Possédé/À acheter', 'etat': 'Bon/À réparer/À remplacer', 'quantite': 0, 'unite': '', 'seuil_alerte': 0, 'prix_estime': 0, 'date_expiration': '', 'dernier_entretien': '', 'notes': '', 'airtable_id': '' } }
 }
 
+journal_db = {
+    # Structure: { 'journal_id': { 'date': 'YYYY-MM-DD', 'heure': 'HH:MM', 'categorie': '...', 'emplacement': '...', 'titre': '...', 'notes': '...', 'meteo': '...', 'airtable_id': '', 'created_at': '...' } }
+}
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
@@ -803,6 +807,12 @@ def get_next_inventory_id():
     if not inventory_db:
         return 1
     return max(inventory_db.keys()) + 1
+
+def get_next_journal_id():
+    """Génère un ID unique pour une entrée journal"""
+    if not journal_db:
+        return 1
+    return max(journal_db.keys()) + 1
 
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
@@ -1846,6 +1856,88 @@ def delete_inventory_item(item_id):
     
     return jsonify({'error': 'Item non trouvé'}), 404
 
+# ========== ROUTES JOURNAL ==========
+
+@app.route('/api/journal', methods=['GET'])
+def get_journal():
+    """Récupère toutes les entrées du journal"""
+    entries = [
+        {'id': entry_id, **entry_data}
+        for entry_id, entry_data in journal_db.items()
+    ]
+    # Trier par date décroissante (plus récent en premier)
+    entries.sort(key=lambda x: (x.get('date', ''), x.get('heure', '')), reverse=True)
+    return jsonify({'entries': entries})
+
+@app.route('/api/journal', methods=['POST'])
+def add_journal_entry():
+    """Ajoute une entrée au journal"""
+    data = request.json
+    
+    entry_id = get_next_journal_id()
+    
+    entry = {
+        'date': data.get('date', datetime.now().strftime('%Y-%m-%d')),
+        'heure': data.get('heure', ''),
+        'categorie': data.get('categorie', 'Autre'),
+        'emplacement': data.get('emplacement', ''),
+        'titre': data.get('titre', ''),
+        'notes': data.get('notes', ''),
+        'meteo': data.get('meteo', ''),
+        'airtable_id': '',
+        'created_at': datetime.now().isoformat()
+    }
+    
+    journal_db[entry_id] = entry
+    
+    # Sauvegarder dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_id = airtable_client.upsert_journal_entry(entry_id, entry)
+        if airtable_id:
+            journal_db[entry_id]['airtable_id'] = airtable_id
+    
+    return jsonify({
+        'success': True,
+        'entry': {'id': entry_id, **journal_db[entry_id]}
+    })
+
+@app.route('/api/journal/<int:entry_id>', methods=['PATCH'])
+def update_journal_entry(entry_id):
+    """Modifie une entrée du journal"""
+    if entry_id not in journal_db:
+        return jsonify({'error': 'Entrée non trouvée'}), 404
+    
+    data = request.json
+    
+    # Mettre à jour les champs fournis
+    for key in ['date', 'heure', 'categorie', 'emplacement', 'titre', 'notes', 'meteo']:
+        if key in data:
+            journal_db[entry_id][key] = data[key]
+    
+    journal_db[entry_id]['updated_at'] = datetime.now().isoformat()
+    
+    # Mettre à jour dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_client.upsert_journal_entry(entry_id, journal_db[entry_id])
+    
+    return jsonify({
+        'success': True,
+        'entry': {'id': entry_id, **journal_db[entry_id]}
+    })
+
+@app.route('/api/journal/<int:entry_id>', methods=['DELETE'])
+def delete_journal_entry(entry_id):
+    """Supprime une entrée du journal"""
+    if entry_id in journal_db:
+        # Supprimer d'Airtable
+        if AIRTABLE_ENABLED and airtable_client:
+            airtable_client.delete_journal_entry(entry_id)
+        
+        del journal_db[entry_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Entrée non trouvée'}), 404
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Récupère la météo et génère des alertes pour Malaucène"""
@@ -2036,7 +2128,7 @@ def load_from_airtable():
     Charge toutes les plantes ET les tags ET les tâches depuis Airtable au démarrage de l'application
     Évite la perte de données en cas de redémarrage
     """
-    global library_db, notes_db, tags_db, tasks_db, inventory_db
+    global library_db, notes_db, tags_db, tasks_db, inventory_db, journal_db
     
     print("\n" + "="*60)
     print("🔄 CHARGEMENT DEPUIS AIRTABLE")
@@ -2120,6 +2212,27 @@ def load_from_airtable():
             }
         
         print(f"✅ {len(inventory_db)} items d'inventaire chargés")
+        
+        # ====== CHARGER LE JOURNAL ======
+        print("\n📥 Chargement du journal...")
+        airtable_journal = airtable_client.get_all_journal_entries()
+        
+        journal_db.clear()
+        for entry in airtable_journal:
+            entry_id = entry['id']
+            journal_db[entry_id] = {
+                'date': entry.get('date', ''),
+                'heure': entry.get('heure', ''),
+                'categorie': entry.get('categorie', 'Autre'),
+                'emplacement': entry.get('emplacement', ''),
+                'titre': entry.get('titre', ''),
+                'notes': entry.get('notes', ''),
+                'meteo': entry.get('meteo', ''),
+                'airtable_id': entry.get('airtable_id', ''),
+                'created_at': entry.get('created_at', '')
+            }
+        
+        print(f"✅ {len(journal_db)} entrées journal chargées")
         
         # ====== CHARGER LES PLANTES ======
         print("\n📥 Chargement des plantes...")

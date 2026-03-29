@@ -1004,6 +1004,112 @@ class AirtableClient:
         
         return False
     
+    # ========== GESTION JOURNAL ==========
+    
+    def get_all_journal_entries(self) -> List[Dict]:
+        """Récupère toutes les entrées du journal depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_JOURNAL', 'Journal')
+            result = self._request('GET', table_name)
+            if result and 'records' in result:
+                entries = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'journal_id' in fields:
+                        entries.append({
+                            'id': fields['journal_id'],
+                            'date': fields.get('date', ''),
+                            'heure': fields.get('heure', ''),
+                            'categorie': fields.get('categorie', 'Autre'),
+                            'emplacement': fields.get('emplacement', ''),
+                            'titre': fields.get('titre', ''),
+                            'notes': fields.get('notes', ''),
+                            'meteo': fields.get('meteo', ''),
+                            'airtable_id': record['id'],
+                            'created_at': fields.get('created_at', '')
+                        })
+                print(f"✅ {len(entries)} entrées journal chargées depuis Airtable")
+                return entries
+        except Exception as e:
+            print(f"❌ Erreur chargement journal: {e}")
+        
+        return []
+    
+    def upsert_journal_entry(self, entry_id: int, entry_data: Dict) -> Optional[str]:
+        """Crée ou met à jour une entrée journal dans Airtable"""
+        if not self.enabled:
+            return None
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_JOURNAL', 'Journal')
+            
+            fields = {
+                'journal_id': entry_id,
+                'date': entry_data.get('date', ''),
+                'categorie': entry_data.get('categorie', 'Autre'),
+                'titre': entry_data.get('titre', ''),
+            }
+            
+            # Champs optionnels - seulement si non vides
+            if entry_data.get('heure'):
+                fields['heure'] = entry_data['heure']
+            
+            if entry_data.get('emplacement'):
+                fields['emplacement'] = entry_data['emplacement']
+            
+            if entry_data.get('notes'):
+                fields['notes'] = entry_data['notes']
+            
+            if entry_data.get('meteo'):
+                fields['meteo'] = entry_data['meteo']
+            
+            # Si airtable_id existe, UPDATE
+            if entry_data.get('airtable_id'):
+                data = {'fields': fields}
+                result = self._request('PATCH', f"{table_name}/{entry_data['airtable_id']}", data)
+                if result:
+                    print(f"✅ Entrée journal {entry_id} mise à jour dans Airtable")
+                    return result['id']
+            # Sinon, CREATE
+            else:
+                data = {'fields': fields}
+                result = self._request('POST', table_name, data)
+                if result:
+                    print(f"✅ Entrée journal {entry_id} créée dans Airtable (ID: {result['id']})")
+                    return result['id']
+        
+        except Exception as e:
+            print(f"❌ Erreur sauvegarde entrée journal: {e}")
+        
+        return None
+    
+    def delete_journal_entry(self, entry_id: int) -> bool:
+        """Supprime une entrée journal depuis Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            table_name = os.environ.get('AIRTABLE_TABLE_JOURNAL', 'Journal')
+            formula = f"{{journal_id}}={entry_id}"
+            
+            result = self._request('GET', f"{table_name}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                delete_result = self._request('DELETE', f"{table_name}/{record_id}")
+                
+                if delete_result:
+                    print(f"✅ Entrée journal {entry_id} supprimée d'Airtable")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur suppression entrée journal: {e}")
+        
+        return False
+    
     def test_connection(self) -> bool:
         """Test la connexion à Airtable"""
         if not self.enabled:
