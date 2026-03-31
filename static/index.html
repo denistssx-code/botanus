@@ -1244,6 +1244,9 @@
             }
         }
     </style>
+    
+    <!-- Chart.js pour les camemberts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="phone-container">
@@ -2195,22 +2198,41 @@
                     <div class="info-group">
                         <div class="info-title">📊 Mes Statistiques</div>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px;">
-                            <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                            
+                            <!-- Plantes (cliquable) -->
+                            <div onclick="showPlantsChart()" style="background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: transform 0.2s; position: relative;" 
+                                onmouseover="this.style.transform='scale(1.05)'" 
+                                onmouseout="this.style.transform='scale(1)'">
                                 <div style="font-size: 32px; font-weight: 700;" id="profil-total-plantes">0</div>
                                 <div style="font-size: 13px; opacity: 0.9;">Plantes</div>
+                                <div style="position: absolute; top: 8px; right: 8px; font-size: 16px; opacity: 0.7;">📊</div>
                             </div>
-                            <div style="background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                            
+                            <!-- Rappels (cliquable) -->
+                            <div onclick="showRemindersChart()" style="background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: transform 0.2s; position: relative;"
+                                onmouseover="this.style.transform='scale(1.05)'" 
+                                onmouseout="this.style.transform='scale(1)'">
                                 <div style="font-size: 32px; font-weight: 700;" id="profil-total-rappels">0</div>
                                 <div style="font-size: 13px; opacity: 0.9;">Rappels</div>
+                                <div style="position: absolute; top: 8px; right: 8px; font-size: 16px; opacity: 0.7;">📊</div>
                             </div>
+                            
+                            <!-- Types -->
                             <div style="background: linear-gradient(135deg, #FF9800, #FFA726); color: white; padding: 20px; border-radius: 12px; text-align: center;">
                                 <div style="font-size: 32px; font-weight: 700;" id="profil-total-types">0</div>
                                 <div style="font-size: 13px; opacity: 0.9;">Types</div>
                             </div>
+                            
+                            <!-- Inventaire -->
                             <div style="background: linear-gradient(135deg, #9C27B0, #AB47BC); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                                <div style="font-size: 32px; font-weight: 700;" id="profil-avec-photos">0</div>
-                                <div style="font-size: 13px; opacity: 0.9;">Avec photos</div>
+                                <div style="font-size: 32px; font-weight: 700;" id="profil-total-inventaire">0</div>
+                                <div style="font-size: 13px; opacity: 0.9;">Items inventaire</div>
                             </div>
+                            
+                        </div>
+                        
+                        <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
+                            💡 Cliquez sur Plantes ou Rappels pour voir les détails
                         </div>
                     </div>
 
@@ -2283,20 +2305,6 @@
                             <button onclick="showJournalScreen()" style="width: 100%; padding: 12px; background: #9B59B6; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
                                 Voir le journal →
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- Import/Export -->
-                    <div class="info-group">
-                        <div class="info-title">💾 Données</div>
-                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
-                            <button onclick="exportLibrary()" style="padding: 14px; background: #2196F3; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                📥 Exporter ma bibliothèque
-                            </button>
-                            <button onclick="document.getElementById('import-file').click()" style="padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                📤 Importer une bibliothèque
-                            </button>
-                            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importLibrary(event)">
                         </div>
                     </div>
 
@@ -2832,6 +2840,42 @@
                     </div>
 
                 </form>
+
+            </div>
+        </div>
+
+        <!-- Modal Camembert Plantes -->
+        <div id="plants-chart-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 600px; border-radius: 16px; padding: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;">🌱 Répartition par type</h2>
+                    <button onclick="closePlantsChart()" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #999;">×</button>
+                </div>
+
+                <canvas id="plants-chart-canvas" width="400" height="400"></canvas>
+                
+                <div id="plants-chart-legend" style="margin-top: 20px;">
+                    <!-- Légende remplie dynamiquement -->
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modal Camembert Rappels -->
+        <div id="reminders-chart-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 600px; border-radius: 16px; padding: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;">📅 Répartition des rappels</h2>
+                    <button onclick="closeRemindersChart()" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #999;">×</button>
+                </div>
+
+                <canvas id="reminders-chart-canvas" width="400" height="400"></canvas>
+                
+                <div id="reminders-chart-legend" style="margin-top: 20px;">
+                    <!-- Légende remplie dynamiquement -->
+                </div>
 
             </div>
         </div>
@@ -4639,23 +4683,44 @@
                 // Total plantes
                 document.getElementById('profil-total-plantes').textContent = plants.length;
                 
-                // Compter les types uniques
-                const types = new Set(plants.map(p => p.type_plante).filter(Boolean));
-                document.getElementById('profil-total-types').textContent = types.size;
+                // Compter les types uniques et préparer données camembert
+                const typesCounts = {};
+                plants.forEach(plant => {
+                    const type = plant.type_plante || 'Non défini';
+                    typesCounts[type] = (typesCounts[type] || 0) + 1;
+                });
+                document.getElementById('profil-total-types').textContent = Object.keys(typesCounts).length;
                 
-                // Compter les plantes avec photos personnalisées
-                const withPhotos = plants.filter(p => p.custom_photo).length;
-                document.getElementById('profil-avec-photos').textContent = withPhotos;
+                // Stocker pour camembert
+                window.plantsChartData = typesCounts;
                 
-                // Compter les rappels (approximatif)
+                // Compter les rappels par type
                 let totalRappels = 0;
+                const remindersTypes = {
+                    'Taille': 0,
+                    'Floraison': 0,
+                    'Récolte': 0
+                };
+                
                 plants.forEach(plant => {
                     const details = plant.details || {};
-                    if (details.periode_taille) totalRappels++;
-                    if (details.meilleure_periode_plantation) totalRappels++;
-                    if (details.periode_floraison) totalRappels++;
+                    if (details.periode_taille) {
+                        totalRappels++;
+                        remindersTypes['Taille']++;
+                    }
+                    if (details.periode_floraison) {
+                        totalRappels++;
+                        remindersTypes['Floraison']++;
+                    }
+                    if (details.periode_recolte) {
+                        totalRappels++;
+                        remindersTypes['Récolte']++;
+                    }
                 });
                 document.getElementById('profil-total-rappels').textContent = totalRappels;
+                
+                // Stocker pour camembert
+                window.remindersChartData = remindersTypes;
                 
                 // Charger météo
                 loadWeather();
@@ -4663,12 +4728,204 @@
                 // Charger inventaire
                 await loadInventory();
                 
+                // Mettre à jour count inventaire
+                if (inventoryItems) {
+                    document.getElementById('profil-total-inventaire').textContent = inventoryItems.length;
+                }
+                
                 // Charger journal
                 await loadJournal();
                 
             } catch (error) {
                 console.error('Erreur chargement stats profil:', error);
             }
+        }
+        
+        // ========== CAMEMBERTS STATISTIQUES ==========
+        
+        let plantsChart = null;
+        let remindersChart = null;
+        
+        function showPlantsChart() {
+            if (!window.plantsChartData || Object.keys(window.plantsChartData).length === 0) {
+                alert('Aucune donnée disponible');
+                return;
+            }
+            
+            document.getElementById('plants-chart-modal').style.display = 'block';
+            
+            // Détruire ancien graphique si existe
+            if (plantsChart) {
+                plantsChart.destroy();
+            }
+            
+            const ctx = document.getElementById('plants-chart-canvas').getContext('2d');
+            const data = window.plantsChartData;
+            
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            const colors = generateColors(labels.length);
+            
+            plantsChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percent = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percent}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Créer légende
+            createLegend('plants-chart-legend', labels, values, colors);
+        }
+        
+        function closePlantsChart() {
+            document.getElementById('plants-chart-modal').style.display = 'none';
+            if (plantsChart) {
+                plantsChart.destroy();
+                plantsChart = null;
+            }
+        }
+        
+        function showRemindersChart() {
+            if (!window.remindersChartData) {
+                alert('Aucune donnée disponible');
+                return;
+            }
+            
+            // Filtrer les types avec au moins 1 rappel
+            const filteredData = {};
+            Object.keys(window.remindersChartData).forEach(key => {
+                if (window.remindersChartData[key] > 0) {
+                    filteredData[key] = window.remindersChartData[key];
+                }
+            });
+            
+            if (Object.keys(filteredData).length === 0) {
+                alert('Aucun rappel configuré');
+                return;
+            }
+            
+            document.getElementById('reminders-chart-modal').style.display = 'block';
+            
+            // Détruire ancien graphique si existe
+            if (remindersChart) {
+                remindersChart.destroy();
+            }
+            
+            const ctx = document.getElementById('reminders-chart-canvas').getContext('2d');
+            
+            const labels = Object.keys(filteredData);
+            const values = Object.values(filteredData);
+            const colors = ['#4CAF50', '#2196F3', '#FF9800'];
+            
+            remindersChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percent = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percent}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Créer légende
+            createLegend('reminders-chart-legend', labels, values, colors.slice(0, labels.length));
+        }
+        
+        function closeRemindersChart() {
+            document.getElementById('reminders-chart-modal').style.display = 'none';
+            if (remindersChart) {
+                remindersChart.destroy();
+                remindersChart = null;
+            }
+        }
+        
+        function createLegend(containerId, labels, values, colors) {
+            const container = document.getElementById(containerId);
+            const total = values.reduce((a, b) => a + b, 0);
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+            
+            labels.forEach((label, index) => {
+                const value = values[index];
+                const percent = ((value / total) * 100).toFixed(1);
+                const color = colors[index];
+                
+                html += `
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+                        <div style="width: 20px; height: 20px; background: ${color}; border-radius: 4px; flex-shrink: 0;"></div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 14px;">${label}</div>
+                            <div style="font-size: 12px; color: #666;">${value} plante${value > 1 ? 's' : ''} (${percent}%)</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function generateColors(count) {
+            const baseColors = [
+                '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336',
+                '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63',
+                '#3F51B5', '#FFC107', '#009688', '#FF5722', '#8BC34A'
+            ];
+            
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                colors.push(baseColors[i % baseColors.length]);
+            }
+            return colors;
         }
         
         async function loadWeather() {
