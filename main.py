@@ -1938,6 +1938,41 @@ def delete_journal_entry(entry_id):
     
     return jsonify({'error': 'Entrée non trouvée'}), 404
 
+# ========== ROUTES RAPPELS ==========
+
+@app.route('/api/reminders/states', methods=['GET'])
+def get_reminders_states():
+    """Récupère tous les états de rappels"""
+    if AIRTABLE_ENABLED and airtable_client:
+        reminders = airtable_client.get_all_reminders()
+        # Créer dict pour accès rapide: {plant_id}_{type}_{month} -> is_checked
+        states = {}
+        for r in reminders:
+            key = f"{r['plant_id']}_{r['reminder_type']}_{r['month']}"
+            states[key] = r['is_checked']
+        return jsonify({'states': states})
+    return jsonify({'states': {}})
+
+@app.route('/api/reminders/toggle', methods=['POST'])
+def toggle_reminder():
+    """Bascule l'état d'un rappel"""
+    data = request.json
+    
+    plant_id = data.get('plant_id')
+    reminder_type = data.get('reminder_type')
+    month = data.get('month')
+    is_checked = data.get('is_checked', False)
+    
+    if not plant_id or not reminder_type or not month:
+        return jsonify({'error': 'Paramètres manquants'}), 400
+    
+    if AIRTABLE_ENABLED and airtable_client:
+        success = airtable_client.toggle_reminder(plant_id, reminder_type, month, is_checked)
+        if success:
+            return jsonify({'success': True, 'is_checked': is_checked})
+    
+    return jsonify({'error': 'Erreur sauvegarde'}), 500
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Récupère la météo et génère des alertes pour Malaucène"""

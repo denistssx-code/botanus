@@ -1111,6 +1111,80 @@ class AirtableClient:
         
         return False
     
+    # ========== GESTION RAPPELS ==========
+    
+    def get_all_reminders(self) -> List[Dict]:
+        """Récupère tous les états de rappels depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_RAPPELS', 'Rappels')
+            result = self._request('GET', table_name)
+            if result and 'records' in result:
+                reminders = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'plant_id' in fields and 'reminder_type' in fields:
+                        reminders.append({
+                            'plant_id': fields['plant_id'],
+                            'reminder_type': fields['reminder_type'],
+                            'month': fields.get('month', ''),
+                            'is_checked': fields.get('is_checked', False),
+                            'checked_date': fields.get('checked_date', ''),
+                            'airtable_id': record['id']
+                        })
+                print(f"✅ {len(reminders)} états de rappels chargés depuis Airtable")
+                return reminders
+        except Exception as e:
+            print(f"❌ Erreur chargement rappels: {e}")
+        
+        return []
+    
+    def toggle_reminder(self, plant_id: int, reminder_type: str, month: str, is_checked: bool) -> bool:
+        """Bascule l'état d'un rappel (crée si n'existe pas)"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            table_name = os.environ.get('AIRTABLE_TABLE_RAPPELS', 'Rappels')
+            
+            # Chercher si existe déjà
+            formula = f"AND({{plant_id}}={plant_id}, {{reminder_type}}='{reminder_type}', {{month}}='{month}')"
+            result = self._request('GET', f"{table_name}?filterByFormula={quote(formula)}")
+            
+            fields = {
+                'plant_id': plant_id,
+                'reminder_type': reminder_type,
+                'month': month,
+                'is_checked': is_checked
+            }
+            
+            # Ajouter checked_date si coché
+            if is_checked:
+                from datetime import datetime
+                fields['checked_date'] = datetime.now().strftime('%Y-%m-%d')
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                # UPDATE existant
+                record_id = result['records'][0]['id']
+                update_result = self._request('PATCH', f"{table_name}/{record_id}", {'fields': fields})
+                if update_result:
+                    print(f"✅ Rappel mis à jour: plant_id={plant_id}, type={reminder_type}, checked={is_checked}")
+                    return True
+            else:
+                # CREATE nouveau
+                create_result = self._request('POST', table_name, {'fields': fields})
+                if create_result:
+                    print(f"✅ Rappel créé: plant_id={plant_id}, type={reminder_type}, checked={is_checked}")
+                    return True
+        
+        except Exception as e:
+            print(f"❌ Erreur toggle rappel: {e}")
+        
+        return False
+    
     def test_connection(self) -> bool:
         """Test la connexion à Airtable"""
         if not self.enabled:
