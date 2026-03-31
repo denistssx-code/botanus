@@ -5087,6 +5087,9 @@
         async function loadRappels() {
             console.log('🔄 Chargement des rappels...');
             
+            // Charger les états de rappels depuis Airtable
+            await loadRemindersStates();
+            
             // Charger la bibliothèque pour générer les rappels
             try {
                 const response = await fetch(`${API_URL}/library`);
@@ -5261,9 +5264,13 @@
                 return;
             }
             
+            const maintenant = new Date();
+            const currentMonth = maintenant.toISOString().slice(0, 7); // Format: YYYY-MM
+            
             rappels.forEach(rappel => {
-                const rappelKey = `${rappel.plante}_${rappel.action}`;
-                const isCompleted = rappelsCompleted[rappelKey] || false;
+                // Créer clé avec plantId, type et mois
+                const stateKey = `${rappel.plantId}_${rappel.type}_${currentMonth}`;
+                const isCompleted = remindersStates[stateKey] || false;
                 
                 const rappelEl = document.createElement('div');
                 rappelEl.style.cssText = `padding: 16px; background: ${isCompleted ? '#f0f8f0' : 'white'}; border: 1px solid ${isCompleted ? '#4CAF50' : '#e0e0e0'}; border-radius: 12px; transition: all 0.2s; ${isCompleted ? 'opacity: 0.7;' : ''}`;
@@ -5273,7 +5280,7 @@
                         <input 
                             type="checkbox" 
                             ${isCompleted ? 'checked' : ''}
-                            onchange="toggleRappelCompletion('${rappelKey.replace(/'/g, "\\'")}', this.checked)"
+                            onchange="toggleRappelCompletion(${rappel.plantId}, '${rappel.type}', '${currentMonth}', this.checked)"
                             style="width: 20px; height: 20px; margin-top: 6px; cursor: pointer; flex-shrink: 0;"
                         >
                         <div style="font-size: 32px; ${isCompleted ? 'opacity: 0.5;' : ''}">${rappel.icon}</div>
@@ -5289,8 +5296,35 @@
             });
         }
         
-        function toggleRappelCompletion(rappelKey, isCompleted) {
-            rappelsCompleted[rappelKey] = isCompleted;
+        async function toggleRappelCompletion(plantId, reminderType, month, isCompleted) {
+            // Créer la clé
+            const stateKey = `${plantId}_${reminderType}_${month}`;
+            
+            // Mettre à jour localement
+            remindersStates[stateKey] = isCompleted;
+            
+            // Sauvegarder dans Airtable
+            try {
+                const response = await fetch(`${API_URL}/reminders/toggle`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        plant_id: plantId,
+                        reminder_type: reminderType,
+                        month: month,
+                        is_checked: isCompleted
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log(`✅ Rappel sauvegardé: plantId=${plantId}, type=${reminderType}, checked=${isCompleted}`);
+                } else {
+                    console.error('❌ Erreur sauvegarde rappel');
+                }
+            } catch (error) {
+                console.error('❌ Erreur API rappel:', error);
+            }
+            
             // Réafficher les rappels avec le nouveau état
             filterRappels(currentRappelFilter);
         }
@@ -5727,7 +5761,21 @@
         let allRappelsMois = [];  // Tous les rappels du mois
         let allRappelsProchains = [];  // Tous les rappels prochains
         let currentRappelFilter = 'tout';  // Filtre actif : 'tout', 'taille', 'recolte'
-        let rappelsCompleted = {};  // État coché des rappels (en mémoire) - clé: plante_action, valeur: bool
+        let rappelsCompleted = {};  // État coché des rappels - clé: {plantId}_{type}_{month}, valeur: bool
+        let remindersStates = {};   // États chargés depuis Airtable
+        
+        async function loadRemindersStates() {
+            try {
+                const response = await fetch(`${API_URL}/reminders/states`);
+                if (response.ok) {
+                    const data = await response.json();
+                    remindersStates = data.states || {};
+                    console.log('✅ États rappels chargés:', Object.keys(remindersStates).length);
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement états rappels:', error);
+            }
+        }
         
         async function loadLibrary() {
             const gridDiv = document.getElementById('library-grid');
