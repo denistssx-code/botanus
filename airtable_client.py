@@ -784,6 +784,7 @@ class AirtableClient:
                             'status': fields.get('status', 'todo'),
                             'created_at': fields.get('created_at', ''),
                             'completed_at': fields.get('completed_at', ''),
+                            'subtasks': fields.get('subtasks', ''),
                             'airtable_id': record['id']
                         })
                 print(f"✅ {len(tasks)} tâches chargées depuis Airtable")
