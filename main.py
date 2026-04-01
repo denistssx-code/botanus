@@ -2297,6 +2297,7 @@ def load_from_airtable():
                 'category': task['category'],
                 'status': task['status'],
                 'created_at': task['created_at'],
+                'zone_id': task.get('zone_id', None),
                 'airtable_id': task.get('airtable_id', '')
             }
             
