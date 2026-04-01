@@ -2279,7 +2279,7 @@
                             Aucune zone créée
                         </div>
                         
-                        <button onclick="showZonesManagementScreen()" style="width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <button id="zones-manage-btn" onclick="showZonesManagementScreen()" style="width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                             Gérer mes zones →
                         </button>
                     </div>
@@ -2763,11 +2763,14 @@
                         </select>
                     </div>
 
-                    <!-- Emplacement -->
+                    <!-- Zone -->
                     <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📍 Emplacement</label>
-                        <input type="text" id="journal-emplacement" placeholder="Potager, Serre, Piscine..."
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">📍 Zone (optionnel)</label>
+                        <select id="journal-zone" 
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                            <option value="">-- Aucune zone --</option>
+                            <!-- Rempli dynamiquement -->
+                        </select>
                     </div>
 
                     <!-- Titre -->
@@ -4455,7 +4458,18 @@
             }[entry.categorie] || '📝';
             
             const heureText = entry.heure ? `${entry.heure}` : '';
-            const emplacementText = entry.emplacement ? ` · ${entry.emplacement}` : '';
+            
+            // Afficher zone si zone_id existe, sinon ancien emplacement texte
+            let locationText = '';
+            if (entry.zone_id) {
+                const zone = allZones.find(z => z.id === entry.zone_id);
+                if (zone) {
+                    locationText = ` · ${zone.icon} ${zone.nom}`;
+                }
+            } else if (entry.emplacement) {
+                locationText = ` · ${entry.emplacement}`;
+            }
+            
             const meteoText = entry.meteo ? `<div style="font-size: 12px; color: #999; margin-top: 6px;">${entry.meteo}</div>` : '';
             
             div.innerHTML = `
@@ -4465,7 +4479,7 @@
                             ${catIcon} ${entry.titre}
                         </div>
                         <div style="font-size: 12px; color: #9B59B6; margin-bottom: 8px;">
-                            ${entry.categorie}${heureText ? ' · ' + heureText : ''}${emplacementText}
+                            ${entry.categorie}${heureText ? ' · ' + heureText : ''}${locationText}
                         </div>
                         ${entry.notes ? `<div style="font-size: 13px; color: #666; line-height: 1.5; white-space: pre-wrap;">${entry.notes}</div>` : ''}
                         ${meteoText}
@@ -4514,6 +4528,9 @@
             document.getElementById('journal-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('journal-heure').value = new Date().toTimeString().slice(0, 5);
             
+            // Remplir dropdown zones
+            populateZonesDropdown();
+            
             // Mettre à jour mode météo selon date
             updateMeteoMode();
             
@@ -4527,6 +4544,22 @@
             // Ajouter listener sur changement de date
             document.getElementById('journal-date').removeEventListener('change', onJournalDateChange);
             document.getElementById('journal-date').addEventListener('change', onJournalDateChange);
+        }
+        
+        function populateZonesDropdown() {
+            const select = document.getElementById('journal-zone');
+            if (!select) return;
+            
+            // Réinitialiser
+            select.innerHTML = '<option value="">-- Aucune zone --</option>';
+            
+            // Ajouter les zones
+            allZones.forEach(zone => {
+                const option = document.createElement('option');
+                option.value = zone.id;
+                option.textContent = `${zone.icon} ${zone.nom}`;
+                select.appendChild(option);
+            });
         }
         
         function isToday(dateString) {
@@ -4610,7 +4643,7 @@
                 date: selectedDate,
                 heure: document.getElementById('journal-heure').value,
                 categorie: document.getElementById('journal-categorie').value,
-                emplacement: document.getElementById('journal-emplacement').value,
+                zone_id: document.getElementById('journal-zone').value ? parseInt(document.getElementById('journal-zone').value) : null,
                 titre: document.getElementById('journal-titre').value,
                 notes: document.getElementById('journal-notes').value,
                 meteo: meteoValue
@@ -4649,10 +4682,13 @@
             document.getElementById('journal-modal-title').textContent = '✏️ Modifier l\'entrée';
             document.getElementById('journal-submit-btn').textContent = '💾 Sauvegarder';
             
+            // Remplir dropdown zones
+            populateZonesDropdown();
+            
             document.getElementById('journal-date').value = entry.date || '';
             document.getElementById('journal-heure').value = entry.heure || '';
             document.getElementById('journal-categorie').value = entry.categorie || 'Autre';
-            document.getElementById('journal-emplacement').value = entry.emplacement || '';
+            document.getElementById('journal-zone').value = entry.zone_id || '';
             document.getElementById('journal-titre').value = entry.titre || '';
             document.getElementById('journal-notes').value = entry.notes || '';
             
@@ -5077,20 +5113,33 @@
             preview.style.display = 'grid';
             empty.style.display = 'none';
             
-            // Afficher les 4 premières zones
-            const zonesToShow = allZones.slice(0, 4);
-            
-            preview.innerHTML = zonesToShow.map(zone => `
-                <div style="padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 28px; margin-bottom: 4px;">${zone.icon}</div>
-                    <div style="font-size: 12px; font-weight: 600;">${zone.nom}</div>
-                </div>
-            `).join('');
-            
-            if (allZones.length > 4) {
+            // Si <= 4 zones : afficher toutes
+            // Si >= 5 zones : afficher 3 + cadre "+X autres"
+            if (allZones.length <= 4) {
+                preview.innerHTML = allZones.map(zone => `
+                    <div style="padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 28px; margin-bottom: 4px;">${zone.icon}</div>
+                        <div style="font-size: 12px; font-weight: 600;">${zone.nom}</div>
+                    </div>
+                `).join('');
+            } else {
+                // Afficher 3 premières zones
+                const zonesToShow = allZones.slice(0, 3);
+                const remainingCount = allZones.length - 3;
+                
+                preview.innerHTML = zonesToShow.map(zone => `
+                    <div style="padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 28px; margin-bottom: 4px;">${zone.icon}</div>
+                        <div style="font-size: 12px; font-weight: 600;">${zone.nom}</div>
+                    </div>
+                `).join('');
+                
+                // Cadre "+X autres" cliquable
                 preview.innerHTML += `
-                    <div style="padding: 12px; background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 10px; text-align: center; display: flex; align-items: center; justify-content: center; border: 2px dashed #667eea;">
-                        <div style="font-size: 12px; font-weight: 600;">+${allZones.length - 4} autres</div>
+                    <div onclick="showZonesManagementScreen()" style="padding: 12px; background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #667eea; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(102, 126, 234, 0.2)'" onmouseout="this.style.background='rgba(102, 126, 234, 0.1)'">
+                        <div style="font-size: 24px; font-weight: 700; margin-bottom: 2px;">+${remainingCount}</div>
+                        <div style="font-size: 11px; font-weight: 600;">autre${remainingCount > 1 ? 's' : ''}</div>
+                        <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">${allZones.length} au total</div>
                     </div>
                 `;
             }
