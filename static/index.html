@@ -3450,6 +3450,9 @@
             emptyDiv.style.display = 'none';
             
             try {
+                // Charger les zones d'abord (nécessaire pour affichage)
+                await loadZones();
+                
                 const response = await fetch(`${API_URL}/tasks`);
                 const data = await response.json();
                 
@@ -4405,6 +4408,9 @@
         
         async function loadJournal() {
             try {
+                // Charger les zones d'abord (nécessaire pour affichage)
+                await loadZones();
+                
                 const response = await fetch(`${API_URL}/journal`);
                 const data = await response.json();
                 journalEntries = data.entries || [];
