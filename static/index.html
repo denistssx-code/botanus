@@ -3582,7 +3582,7 @@
                                         ${categoryEmoji} ${task.category}
                                     </span>
                                     ${task.zone_id ? (() => {
-                                        const zone = allZones.find(z => z.id === task.zone_id);
+                                        const zone = allZones.find(z => z.id == task.zone_id);
                                         return zone ? `
                                             <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                                                 ${zone.icon} ${zone.nom}
@@ -4509,7 +4509,7 @@
             // Afficher zone si zone_id existe, sinon ancien emplacement texte
             let locationText = '';
             if (entry.zone_id) {
-                const zone = allZones.find(z => z.id === entry.zone_id);
+                const zone = allZones.find(z => z.id == entry.zone_id);
                 if (zone) {
                     locationText = ` · ${zone.icon} ${zone.nom}`;
                 }
