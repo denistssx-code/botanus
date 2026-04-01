@@ -1891,6 +1891,7 @@ def add_journal_entry():
         'heure': data.get('heure', ''),
         'categorie': data.get('categorie', 'Autre'),
         'emplacement': data.get('emplacement', ''),
+        'zone_id': data.get('zone_id', None),
         'titre': data.get('titre', ''),
         'notes': data.get('notes', ''),
         'meteo': data.get('meteo', ''),
@@ -1920,7 +1921,7 @@ def update_journal_entry(entry_id):
     data = request.json
     
     # Mettre à jour les champs fournis
-    for key in ['date', 'heure', 'categorie', 'emplacement', 'titre', 'notes', 'meteo']:
+    for key in ['date', 'heure', 'categorie', 'emplacement', 'zone_id', 'titre', 'notes', 'meteo']:
         if key in data:
             journal_db[entry_id][key] = data[key]
     
@@ -2353,6 +2354,7 @@ def load_from_airtable():
                 'heure': entry.get('heure', ''),
                 'categorie': entry.get('categorie', 'Autre'),
                 'emplacement': entry.get('emplacement', ''),
+                'zone_id': entry.get('zone_id', None),
                 'titre': entry.get('titre', ''),
                 'notes': entry.get('notes', ''),
                 'meteo': entry.get('meteo', ''),

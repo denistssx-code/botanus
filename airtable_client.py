@@ -1026,6 +1026,7 @@ class AirtableClient:
                             'heure': fields.get('heure', ''),
                             'categorie': fields.get('categorie', 'Autre'),
                             'emplacement': fields.get('emplacement', ''),
+                            'zone_id': fields.get('zone_id', None),
                             'titre': fields.get('titre', ''),
                             'notes': fields.get('notes', ''),
                             'meteo': fields.get('meteo', ''),
@@ -1060,6 +1061,9 @@ class AirtableClient:
             
             if entry_data.get('emplacement'):
                 fields['emplacement'] = entry_data['emplacement']
+            
+            if entry_data.get('zone_id'):
+                fields['zone_id'] = entry_data['zone_id']
             
             if entry_data.get('notes'):
                 fields['notes'] = entry_data['notes']
