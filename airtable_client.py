@@ -1185,6 +1185,117 @@ class AirtableClient:
         
         return False
     
+    # ========== GESTION ZONES ==========
+    
+    def get_all_zones(self) -> List[Dict]:
+        """Récupère toutes les zones depuis Airtable"""
+        if not self.enabled:
+            return []
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_ZONES', 'Zones')
+            result = self._request('GET', table_name)
+            if result and 'records' in result:
+                zones = []
+                for record in result['records']:
+                    fields = record.get('fields', {})
+                    if 'zone_id' in fields:
+                        zones.append({
+                            'id': fields['zone_id'],
+                            'nom': fields.get('nom', ''),
+                            'icon': fields.get('icon', '🗺️'),
+                            'description': fields.get('description', ''),
+                            'created_at': fields.get('created_at', ''),
+                            'airtable_id': record['id']
+                        })
+                print(f"✅ {len(zones)} zones chargées depuis Airtable")
+                return zones
+        except Exception as e:
+            print(f"❌ Erreur chargement zones: {e}")
+        
+        return []
+    
+    def create_zone(self, zone_data: Dict) -> Optional[str]:
+        """Crée une zone dans Airtable"""
+        if not self.enabled:
+            return None
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_ZONES', 'Zones')
+            fields = {
+                'zone_id': zone_data['zone_id'],
+                'nom': zone_data['nom'],
+                'icon': zone_data.get('icon', '🗺️'),
+                'description': zone_data.get('description', '')
+            }
+            
+            result = self._request('POST', table_name, {'fields': fields})
+            if result and 'id' in result:
+                print(f"✅ Zone créée: {zone_data['nom']}")
+                return result['id']
+        except Exception as e:
+            print(f"❌ Erreur création zone: {e}")
+        
+        return None
+    
+    def update_zone(self, zone_id: int, zone_data: Dict) -> bool:
+        """Met à jour une zone dans Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            table_name = os.environ.get('AIRTABLE_TABLE_ZONES', 'Zones')
+            
+            # Chercher le record par zone_id
+            formula = f"{{zone_id}}={zone_id}"
+            result = self._request('GET', f"{table_name}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                
+                fields = {}
+                if 'nom' in zone_data:
+                    fields['nom'] = zone_data['nom']
+                if 'icon' in zone_data:
+                    fields['icon'] = zone_data['icon']
+                if 'description' in zone_data:
+                    fields['description'] = zone_data['description']
+                
+                update_result = self._request('PATCH', f"{table_name}/{record_id}", {'fields': fields})
+                if update_result:
+                    print(f"✅ Zone {zone_id} mise à jour")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur mise à jour zone: {e}")
+        
+        return False
+    
+    def delete_zone(self, zone_id: int) -> bool:
+        """Supprime une zone d'Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            from urllib.parse import quote
+            table_name = os.environ.get('AIRTABLE_TABLE_ZONES', 'Zones')
+            
+            # Chercher le record par zone_id
+            formula = f"{{zone_id}}={zone_id}"
+            result = self._request('GET', f"{table_name}?filterByFormula={quote(formula)}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                record_id = result['records'][0]['id']
+                delete_result = self._request('DELETE', f"{table_name}/{record_id}")
+                
+                if delete_result:
+                    print(f"✅ Zone {zone_id} supprimée d'Airtable")
+                    return True
+        except Exception as e:
+            print(f"❌ Erreur suppression zone: {e}")
+        
+        return False
+    
     def test_connection(self) -> bool:
         """Test la connexion à Airtable"""
         if not self.enabled:

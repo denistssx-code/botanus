@@ -790,6 +790,10 @@ journal_db = {
     # Structure: { 'journal_id': { 'date': 'YYYY-MM-DD', 'heure': 'HH:MM', 'categorie': '...', 'emplacement': '...', 'titre': '...', 'notes': '...', 'meteo': '...', 'airtable_id': '', 'created_at': '...' } }
 }
 
+zones_db = {
+    # Structure: { 'zone_id': { 'nom': '...', 'icon': '...', 'description': '...', 'created_at': '...', 'airtable_id': '' } }
+}
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
@@ -813,6 +817,12 @@ def get_next_journal_id():
     if not journal_db:
         return 1
     return max(journal_db.keys()) + 1
+
+def get_next_zone_id():
+    """Génère un ID unique pour une zone"""
+    if not zones_db:
+        return 1
+    return max(zones_db.keys()) + 1
 
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
@@ -1973,6 +1983,89 @@ def toggle_reminder():
     
     return jsonify({'error': 'Erreur sauvegarde'}), 500
 
+# ========== ROUTES ZONES ==========
+
+@app.route('/api/zones', methods=['GET'])
+def get_zones():
+    """Récupère toutes les zones"""
+    zones_list = [{'id': zone_id, **zone_data} for zone_id, zone_data in zones_db.items()]
+    return jsonify({
+        'success': True,
+        'zones': zones_list
+    })
+
+@app.route('/api/zones', methods=['POST'])
+def create_zone():
+    """Crée une nouvelle zone"""
+    data = request.json
+    
+    if not data or 'nom' not in data:
+        return jsonify({'error': 'Nom de la zone requis'}), 400
+    
+    zone_id = get_next_zone_id()
+    
+    from datetime import datetime
+    zone_data = {
+        'nom': data['nom'],
+        'icon': data.get('icon', '🗺️'),
+        'description': data.get('description', ''),
+        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    # Sauvegarder dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_id = airtable_client.create_zone({
+            'zone_id': zone_id,
+            **zone_data
+        })
+        if airtable_id:
+            zone_data['airtable_id'] = airtable_id
+    
+    zones_db[zone_id] = zone_data
+    
+    return jsonify({
+        'success': True,
+        'zone': {'id': zone_id, **zone_data}
+    })
+
+@app.route('/api/zones/<int:zone_id>', methods=['PATCH'])
+def update_zone(zone_id):
+    """Met à jour une zone existante"""
+    if zone_id not in zones_db:
+        return jsonify({'error': 'Zone non trouvée'}), 404
+    
+    data = request.json
+    
+    # Mettre à jour localement
+    if 'nom' in data:
+        zones_db[zone_id]['nom'] = data['nom']
+    if 'icon' in data:
+        zones_db[zone_id]['icon'] = data['icon']
+    if 'description' in data:
+        zones_db[zone_id]['description'] = data['description']
+    
+    # Sauvegarder dans Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_client.update_zone(zone_id, data)
+    
+    return jsonify({
+        'success': True,
+        'zone': {'id': zone_id, **zones_db[zone_id]}
+    })
+
+@app.route('/api/zones/<int:zone_id>', methods=['DELETE'])
+def delete_zone(zone_id):
+    """Supprime une zone"""
+    if zone_id in zones_db:
+        # Supprimer d'Airtable
+        if AIRTABLE_ENABLED and airtable_client:
+            airtable_client.delete_zone(zone_id)
+        
+        del zones_db[zone_id]
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Zone non trouvée'}), 404
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Récupère la météo et génère des alertes pour Malaucène"""
@@ -2268,6 +2361,24 @@ def load_from_airtable():
             }
         
         print(f"✅ {len(journal_db)} entrées journal chargées")
+        
+        # ====== CHARGER LES ZONES ======
+        print("\n📥 Chargement des zones...")
+        airtable_zones = airtable_client.get_all_zones()
+        
+        global zones_db
+        zones_db.clear()
+        for zone in airtable_zones:
+            zone_id = zone['id']
+            zones_db[zone_id] = {
+                'nom': zone['nom'],
+                'icon': zone['icon'],
+                'description': zone['description'],
+                'created_at': zone.get('created_at', ''),
+                'airtable_id': zone.get('airtable_id', '')
+            }
+        
+        print(f"✅ {len(zones_db)} zones chargées")
         
         # ====== CHARGER LES PLANTES ======
         print("\n📥 Chargement des plantes...")
