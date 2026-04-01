@@ -3583,6 +3583,14 @@
                                     <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                                         ${categoryEmoji} ${task.category}
                                     </span>
+                                    ${task.zone_id ? (() => {
+                                        const zone = allZones.find(z => z.id === task.zone_id);
+                                        return zone ? `
+                                            <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                                ${zone.icon} ${zone.nom}
+                                            </span>
+                                        ` : '';
+                                    })() : ''}
                                     ${isDone && task.completed_at ? `
                                         <span style="font-size: 11px; color: #999;">
                                             ✓ ${task.completed_at}
@@ -3648,10 +3656,30 @@
             document.getElementById('task-modal-category').value = 'Jardin';
             document.getElementById('task-modal-submit-text').textContent = 'Créer';
             
+            // Remplir dropdown zones
+            populateTaskZonesDropdown();
+            document.getElementById('task-modal-zone').value = '';
+            
             // Vider les subtasks
             document.getElementById('subtasks-list').innerHTML = '';
             
             document.getElementById('task-modal').style.display = 'block';
+        }
+        
+        function populateTaskZonesDropdown() {
+            const select = document.getElementById('task-modal-zone');
+            if (!select) return;
+            
+            // Réinitialiser
+            select.innerHTML = '<option value="">-- Aucune zone --</option>';
+            
+            // Ajouter les zones
+            allZones.forEach(zone => {
+                const option = document.createElement('option');
+                option.value = zone.id;
+                option.textContent = `${zone.icon} ${zone.nom}`;
+                select.appendChild(option);
+            });
         }
         
         function showEditTaskDialog(taskId) {
@@ -3666,6 +3694,10 @@
             document.getElementById('task-modal-description').value = task.description || '';
             document.getElementById('task-modal-category').value = task.category || 'Jardin';
             document.getElementById('task-modal-submit-text').textContent = 'Enregistrer';
+            
+            // Remplir dropdown zones et pré-sélectionner
+            populateTaskZonesDropdown();
+            document.getElementById('task-modal-zone').value = task.zone_id || '';
             
             // Charger les subtasks
             const subtasksList = document.getElementById('subtasks-list');
@@ -3733,6 +3765,8 @@
             const title = document.getElementById('task-modal-title-input').value.trim();
             const description = document.getElementById('task-modal-description').value.trim();
             const category = document.getElementById('task-modal-category').value;
+            const zoneValue = document.getElementById('task-modal-zone').value;
+            const zone_id = zoneValue ? parseInt(zoneValue) : null;
             
             // Collecter les subtasks
             const subtasks = [];
@@ -3750,10 +3784,10 @@
             
             if (taskId) {
                 // Mode édition
-                await updateTaskDetails(parseInt(taskId), { title, description, category, subtasks });
+                await updateTaskDetails(parseInt(taskId), { title, description, category, zone_id, subtasks });
             } else {
                 // Mode création
-                await createTask(title, description, category, subtasks);
+                await createTask(title, description, category, zone_id, subtasks);
             }
             
             closeTaskModal();
@@ -3778,12 +3812,12 @@
             }
         }
         
-        async function createTask(title, description, category, subtasks = []) {
+        async function createTask(title, description, category, zone_id, subtasks = []) {
             try {
                 const response = await fetch(`${API_URL}/tasks`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, description, category, subtasks })
+                    body: JSON.stringify({ title, description, category, zone_id, subtasks })
                 });
                 
                 const data = await response.json();
@@ -8226,6 +8260,19 @@
                         <option value="Champs">🌾 Champs</option>
                         <option value="Véhicules">🚗 Véhicules</option>
                         <option value="Autre">📦 Autre</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Zone (optionnel)</label>
+                    <select 
+                        id="task-modal-zone"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; cursor: pointer; background: white; transition: border-color 0.3s;"
+                        onfocus="this.style.borderColor='#4CAF50'"
+                        onblur="this.style.borderColor='#e0e0e0'"
+                    >
+                        <option value="">-- Aucune zone --</option>
+                        <!-- Rempli dynamiquement -->
                     </select>
                 </div>
                 
