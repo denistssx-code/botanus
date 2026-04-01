@@ -2267,6 +2267,23 @@
                         </div>
                     </div>
 
+                    <!-- Mes Zones -->
+                    <div class="info-group">
+                        <div class="info-title">🗺️ Mes Zones</div>
+                        
+                        <div id="zones-preview" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px;">
+                            <!-- Rempli dynamiquement -->
+                        </div>
+                        
+                        <div id="zones-empty" style="text-align: center; padding: 20px; color: #999; font-size: 13px; display: none;">
+                            Aucune zone créée
+                        </div>
+                        
+                        <button onclick="showZonesManagementScreen()" style="width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            Gérer mes zones →
+                        </button>
+                    </div>
+
                     <!-- Inventaire Rapide -->
                     <div class="info-group">
                         <div class="info-title">🔧 Inventaire</div>
@@ -2852,6 +2869,122 @@
                 <div id="reminders-chart-legend" style="margin-top: 20px;">
                     <!-- Légende remplie dynamiquement -->
                 </div>
+
+            </div>
+        </div>
+
+        <!-- Écran Gestion Zones -->
+        <div class="screen" id="zones-management-screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <button onclick="showProfilScreen()" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    ←
+                </button>
+                <div class="app-title">🗺️ Gestion des Zones</div>
+                <div class="app-subtitle">Organisez votre jardin</div>
+            </div>
+
+            <div class="main-content">
+                
+                <!-- Bouton créer -->
+                <button onclick="showCreateZoneForm()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    ➕ Créer une zone
+                </button>
+
+                <!-- Liste zones -->
+                <div id="zones-list" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Rempli dynamiquement -->
+                </div>
+
+                <!-- Message si vide -->
+                <div id="zones-list-empty" style="text-align: center; padding: 60px 20px; color: #999; display: none;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">🗺️</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune zone</div>
+                    <div style="font-size: 14px;">Créez votre première zone pour organiser votre jardin</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Créer/Éditer Zone -->
+        <div id="zone-form-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 500px; border-radius: 16px; padding: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;" id="zone-form-title">Nouvelle zone</h2>
+                    <button onclick="closeZoneForm()" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #999;">×</button>
+                </div>
+
+                <form id="zone-form" onsubmit="submitZoneForm(event)">
+                    
+                    <!-- Nom -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">
+                            Nom de la zone *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="zone-nom" 
+                            required
+                            placeholder="Ex: Potager, Vignes, Piscine..."
+                            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;"
+                        >
+                    </div>
+
+                    <!-- Icône -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">
+                            Icône
+                        </label>
+                        <input 
+                            type="text" 
+                            id="zone-icon" 
+                            value="🗺️"
+                            style="width: 60px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 24px; text-align: center;"
+                        >
+                        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                            <button type="button" onclick="setZoneIcon('🥕')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🥕</button>
+                            <button type="button" onclick="setZoneIcon('🍇')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🍇</button>
+                            <button type="button" onclick="setZoneIcon('🍒')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🍒</button>
+                            <button type="button" onclick="setZoneIcon('🌳')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌳</button>
+                            <button type="button" onclick="setZoneIcon('🏊')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🏊</button>
+                            <button type="button" onclick="setZoneIcon('🌿')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌿</button>
+                            <button type="button" onclick="setZoneIcon('🌺')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌺</button>
+                            <button type="button" onclick="setZoneIcon('🏡')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🏡</button>
+                            <button type="button" onclick="setZoneIcon('🔧')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🔧</button>
+                            <button type="button" onclick="setZoneIcon('🌾')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌾</button>
+                            <button type="button" onclick="setZoneIcon('🌻')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌻</button>
+                            <button type="button" onclick="setZoneIcon('💐')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">💐</button>
+                            <button type="button" onclick="setZoneIcon('🪴')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🪴</button>
+                            <button type="button" onclick="setZoneIcon('🌲')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌲</button>
+                            <button type="button" onclick="setZoneIcon('🌱')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🌱</button>
+                            <button type="button" onclick="setZoneIcon('🍎')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🍎</button>
+                            <button type="button" onclick="setZoneIcon('🥬')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🥬</button>
+                            <button type="button" onclick="setZoneIcon('🫐')" style="padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; font-size: 20px; cursor: pointer;">🫐</button>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">
+                            Description (optionnel)
+                        </label>
+                        <textarea 
+                            id="zone-description" 
+                            rows="3"
+                            placeholder="Ex: Légumes et plantes aromatiques"
+                            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; font-family: inherit; box-sizing: border-box;"
+                        ></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="closeZoneForm()" style="flex: 1; padding: 12px; background: #f5f5f5; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            Annuler
+                        </button>
+                        <button type="submit" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                            <span id="zone-form-submit-text">Créer</span>
+                        </button>
+                    </div>
+
+                </form>
 
             </div>
         </div>
@@ -4712,6 +4845,9 @@
                 // Charger journal
                 await loadJournal();
                 
+                // Charger zones
+                await loadZones();
+                
             } catch (error) {
                 console.error('Erreur chargement stats profil:', error);
             }
@@ -4902,6 +5038,208 @@
                 colors.push(baseColors[i % baseColors.length]);
             }
             return colors;
+        }
+        
+        // ========== GESTION ZONES ==========
+        
+        let allZones = [];
+        let currentEditingZoneId = null;
+        
+        async function loadZones() {
+            try {
+                const response = await fetch(`${API_URL}/zones`);
+                const data = await response.json();
+                allZones = data.zones || [];
+                
+                // Mettre à jour aperçu profil
+                updateZonesPreview();
+                
+                // Mettre à jour liste gestion
+                displayZonesList();
+                
+            } catch (error) {
+                console.error('Erreur chargement zones:', error);
+            }
+        }
+        
+        function updateZonesPreview() {
+            const preview = document.getElementById('zones-preview');
+            const empty = document.getElementById('zones-empty');
+            
+            if (!preview || !empty) return;
+            
+            if (allZones.length === 0) {
+                preview.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            
+            preview.style.display = 'grid';
+            empty.style.display = 'none';
+            
+            // Afficher les 4 premières zones
+            const zonesToShow = allZones.slice(0, 4);
+            
+            preview.innerHTML = zonesToShow.map(zone => `
+                <div style="padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 4px;">${zone.icon}</div>
+                    <div style="font-size: 12px; font-weight: 600;">${zone.nom}</div>
+                </div>
+            `).join('');
+            
+            if (allZones.length > 4) {
+                preview.innerHTML += `
+                    <div style="padding: 12px; background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 10px; text-align: center; display: flex; align-items: center; justify-content: center; border: 2px dashed #667eea;">
+                        <div style="font-size: 12px; font-weight: 600;">+${allZones.length - 4} autres</div>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayZonesList() {
+            const list = document.getElementById('zones-list');
+            const empty = document.getElementById('zones-list-empty');
+            
+            if (!list || !empty) return;
+            
+            if (allZones.length === 0) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            
+            list.style.display = 'flex';
+            empty.style.display = 'none';
+            
+            list.innerHTML = allZones.map(zone => `
+                <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <div style="font-size: 40px; flex-shrink: 0;">${zone.icon}</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${zone.nom}</div>
+                            ${zone.description ? `
+                                <div style="font-size: 13px; color: #666; margin-bottom: 8px;">${zone.description}</div>
+                            ` : ''}
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <button onclick="editZone(${zone.id})" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    ✏️ Modifier
+                                </button>
+                                <button onclick="deleteZone(${zone.id})" style="padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    🗑️ Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showZonesManagementScreen() {
+            showScreen('zones-management-screen');
+            loadZones();
+        }
+        
+        function showCreateZoneForm() {
+            currentEditingZoneId = null;
+            document.getElementById('zone-form-title').textContent = 'Nouvelle zone';
+            document.getElementById('zone-form-submit-text').textContent = 'Créer';
+            document.getElementById('zone-nom').value = '';
+            document.getElementById('zone-icon').value = '🗺️';
+            document.getElementById('zone-description').value = '';
+            document.getElementById('zone-form-modal').style.display = 'block';
+        }
+        
+        function editZone(zoneId) {
+            const zone = allZones.find(z => z.id === zoneId);
+            if (!zone) return;
+            
+            currentEditingZoneId = zoneId;
+            document.getElementById('zone-form-title').textContent = 'Modifier la zone';
+            document.getElementById('zone-form-submit-text').textContent = 'Sauvegarder';
+            document.getElementById('zone-nom').value = zone.nom;
+            document.getElementById('zone-icon').value = zone.icon;
+            document.getElementById('zone-description').value = zone.description || '';
+            document.getElementById('zone-form-modal').style.display = 'block';
+        }
+        
+        function closeZoneForm() {
+            document.getElementById('zone-form-modal').style.display = 'none';
+            currentEditingZoneId = null;
+        }
+        
+        function setZoneIcon(icon) {
+            document.getElementById('zone-icon').value = icon;
+        }
+        
+        async function submitZoneForm(event) {
+            event.preventDefault();
+            
+            const nom = document.getElementById('zone-nom').value.trim();
+            const icon = document.getElementById('zone-icon').value.trim();
+            const description = document.getElementById('zone-description').value.trim();
+            
+            if (!nom) {
+                alert('Le nom de la zone est requis');
+                return;
+            }
+            
+            const zoneData = { nom, icon, description };
+            
+            try {
+                if (currentEditingZoneId) {
+                    // Modification
+                    const response = await fetch(`${API_URL}/zones/${currentEditingZoneId}`, {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(zoneData)
+                    });
+                    
+                    if (response.ok) {
+                        await loadZones();
+                        closeZoneForm();
+                    } else {
+                        alert('Erreur lors de la modification');
+                    }
+                } else {
+                    // Création
+                    const response = await fetch(`${API_URL}/zones`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(zoneData)
+                    });
+                    
+                    if (response.ok) {
+                        await loadZones();
+                        closeZoneForm();
+                    } else {
+                        alert('Erreur lors de la création');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur soumission formulaire zone:', error);
+                alert('Erreur de connexion');
+            }
+        }
+        
+        async function deleteZone(zoneId) {
+            if (!confirm('Voulez-vous vraiment supprimer cette zone ?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/zones/${zoneId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadZones();
+                } else {
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                console.error('Erreur suppression zone:', error);
+                alert('Erreur de connexion');
+            }
         }
         
         async function loadWeather() {
