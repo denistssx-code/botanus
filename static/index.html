@@ -2463,10 +2463,9 @@
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Catégorie *</label>
                         <select id="inv-categorie" required onchange="updateInventoryFormFields()"
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
-                            <option value="Outil">🔨 Outil</option>
+                            <option value="Outillage">🔧 Outillage</option>
                             <option value="Matériau">🧱 Matériau</option>
                             <option value="Produit">🧪 Produit</option>
-                            <option value="Équipement">⚙️ Équipement</option>
                         </select>
                     </div>
 
@@ -2582,10 +2581,9 @@
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Catégorie *</label>
                         <select id="edit-inv-categorie" required onchange="updateInventoryEditFormFields()"
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
-                            <option value="Outil">🔨 Outil</option>
+                            <option value="Outillage">🔧 Outillage</option>
                             <option value="Matériau">🧱 Matériau</option>
                             <option value="Produit">🧪 Produit</option>
-                            <option value="Équipement">⚙️ Équipement</option>
                         </select>
                     </div>
 
@@ -3962,15 +3960,23 @@
             
             // Grouper par catégorie
             const categories = {
-                'Outil': [],
+                'Outillage': [],
                 'Matériau': [],
                 'Produit': [],
+                // Anciennes catégories pour compatibilité
+                'Outil': [],
                 'Équipement': []
             };
             
             filteredItems.forEach(item => {
-                if (categories[item.categorie]) {
-                    categories[item.categorie].push(item);
+                // Migration douce : regrouper Outil et Équipement dans Outillage pour l'affichage
+                let displayCategory = item.categorie;
+                if (item.categorie === 'Outil' || item.categorie === 'Équipement') {
+                    displayCategory = 'Outillage';
+                }
+                
+                if (categories[displayCategory]) {
+                    categories[displayCategory].push(item);
                 }
             });
             
@@ -3987,7 +3993,14 @@
             for (const [cat, items] of Object.entries(categories)) {
                 if (items.length === 0) continue;
                 
-                const catIcon = {'Outil': '🔨', 'Matériau': '🧱', 'Produit': '🧪', 'Équipement': '⚙️'}[cat];
+                const catIcon = {
+                    'Outillage': '🔧',
+                    'Matériau': '🧱', 
+                    'Produit': '🧪',
+                    // Anciennes catégories (ne devraient plus apparaître car regroupées)
+                    'Outil': '🔧',
+                    'Équipement': '🔧'
+                }[cat];
                 
                 const section = document.createElement('div');
                 section.style.cssText = 'margin-bottom: 20px;';
