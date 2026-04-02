@@ -1329,6 +1329,122 @@ class AirtableClient:
         else:
             print("❌ Connexion Airtable échouée")
             return False
+    
+    # ========================================
+    # SETTINGS (Paramètres utilisateur)
+    # ========================================
+    
+    def get_settings(self) -> Dict:
+        """Récupère les paramètres utilisateur depuis Airtable"""
+        if not self.enabled:
+            return self._get_default_settings()
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_SETTINGS', 'Settings')
+            # Chercher le record par user_id = "default"
+            formula = "{user_id}='default'"
+            from urllib.parse import quote
+            encoded_formula = quote(formula)
+            
+            result = self._request('GET', f"{table_name}?filterByFormula={encoded_formula}")
+            
+            if result and 'records' in result and len(result['records']) > 0:
+                fields = result['records'][0].get('fields', {})
+                return {
+                    'meteo_ville': fields.get('meteo_ville', 'Malaucène'),
+                    'meteo_latitude': fields.get('meteo_latitude', 44.1736),
+                    'meteo_longitude': fields.get('meteo_longitude', 5.1314),
+                    'meteo_mode': fields.get('meteo_mode', 'ville'),
+                    'airtable_id': result['records'][0]['id']
+                }
+            else:
+                # Créer record par défaut
+                return self._create_default_settings()
+        
+        except Exception as e:
+            print(f"❌ Erreur chargement settings: {e}")
+            return self._get_default_settings()
+    
+    def _get_default_settings(self) -> Dict:
+        """Retourne les paramètres par défaut"""
+        return {
+            'meteo_ville': 'Malaucène',
+            'meteo_latitude': 44.1736,
+            'meteo_longitude': 5.1314,
+            'meteo_mode': 'ville'
+        }
+    
+    def _create_default_settings(self) -> Dict:
+        """Crée le record settings par défaut dans Airtable"""
+        if not self.enabled:
+            return self._get_default_settings()
+        
+        try:
+            table_name = os.environ.get('AIRTABLE_TABLE_SETTINGS', 'Settings')
+            fields = {
+                'user_id': 'default',
+                'meteo_ville': 'Malaucène',
+                'meteo_latitude': 44.1736,
+                'meteo_longitude': 5.1314,
+                'meteo_mode': 'ville'
+            }
+            
+            data = {'fields': fields}
+            response = self._request('POST', table_name, data)
+            
+            if response and response.get('id'):
+                print(f"✅ Settings par défaut créés dans Airtable")
+                return {
+                    'meteo_ville': 'Malaucène',
+                    'meteo_latitude': 44.1736,
+                    'meteo_longitude': 5.1314,
+                    'meteo_mode': 'ville',
+                    'airtable_id': response['id']
+                }
+        
+        except Exception as e:
+            print(f"❌ Erreur création settings: {e}")
+        
+        return self._get_default_settings()
+    
+    def update_settings(self, settings_data: Dict) -> bool:
+        """Met à jour les paramètres utilisateur dans Airtable"""
+        if not self.enabled:
+            return False
+        
+        try:
+            # Récupérer settings actuels pour avoir l'airtable_id
+            current_settings = self.get_settings()
+            
+            if 'airtable_id' not in current_settings:
+                # Créer si n'existe pas
+                self._create_default_settings()
+                current_settings = self.get_settings()
+            
+            table_name = os.environ.get('AIRTABLE_TABLE_SETTINGS', 'Settings')
+            airtable_id = current_settings['airtable_id']
+            
+            fields = {}
+            if 'meteo_ville' in settings_data:
+                fields['meteo_ville'] = settings_data['meteo_ville']
+            if 'meteo_latitude' in settings_data:
+                fields['meteo_latitude'] = settings_data['meteo_latitude']
+            if 'meteo_longitude' in settings_data:
+                fields['meteo_longitude'] = settings_data['meteo_longitude']
+            if 'meteo_mode' in settings_data:
+                fields['meteo_mode'] = settings_data['meteo_mode']
+            
+            data = {'fields': fields}
+            response = self._request('PATCH', f"{table_name}/{airtable_id}", data)
+            
+            if response and response.get('id'):
+                print(f"✅ Settings mis à jour dans Airtable")
+                return True
+        
+        except Exception as e:
+            print(f"❌ Erreur mise à jour settings: {e}")
+        
+        return False
 
 
 # Instance globale

@@ -794,6 +794,14 @@ zones_db = {
     # Structure: { 'zone_id': { 'nom': '...', 'icon': '...', 'description': '...', 'created_at': '...', 'airtable_id': '' } }
 }
 
+settings_db = {
+    # Structure: { 'meteo_ville': '...', 'meteo_latitude': ..., 'meteo_longitude': ..., 'meteo_mode': '...' }
+    'meteo_ville': 'Malaucène',
+    'meteo_latitude': 44.1736,
+    'meteo_longitude': 5.1314,
+    'meteo_mode': 'ville'
+}
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
@@ -2129,13 +2137,52 @@ def delete_zone(zone_id):
     
     return jsonify({'error': 'Zone non trouvée'}), 404
 
+# ========================================
+# SETTINGS (Paramètres)
+# ========================================
+
+@app.route('/api/settings/meteo', methods=['GET'])
+def get_meteo_settings():
+    """Récupère les paramètres météo"""
+    return jsonify({
+        'success': True,
+        'settings': settings_db
+    })
+
+@app.route('/api/settings/meteo', methods=['PUT'])
+def update_meteo_settings():
+    """Met à jour les paramètres météo"""
+    data = request.json
+    
+    # Mettre à jour settings_db
+    if 'meteo_ville' in data:
+        settings_db['meteo_ville'] = data['meteo_ville']
+    if 'meteo_latitude' in data:
+        settings_db['meteo_latitude'] = float(data['meteo_latitude'])
+    if 'meteo_longitude' in data:
+        settings_db['meteo_longitude'] = float(data['meteo_longitude'])
+    if 'meteo_mode' in data:
+        settings_db['meteo_mode'] = data['meteo_mode']
+    
+    print(f"✅ Settings météo mis à jour: {settings_db['meteo_ville']} ({settings_db['meteo_latitude']}, {settings_db['meteo_longitude']})")
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        airtable_client.update_settings(settings_db)
+    
+    return jsonify({
+        'success': True,
+        'settings': settings_db
+    })
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
-    """Récupère la météo et génère des alertes pour Malaucène"""
+    """Récupère la météo selon les paramètres configurés"""
     try:
-        # Coordonnées Malaucène (Vaucluse, Provence)
-        lat = 44.1736
-        lon = 5.1314
+        # Coordonnées depuis settings (configurables)
+        lat = settings_db.get('meteo_latitude', 44.1736)
+        lon = settings_db.get('meteo_longitude', 5.1314)
+        ville = settings_db.get('meteo_ville', 'Malaucène')
         
         # API OpenWeatherMap gratuite (pas besoin de clé pour test, mais tu devras en créer une)
         # Pour production: https://openweathermap.org/api (gratuit jusqu'à 1000 appels/jour)
@@ -2283,7 +2330,7 @@ def get_weather():
             },
             'forecast': forecast,
             'alerts': unique_alerts,
-            'location': 'Malaucène'
+            'location': ville
         })
         
     except Exception as e:
@@ -2319,7 +2366,7 @@ def load_from_airtable():
     Charge toutes les plantes ET les tags ET les tâches depuis Airtable au démarrage de l'application
     Évite la perte de données en cas de redémarrage
     """
-    global library_db, notes_db, tags_db, tasks_db, inventory_db, journal_db
+    global library_db, notes_db, tags_db, tasks_db, inventory_db, journal_db, zones_db, settings_db
     
     print("\n" + "="*60)
     print("🔄 CHARGEMENT DEPUIS AIRTABLE")
@@ -2633,7 +2680,18 @@ def load_from_airtable():
         if errors > 0:
             print(f"⚠️ {errors} erreurs lors du chargement")
         
-        print(f"📊 État final:")
+        # ====== CHARGER LES SETTINGS ======
+        print("\n📥 Chargement des paramètres...")
+        airtable_settings = airtable_client.get_settings()
+        
+        settings_db['meteo_ville'] = airtable_settings.get('meteo_ville', 'Malaucène')
+        settings_db['meteo_latitude'] = airtable_settings.get('meteo_latitude', 44.1736)
+        settings_db['meteo_longitude'] = airtable_settings.get('meteo_longitude', 5.1314)
+        settings_db['meteo_mode'] = airtable_settings.get('meteo_mode', 'ville')
+        
+        print(f"✅ Paramètres chargés: {settings_db['meteo_ville']} ({settings_db['meteo_latitude']}, {settings_db['meteo_longitude']})")
+        
+        print(f"\n📊 État final:")
         print(f"   - library_db: {len(library_db)} plantes")
         print(f"   - notes_db: {len(notes_db)} entrées")
         print(f"   - tags_db: {len(tags_db)} tags")
