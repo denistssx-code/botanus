@@ -2661,6 +2661,9 @@ def load_from_airtable():
                     'url': plant_fields.get('url_source', ''),
                     'image_principale': plant_fields.get('image_principale', ''),
                     
+                    # Zones (chargées depuis Airtable)
+                    'zones': plant_fields.get('zones', []),
+                    
                     # Détails COMPLETS (TOUS les champs Airtable)
                     'details': {
                         # Botaniques
@@ -2754,24 +2757,24 @@ def load_from_airtable():
                 # Charger les tags depuis Airtable (format JSON ou liste directe)
                 plant_tags = []
                 tags_data = plant_fields.get('tags', '')
-                print(f"   🔍 DEBUG tags_data brut: {repr(tags_data)} (type: {type(tags_data).__name__})")
+                # print(f"   🔍 DEBUG tags_data brut: {repr(tags_data)} (type: {type(tags_data).__name__})")
                 if tags_data:
                     try:
                         # Si c'est déjà une liste Python (Airtable peut retourner ça)
                         if isinstance(tags_data, list):
                             plant_tags = tags_data
-                            print(f"   📋 Tags (liste directe): {plant_tags}")
+                            # print(f"   📋 Tags (liste directe): {plant_tags}")
                         # Si c'est une string JSON
                         elif isinstance(tags_data, str):
                             plant_tags = json.loads(tags_data)
                             if not isinstance(plant_tags, list):
                                 plant_tags = []
-                            print(f"   📋 Tags (JSON parsé): {plant_tags}")
+                            # print(f"   📋 Tags (JSON parsé): {plant_tags}")
                     except Exception as e:
                         print(f"   ⚠️ Erreur parsing tags: {e}")
                         plant_tags = []
-                else:
-                    print(f"   ℹ️ Pas de tags pour cette plante")
+                # else:
+                #     print(f"   ℹ️ Pas de tags pour cette plante")
                 
                 # Charger notes et quantité depuis Airtable
                 plant_notes = plant_fields.get('notes', '')
