@@ -832,36 +832,44 @@ def get_next_zone_id():
         return 1
     return max(zones_db.keys()) + 1
 
-def resolve_zone_ids(zone_record_ids):
+def resolve_zone_ids(zone_ids):
     """
-    Résout les record IDs Airtable en objets zone complets
-    Input: ["rec123", "rec456"]
-    Output: [{id: 1, nom: "Potager", icon: "🥕", airtable_id: "rec123"}, ...]
+    Résout les zone IDs en objets zone complets
+    Input: [10, 7] ou [10.0, 7.0] (zone_id numériques)
+    Output: [{id: 10, nom: "Potager", icon: "🥕"}, ...]
     """
     print(f"\n🔍 resolve_zone_ids appelé:")
-    print(f"   Input: {zone_record_ids}")
-    print(f"   Type: {type(zone_record_ids)}")
+    print(f"   Input: {zone_ids}")
+    print(f"   Type: {type(zone_ids)}")
     
-    if not zone_record_ids or not isinstance(zone_record_ids, list):
+    if not zone_ids or not isinstance(zone_ids, list):
         print(f"   ❌ Retour vide (pas de liste)")
         return []
     
     print(f"   Zones disponibles dans zones_db: {len(zones_db)}")
-    for zone_id, zone_data in zones_db.items():
-        print(f"      - Zone {zone_id}: airtable_id={zone_data.get('airtable_id')}, nom={zone_data.get('nom')}")
     
     resolved_zones = []
-    for zone_id, zone_data in zones_db.items():
-        if zone_data.get('airtable_id') in zone_record_ids:
+    for zone_id_input in zone_ids:
+        # Convertir en int si c'est un float (10.0 → 10)
+        zone_id_int = int(zone_id_input) if isinstance(zone_id_input, (int, float)) else zone_id_input
+        
+        print(f"   Recherche zone_id: {zone_id_int} (type: {type(zone_id_int)})")
+        
+        # Chercher dans zones_db par zone_id
+        if zone_id_int in zones_db:
+            zone_data = zones_db[zone_id_int]
             resolved_zones.append({
-                'id': zone_id,
+                'id': zone_id_int,
                 'nom': zone_data.get('nom', ''),
                 'icon': zone_data.get('icon', '🗺️'),
-                'airtable_id': zone_data.get('airtable_id', '')
+                'description': zone_data.get('description', '')
             })
-            print(f"   ✅ Zone trouvée: {zone_data.get('nom')}")
+            print(f"   ✅ Zone trouvée: {zone_data.get('nom')} (id={zone_id_int})")
+        else:
+            print(f"   ❌ Zone {zone_id_int} non trouvée dans zones_db")
+            print(f"      Clés disponibles: {list(zones_db.keys())}")
     
-    print(f"   Output: {len(resolved_zones)} zones résolues")
+    print(f"   Output: {len(resolved_zones)} zones résolues\n")
     return resolved_zones
 
 def get_next_plant_id():
