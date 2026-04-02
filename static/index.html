@@ -1804,6 +1804,18 @@
                     </div>
 
                     <div class="info-group">
+                        <div class="info-title">📍 Zone de plantation</div>
+                        <select 
+                            id="detail-zone" 
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: white;"
+                        >
+                            <option value="">-- Aucune zone --</option>
+                            <!-- Rempli dynamiquement -->
+                        </select>
+                        <button class="save-notes-btn" onclick="saveZone()" style="margin-top: 12px;">💾 Sauvegarder zone</button>
+                    </div>
+
+                    <div class="info-group">
                         <div class="info-title">Notes personnelles</div>
                         <textarea 
                             id="detail-notes" 
@@ -6230,6 +6242,9 @@
             emptyDiv.style.display = 'none';
             
             try {
+                // Charger les zones d'abord (nécessaire pour affichage)
+                await loadZones();
+                
                 const response = await fetch(`${API_URL}/library`);
                 const data = await response.json();
                 
@@ -6531,12 +6546,16 @@
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
+                // Afficher zone si présente
+                const zone = plant.zone_id ? allZones.find(z => z.id == plant.zone_id) : null;
+                const zoneText = zone ? ` • ${zone.icon} ${zone.nom}` : '';
+                
                 cardEl.innerHTML = `
                     ${selectionMode ? `<input type="checkbox" class="selection-checkbox" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
                     <div class="library-card-image">${imageHTML}</div>
                     <div class="library-card-content" style="cursor: pointer;">
                         <div class="library-card-name">${plant.nom_francais}</div>
-                        <div class="library-card-details">${plant.type_plante || 'Plante'} • Qté: ${plant.quantity || 0}</div>
+                        <div class="library-card-details">${plant.type_plante || 'Plante'} • Qté: ${plant.quantity || 0}${zoneText}</div>
                         ${tagsHTML}
                     </div>
                     <div class="card-quick-actions">
@@ -6576,6 +6595,10 @@
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
+                // Afficher zone si présente
+                const zone = plant.zone_id ? allZones.find(z => z.id == plant.zone_id) : null;
+                const zoneHTML = zone ? `<span>•</span><span>${zone.icon} ${zone.nom}</span>` : '';
+                
                 itemEl.innerHTML = `
                     ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
                     <div class="library-list-icon">${icon}</div>
@@ -6587,6 +6610,7 @@
                             <span>Qté: ${plant.quantity || 0}</span>
                             <span>•</span>
                             <span>${plant.prix || 'N/A'}</span>
+                            ${zoneHTML}
                         </div>
                         ${tagsHTML}
                     </div>
@@ -7737,6 +7761,21 @@
                         document.getElementById('detail-quantity').textContent = libInfo.quantity;
                         document.getElementById('detail-notes').value = libInfo.notes || '';
                         
+                        // Remplir dropdown zones
+                        const zoneSelect = document.getElementById('detail-zone');
+                        zoneSelect.innerHTML = '<option value="">-- Aucune zone --</option>';
+                        allZones.forEach(zone => {
+                            const option = document.createElement('option');
+                            option.value = zone.id;
+                            option.textContent = `${zone.icon} ${zone.nom}`;
+                            zoneSelect.appendChild(option);
+                        });
+                        
+                        // Pré-sélectionner zone si existante
+                        if (libInfo.plant && libInfo.plant.zone_id) {
+                            zoneSelect.value = libInfo.plant.zone_id;
+                        }
+                        
                         // Afficher les tags si disponibles
                         if (libInfo.tags && libInfo.tags.length > 0) {
                             const tagsContainer = document.getElementById('detail-tags-list');
@@ -7791,6 +7830,17 @@
                         document.getElementById('detail-quantity').textContent = '1';
                         document.getElementById('detail-notes').value = '';
                         document.getElementById('current-photo-preview').style.display = 'none';
+                        
+                        // Remplir dropdown zones
+                        const zoneSelect = document.getElementById('detail-zone');
+                        zoneSelect.innerHTML = '<option value="">-- Aucune zone --</option>';
+                        allZones.forEach(zone => {
+                            const option = document.createElement('option');
+                            option.value = zone.id;
+                            option.textContent = `${zone.icon} ${zone.nom}`;
+                            zoneSelect.appendChild(option);
+                        });
+                        zoneSelect.value = '';
                         
                         // S'assurer que le bouton est en mode "Ajouter"
                         const addBtn = document.getElementById('detail-add-btn');
@@ -8105,6 +8155,65 @@
                 }
             } catch (error) {
                 console.error('Erreur sauvegarde notes:', error);
+                button.textContent = '❌ Erreur';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+        
+        async function saveZone() {
+            if (!currentPlantDetail || currentPlantDetail.plant_id === undefined) {
+                alert('Erreur : ID de plante non trouvé');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            
+            try {
+                // Vérifier si la plante est dans la bibliothèque
+                const checkResponse = await fetch(`${API_URL}/library/plant/${currentPlantDetail.plant_id}`);
+                const checkInfo = await checkResponse.json();
+                
+                if (!checkInfo.in_library) {
+                    alert('Veuillez d\'abord ajouter cette plante à votre bibliothèque via le bouton "➕ Ajouter"');
+                    button.disabled = false;
+                    return;
+                }
+                
+                const zoneValue = document.getElementById('detail-zone').value;
+                const zone_id = zoneValue ? parseInt(zoneValue) : null;
+                
+                const response = await fetch(`${API_URL}/library/${currentPlantDetail.plant_id}/zone`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        zone_id: zone_id
+                    })
+                });
+                
+                if (response.ok) {
+                    button.textContent = '✓ Sauvegardé';
+                    button.style.background = '#45a049';
+                    
+                    // Recharger bibliothèque pour mettre à jour affichage
+                    await loadLibrary();
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#4CAF50';
+                        button.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Erreur sauvegarde');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde zone:', error);
                 button.textContent = '❌ Erreur';
                 setTimeout(() => {
                     button.textContent = originalText;
