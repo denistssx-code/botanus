@@ -1804,15 +1804,18 @@
                     </div>
 
                     <div class="info-group">
-                        <div class="info-title">📍 Zone de plantation</div>
+                        <div class="info-title">📍 Zones de plantation</div>
                         <select 
                             id="detail-zone" 
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: white;"
+                            multiple
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: white; min-height: 120px;"
                         >
-                            <option value="">-- Aucune zone --</option>
                             <!-- Rempli dynamiquement -->
                         </select>
-                        <button class="save-notes-btn" onclick="saveZone()" style="margin-top: 12px;">💾 Sauvegarder zone</button>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                            Maintien Ctrl/Cmd pour sélectionner plusieurs zones
+                        </div>
+                        <button class="save-notes-btn" onclick="saveZone()" style="margin-top: 12px;">💾 Sauvegarder zones</button>
                     </div>
 
                     <div class="info-group">
@@ -6546,9 +6549,12 @@
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
-                // Afficher zone si présente
-                const zone = plant.zone_id ? allZones.find(z => z.id == plant.zone_id) : null;
-                const zoneText = zone ? ` • ${zone.icon} ${zone.nom}` : '';
+                // Afficher zones si présentes (multi-zones)
+                let zoneText = '';
+                if (plant.zones && plant.zones.length > 0) {
+                    const zoneNames = plant.zones.map(z => `${z.icon} ${z.nom}`).join(', ');
+                    zoneText = ` • ${zoneNames}`;
+                }
                 
                 cardEl.innerHTML = `
                     ${selectionMode ? `<input type="checkbox" class="selection-checkbox" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
@@ -6595,9 +6601,12 @@
                         ${plantTags.map(tag => `<span class="plant-tag" style="background: ${tag.color};">${tag.name}</span>`).join('')}
                     </div>` : '';
                 
-                // Afficher zone si présente
-                const zone = plant.zone_id ? allZones.find(z => z.id == plant.zone_id) : null;
-                const zoneHTML = zone ? `<span>•</span><span>${zone.icon} ${zone.nom}</span>` : '';
+                // Afficher zones si présentes (multi-zones)
+                let zoneHTML = '';
+                if (plant.zones && plant.zones.length > 0) {
+                    const zoneNames = plant.zones.map(z => `${z.icon} ${z.nom}`).join(', ');
+                    zoneHTML = `<span>•</span><span>${zoneNames}</span>`;
+                }
                 
                 itemEl.innerHTML = `
                     ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
@@ -7761,9 +7770,9 @@
                         document.getElementById('detail-quantity').textContent = libInfo.quantity;
                         document.getElementById('detail-notes').value = libInfo.notes || '';
                         
-                        // Remplir dropdown zones
+                        // Remplir multi-select zones
                         const zoneSelect = document.getElementById('detail-zone');
-                        zoneSelect.innerHTML = '<option value="">-- Aucune zone --</option>';
+                        zoneSelect.innerHTML = '';
                         allZones.forEach(zone => {
                             const option = document.createElement('option');
                             option.value = zone.id;
@@ -7771,9 +7780,15 @@
                             zoneSelect.appendChild(option);
                         });
                         
-                        // Pré-sélectionner zone si existante
-                        if (libInfo.plant && libInfo.plant.zone_id) {
-                            zoneSelect.value = libInfo.plant.zone_id;
+                        // Pré-sélectionner zones si existantes
+                        if (libInfo.plant && libInfo.plant.zones && libInfo.plant.zones.length > 0) {
+                            // libInfo.plant.zones est un array d'objets zone
+                            const selectedZoneIds = libInfo.plant.zones.map(z => z.id.toString());
+                            Array.from(zoneSelect.options).forEach(option => {
+                                if (selectedZoneIds.includes(option.value)) {
+                                    option.selected = true;
+                                }
+                            });
                         }
                         
                         // Afficher les tags si disponibles
@@ -7831,16 +7846,15 @@
                         document.getElementById('detail-notes').value = '';
                         document.getElementById('current-photo-preview').style.display = 'none';
                         
-                        // Remplir dropdown zones
+                        // Remplir multi-select zones (vide par défaut)
                         const zoneSelect = document.getElementById('detail-zone');
-                        zoneSelect.innerHTML = '<option value="">-- Aucune zone --</option>';
+                        zoneSelect.innerHTML = '';
                         allZones.forEach(zone => {
                             const option = document.createElement('option');
                             option.value = zone.id;
                             option.textContent = `${zone.icon} ${zone.nom}`;
                             zoneSelect.appendChild(option);
                         });
-                        zoneSelect.value = '';
                         
                         // S'assurer que le bouton est en mode "Ajouter"
                         const addBtn = document.getElementById('detail-add-btn');
@@ -8184,8 +8198,10 @@
                     return;
                 }
                 
-                const zoneValue = document.getElementById('detail-zone').value;
-                const zone_id = zoneValue ? parseInt(zoneValue) : null;
+                // Récupérer toutes les zones sélectionnées (multi-select)
+                const zoneSelect = document.getElementById('detail-zone');
+                const selectedOptions = Array.from(zoneSelect.selectedOptions);
+                const zone_ids = selectedOptions.map(opt => parseInt(opt.value));
                 
                 const response = await fetch(`${API_URL}/library/${currentPlantDetail.plant_id}/zone`, {
                     method: 'PUT',
@@ -8193,7 +8209,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        zone_id: zone_id
+                        zone_ids: zone_ids
                     })
                 });
                 
