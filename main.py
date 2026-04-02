@@ -2175,6 +2175,76 @@ def update_meteo_settings():
         'settings': settings_db
     })
 
+# ========================================
+# STATS ZONES
+# ========================================
+
+@app.route('/api/stats/zones', methods=['GET'])
+def get_zones_stats():
+    """Statistiques complètes par zones"""
+    
+    stats_par_zone = {}
+    
+    # Initialiser avec toutes les zones
+    for zone_id, zone_data in zones_db.items():
+        stats_par_zone[zone_id] = {
+            'id': zone_id,
+            'nom': zone_data.get('nom', ''),
+            'icon': zone_data.get('icon', '🗺️'),
+            'plantes': 0,
+            'taches': 0,
+            'journal': 0,
+            'inventaire': 0
+        }
+    
+    # Compter les plantes par zone
+    for plant_data in library_db.values():
+        zones = plant_data.get('zones', [])
+        if zones and isinstance(zones, list):
+            # zones est un array de record IDs, on doit les résoudre
+            resolved_zones = resolve_zone_ids(zones)
+            for zone in resolved_zones:
+                zone_id = zone.get('id')
+                if zone_id in stats_par_zone:
+                    stats_par_zone[zone_id]['plantes'] += 1
+    
+    # Compter les tâches par zone
+    for task_data in tasks_db.values():
+        zone_id = task_data.get('zone_id')
+        if zone_id and zone_id in stats_par_zone:
+            stats_par_zone[zone_id]['taches'] += 1
+    
+    # Compter les entrées journal par zone
+    for entry_data in journal_db.values():
+        zone_id = entry_data.get('zone_id')
+        if zone_id and zone_id in stats_par_zone:
+            stats_par_zone[zone_id]['journal'] += 1
+    
+    # Compter les items inventaire par zone (quand implémenté)
+    for item_data in inventory_db.values():
+        zone_id = item_data.get('zone_id')
+        if zone_id and zone_id in stats_par_zone:
+            stats_par_zone[zone_id]['inventaire'] += 1
+    
+    # Convertir en liste et trier par nombre total décroissant
+    stats_list = list(stats_par_zone.values())
+    stats_list.sort(key=lambda x: x['plantes'] + x['taches'] + x['journal'] + x['inventaire'], reverse=True)
+    
+    # Calculer totaux globaux
+    totaux = {
+        'plantes': sum(z['plantes'] for z in stats_list),
+        'taches': sum(z['taches'] for z in stats_list),
+        'journal': sum(z['journal'] for z in stats_list),
+        'inventaire': sum(z['inventaire'] for z in stats_list),
+        'zones': len(stats_list)
+    }
+    
+    return jsonify({
+        'success': True,
+        'stats': stats_list,
+        'totaux': totaux
+    })
+
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Récupère la météo selon les paramètres configurés"""
