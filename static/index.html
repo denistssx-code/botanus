@@ -3456,6 +3456,9 @@
             updateTime();
             setInterval(updateTime, 60000);
             
+            // Charger les zones dès le démarrage
+            loadZones();
+            
             // Charger la bibliothèque en arrière-plan pour les recherches
             loadLibraryData();
             
@@ -8263,6 +8266,7 @@
                         }
                         
                         // Afficher les tags si disponibles
+                        console.log('🏷️ Tags dans libInfo:', libInfo.tags);
                         if (libInfo.tags && libInfo.tags.length > 0) {
                             // Tags dans la section détails (garder pour compatibilité)
                             const tagsContainer = document.getElementById('detail-tags-list');
@@ -8285,6 +8289,7 @@
                             
                             // Tags en haut de la fiche (NOUVEAU)
                             const quickTagsContainer = document.getElementById('detail-quick-tags-list');
+                            console.log('📍 Element detail-quick-tags-list:', quickTagsContainer);
                             quickTagsContainer.innerHTML = libInfo.tags.map(tag => `
                                 <span style="
                                     display: inline-flex;
@@ -8300,14 +8305,18 @@
                                 </span>
                             `).join('');
                             document.getElementById('detail-quick-tags').style.display = 'block';
+                            console.log('✅ Tags affichés en haut');
                         } else {
                             document.getElementById('detail-tags-group').style.display = 'none';
                             document.getElementById('detail-quick-tags').style.display = 'none';
+                            console.log('❌ Pas de tags');
                         }
                         
                         // Afficher les zones en haut de la fiche (NOUVEAU)
+                        console.log('📍 Zones dans libInfo:', libInfo.plant?.zones);
                         if (libInfo.plant && libInfo.plant.zones && libInfo.plant.zones.length > 0) {
                             const quickZonesContainer = document.getElementById('detail-quick-zones-list');
+                            console.log('📍 Element detail-quick-zones-list:', quickZonesContainer);
                             quickZonesContainer.innerHTML = libInfo.plant.zones.map(zone => `
                                 <span style="
                                     display: inline-flex;
@@ -8324,8 +8333,10 @@
                                 </span>
                             `).join('');
                             document.getElementById('detail-quick-zones').style.display = 'block';
+                            console.log('✅ Zones affichées en haut:', libInfo.plant.zones.length);
                         } else {
                             document.getElementById('detail-quick-zones').style.display = 'none';
+                            console.log('❌ Pas de zones');
                         }
                         
                         // IMPORTANT: Récupérer les détails depuis la bibliothèque
