@@ -1580,8 +1580,11 @@ def get_plant_info(plant_id):
                 **tags_db[tag_id]
             })
     
-    # Résoudre les zones (déjà dans plant_data.zones)
-    # plant_data contient déjà les zones résolues si GET /api/library a été appelé
+    # Résoudre les zones (convertir record IDs en objets zones)
+    if 'zones' in plant_data and plant_data['zones']:
+        plant_data['zones'] = resolve_zone_ids(plant_data['zones'])
+    else:
+        plant_data['zones'] = []
     
     return jsonify({
         'in_library': True,
@@ -1589,7 +1592,7 @@ def get_plant_info(plant_id):
         'notes': notes_data.get('notes', ''),
         'quantity': notes_data.get('quantity', 0),
         'custom_photo': notes_data.get('custom_photo'),
-        'tags': tags_list  # Ajouter tags
+        'tags': tags_list
     })
 
 # ====== ENDPOINTS TAGS ======
