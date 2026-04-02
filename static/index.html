@@ -1372,6 +1372,12 @@
                 <div class="chip active" data-type="Tous" onclick="filterLibrary('Tous')">Tous</div>
             </div>
 
+            <!-- Filtres par zone -->
+            <div class="filter-chips" id="library-zones-filters" style="display: none; margin-top: 8px;">
+                <div class="chip active" data-zone="all" onclick="filterLibraryByZone('all')">🗺️ Toutes zones</div>
+                <!-- Zones chips générées dynamiquement -->
+            </div>
+
             <!-- Contrôles Tri et Vue -->
             <div id="library-controls" style="display: none; padding: 0 16px; margin-bottom: 12px;">
                 <!-- Tags et Sélection multiple -->
@@ -1503,6 +1509,25 @@
                             <span>➕</span>
                             <span>Ajouter</span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- SECTION : Tags et Zones (affichage rapide) -->
+                <div id="detail-quick-info" style="padding: 0 16px 16px 16px;">
+                    <!-- Tags -->
+                    <div id="detail-quick-tags" style="display: none; margin-bottom: 12px;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 600;">🏷️ TAGS</div>
+                        <div id="detail-quick-tags-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <!-- Tags générés dynamiquement -->
+                        </div>
+                    </div>
+                    
+                    <!-- Zones -->
+                    <div id="detail-quick-zones" style="display: none;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 600;">📍 ZONES</div>
+                        <div id="detail-quick-zones-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <!-- Zones générées dynamiquement -->
+                        </div>
                     </div>
                 </div>
 
@@ -6581,6 +6606,7 @@
         let currentSortMode = 'name_asc';
         let currentViewMode = 'grid';  // 'grid' ou 'list'
         let currentTagFilter = null;  // Tag actif
+        let currentZoneFilter = 'all';  // Zone active
         let currentSearchQuery = '';  // Requête de recherche
         let selectionMode = false;  // Mode sélection activé/désactivé
         let selectedPlants = new Set();  // IDs des plantes sélectionnées
@@ -6707,6 +6733,44 @@
                     filtersDiv.style.display = 'flex';
                 }
                 
+                // Générer les filtres par zone
+                const zonesFiltersDiv = document.getElementById('library-zones-filters');
+                if (zonesFiltersDiv && allZones.length > 0) {
+                    zonesFiltersDiv.innerHTML = '';
+                    
+                    // Chip "Toutes zones"
+                    const allZonesChip = document.createElement('div');
+                    allZonesChip.className = 'chip active';
+                    allZonesChip.dataset.zone = 'all';
+                    allZonesChip.textContent = '🗺️ Toutes zones';
+                    allZonesChip.addEventListener('click', () => filterLibraryByZone('all'));
+                    zonesFiltersDiv.appendChild(allZonesChip);
+                    
+                    // Compter plantes par zone
+                    const zonesCounts = {};
+                    allLibraryPlants.forEach(plant => {
+                        if (plant.zones && plant.zones.length > 0) {
+                            plant.zones.forEach(zone => {
+                                const zoneId = zone.id;
+                                zonesCounts[zoneId] = (zonesCounts[zoneId] || 0) + 1;
+                            });
+                        }
+                    });
+                    
+                    // Chips par zone
+                    allZones.forEach(zone => {
+                        const count = zonesCounts[zone.id] || 0;
+                        const chip = document.createElement('div');
+                        chip.className = 'chip';
+                        chip.dataset.zone = zone.id;
+                        chip.textContent = `${zone.icon} ${zone.nom} (${count})`;
+                        chip.addEventListener('click', () => filterLibraryByZone(zone.id));
+                        zonesFiltersDiv.appendChild(chip);
+                    });
+                    
+                    zonesFiltersDiv.style.display = 'flex';
+                }
+                
                 // Afficher la barre de recherche et les contrôles
                 const searchContainer = document.getElementById('library-search-container');
                 const controlsDiv = document.getElementById('library-controls');
@@ -6739,6 +6803,14 @@
             // Filtrer par type
             let filtered = (type === 'Tous') ? allLibraryPlants : allLibraryPlants.filter(p => p.type_plante === type);
             
+            // Filtrer par zone si active
+            if (currentZoneFilter !== 'all') {
+                filtered = filtered.filter(p => {
+                    if (!p.zones || p.zones.length === 0) return false;
+                    return p.zones.some(z => z.id == currentZoneFilter);
+                });
+            }
+            
             // Filtrer par tag si actif
             if (currentTagFilter !== null) {
                 filtered = filtered.filter(p => {
@@ -6765,6 +6837,21 @@
             }
             
             displayFilteredLibrary(filtered);
+        }
+        
+        function filterLibraryByZone(zoneId) {
+            currentZoneFilter = zoneId;
+            
+            // Mettre à jour les chips actifs
+            document.querySelectorAll('#library-zones-filters .chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.zone == zoneId) {
+                    chip.classList.add('active');
+                }
+            });
+            
+            // Réappliquer tous les filtres
+            filterLibrary(currentLibraryFilter);
         }
         
         function searchLibrary() {
@@ -7161,6 +7248,7 @@
             // Réinitialiser tous les filtres
             currentLibraryFilter = 'Tous';
             currentTagFilter = null;
+            currentZoneFilter = 'all';
             currentSearchQuery = '';
             
             // Réinitialiser la barre de recherche
@@ -7173,6 +7261,14 @@
             document.querySelectorAll('#library-filters .chip').forEach(chip => {
                 chip.classList.remove('active');
                 if (chip.dataset.type === 'Tous') {
+                    chip.classList.add('active');
+                }
+            });
+            
+            // Mettre à jour l'affichage des filtres de zone
+            document.querySelectorAll('#library-zones-filters .chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.zone === 'all') {
                     chip.classList.add('active');
                 }
             });
@@ -8168,6 +8264,7 @@
                         
                         // Afficher les tags si disponibles
                         if (libInfo.tags && libInfo.tags.length > 0) {
+                            // Tags dans la section détails (garder pour compatibilité)
                             const tagsContainer = document.getElementById('detail-tags-list');
                             tagsContainer.innerHTML = libInfo.tags.map(tag => `
                                 <span style="
@@ -8185,8 +8282,50 @@
                                 </span>
                             `).join('');
                             document.getElementById('detail-tags-group').style.display = 'block';
+                            
+                            // Tags en haut de la fiche (NOUVEAU)
+                            const quickTagsContainer = document.getElementById('detail-quick-tags-list');
+                            quickTagsContainer.innerHTML = libInfo.tags.map(tag => `
+                                <span style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    padding: 4px 10px;
+                                    background: ${tag.color || '#4CAF50'};
+                                    color: white;
+                                    border-radius: 12px;
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                ">
+                                    ${tag.name}
+                                </span>
+                            `).join('');
+                            document.getElementById('detail-quick-tags').style.display = 'block';
                         } else {
                             document.getElementById('detail-tags-group').style.display = 'none';
+                            document.getElementById('detail-quick-tags').style.display = 'none';
+                        }
+                        
+                        // Afficher les zones en haut de la fiche (NOUVEAU)
+                        if (libInfo.plant && libInfo.plant.zones && libInfo.plant.zones.length > 0) {
+                            const quickZonesContainer = document.getElementById('detail-quick-zones-list');
+                            quickZonesContainer.innerHTML = libInfo.plant.zones.map(zone => `
+                                <span style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    padding: 4px 10px;
+                                    background: linear-gradient(135deg, #667eea, #764ba2);
+                                    color: white;
+                                    border-radius: 12px;
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                    gap: 4px;
+                                ">
+                                    ${zone.icon} ${zone.nom}
+                                </span>
+                            `).join('');
+                            document.getElementById('detail-quick-zones').style.display = 'block';
+                        } else {
+                            document.getElementById('detail-quick-zones').style.display = 'none';
                         }
                         
                         // IMPORTANT: Récupérer les détails depuis la bibliothèque
@@ -8221,6 +8360,11 @@
                         document.getElementById('detail-notes').value = '';
                         document.getElementById('current-photo-preview').style.display = 'none';
                         
+                        // Cacher tags et zones en haut (pas encore dans bibliothèque)
+                        document.getElementById('detail-quick-tags').style.display = 'none';
+                        document.getElementById('detail-quick-zones').style.display = 'none';
+                        document.getElementById('detail-tags-group').style.display = 'none';
+                        
                         // Remplir multi-select zones (vide par défaut)
                         const zoneSelect = document.getElementById('detail-zone');
                         zoneSelect.innerHTML = '';
@@ -8245,6 +8389,8 @@
                 // Réinitialiser par défaut
                 document.getElementById('detail-quantity').textContent = '1';
                 document.getElementById('detail-notes').value = '';
+                document.getElementById('detail-quick-tags').style.display = 'none';
+                document.getElementById('detail-quick-zones').style.display = 'none';
             }
         }
 
