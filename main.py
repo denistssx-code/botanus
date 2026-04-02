@@ -1554,7 +1554,7 @@ def save_plant_zone(plant_id):
     # Récupérer array de zone IDs (integers) depuis frontend
     zone_ids = data.get('zone_ids', [])
     
-    # Convertir zone IDs en record IDs Airtable
+    # Convertir zone IDs en record IDs Airtable pour sync
     zone_record_ids = []
     for zone_id in zone_ids:
         if zone_id in zones_db:
@@ -1562,19 +1562,22 @@ def save_plant_zone(plant_id):
             if airtable_id:
                 zone_record_ids.append(airtable_id)
     
-    # Mettre à jour dans library_db (stocker les record IDs)
-    library_db[plant_id]['zones'] = zone_record_ids
+    # Mettre à jour dans library_db (stocker les zone_ids numériques, PAS les record IDs)
+    library_db[plant_id]['zones'] = zone_ids  # ← CORRECTION : garder les IDs numériques
+    save_library_db()  # ← CRITIQUE : Sauvegarder library_db !
     
-    print(f"✅ Zones {zone_ids} → record IDs {zone_record_ids} sauvegardées pour plante {plant_id}")
+    print(f"✅ Zones {zone_ids} sauvegardées pour plante {plant_id}")
     
-    # Synchroniser avec Airtable
+    # Synchroniser avec Airtable (utiliser record IDs pour Airtable)
     if AIRTABLE_ENABLED and airtable_client:
         plant_data = library_db[plant_id]
         if 'airtable_id' in plant_data and plant_data['airtable_id']:
+            # Mettre à jour avec record IDs pour Airtable
             airtable_client.update_plant(
                 plant_data['airtable_id'],
                 {'zones': zone_record_ids}
             )
+            print(f"✅ Zones synchronisées vers Airtable: {zone_record_ids}")
     
     return jsonify({'success': True})
 
