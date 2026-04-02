@@ -832,6 +832,28 @@ def get_next_zone_id():
         return 1
     return max(zones_db.keys()) + 1
 
+def parse_zone_ids(zone_ids_string):
+    """
+    Parse le champ formule zone_ids depuis Airtable
+    Input: "10,7,13" ou "10.0,7.0" ou "" (vide)
+    Output: [10, 7, 13] (liste d'entiers)
+    """
+    if not zone_ids_string or not isinstance(zone_ids_string, str):
+        return []
+    
+    try:
+        # Séparer par virgules et convertir en int
+        zone_ids = []
+        for zone_id_str in zone_ids_string.split(','):
+            zone_id_str = zone_id_str.strip()
+            if zone_id_str:
+                # Convertir en float puis int pour gérer 10.0 → 10
+                zone_ids.append(int(float(zone_id_str)))
+        return zone_ids
+    except Exception as e:
+        print(f"⚠️ Erreur parsing zone_ids '{zone_ids_string}': {e}")
+        return []
+
 def resolve_zone_ids(zone_ids):
     """
     Résout les zone IDs en objets zone complets
@@ -2661,8 +2683,8 @@ def load_from_airtable():
                     'url': plant_fields.get('url_source', ''),
                     'image_principale': plant_fields.get('image_principale', ''),
                     
-                    # Zones (chargées depuis Airtable)
-                    'zones': plant_fields.get('zones', []),
+                    # Zones (depuis le champ formule zone_ids)
+                    'zones': parse_zone_ids(plant_fields.get('zone_ids', '')),
                     
                     # Détails COMPLETS (TOUS les champs Airtable)
                     'details': {
