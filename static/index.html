@@ -1512,25 +1512,6 @@
                     </div>
                 </div>
 
-                <!-- SECTION : Tags et Zones (affichage rapide) -->
-                <div id="detail-quick-info" style="padding: 0 16px 16px 16px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <!-- Tags -->
-                    <div id="detail-quick-tags" style="display: none; flex: 1; min-width: 200px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;">
-                        <div style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🏷️ Tags</div>
-                        <div id="detail-quick-tags-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                            <!-- Tags générés dynamiquement -->
-                        </div>
-                    </div>
-                    
-                    <!-- Zones -->
-                    <div id="detail-quick-zones" style="display: none; flex: 1; min-width: 200px; background: #f0f7f4; border: 1px solid #c8e6d7; border-radius: 8px; padding: 12px;">
-                        <div style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📍 Zones</div>
-                        <div id="detail-quick-zones-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                            <!-- Zones générées dynamiquement -->
-                        </div>
-                    </div>
-                </div>
-
                 <div class="detail-tabs">
                     <div class="tab active" onclick="showDetailTab('info', this)">Infos</div>
                     <div class="tab" onclick="showDetailTab('entretien', this)">Entretien</div>
@@ -1539,6 +1520,25 @@
 
                 <!-- Tab Infos -->
                 <div class="tab-content" id="tab-info">
+                    
+                    <!-- SECTION : Tags et Zones (affichage rapide) -->
+                    <div id="detail-quick-info" style="padding: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                        <!-- Tags -->
+                        <div id="detail-quick-tags" style="display: none; flex: 1; min-width: 200px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🏷️ Tags</div>
+                            <div id="detail-quick-tags-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <!-- Tags générés dynamiquement -->
+                            </div>
+                        </div>
+                        
+                        <!-- Zones -->
+                        <div id="detail-quick-zones" style="display: none; flex: 1; min-width: 200px; background: #f0f7f4; border: 1px solid #c8e6d7; border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📍 Zones</div>
+                            <div id="detail-quick-zones-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <!-- Zones générées dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- SECTION : Prix et type -->
                     <div class="detail-section">
@@ -1817,6 +1817,18 @@
                             <span class="quantity-value" id="detail-quantity">1</span>
                             <button class="quantity-btn" onclick="changeDetailQuantity(1)">+</button>
                             <span class="info-text" style="margin-left: 8px;">plant(s)</span>
+                        </div>
+                        <!-- Saisie directe pour grandes quantités -->
+                        <div style="margin-top: 12px;">
+                            <input 
+                                type="number" 
+                                id="detail-quantity-input"
+                                min="0"
+                                placeholder="Saisie directe..."
+                                style="width: 120px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                                onchange="setDirectQuantity()"
+                            >
+                            <span style="font-size: 12px; color: #666; margin-left: 8px;">Pour grandes quantités</span>
                         </div>
                     </div>
 
@@ -6754,16 +6766,29 @@
                     allZonesChip.addEventListener('click', () => filterLibraryByZone('all'));
                     zonesFiltersDiv.appendChild(allZonesChip);
                     
-                    // Compter plantes par zone
+                    // Compter plantes par zone ET plantes sans zone
                     const zonesCounts = {};
+                    let noZoneCount = 0;
                     allLibraryPlants.forEach(plant => {
                         if (plant.zones && plant.zones.length > 0) {
                             plant.zones.forEach(zone => {
                                 const zoneId = zone.id;
                                 zonesCounts[zoneId] = (zonesCounts[zoneId] || 0) + 1;
                             });
+                        } else {
+                            noZoneCount++;
                         }
                     });
+                    
+                    // Chip "Sans zone"
+                    if (noZoneCount > 0) {
+                        const noZoneChip = document.createElement('div');
+                        noZoneChip.className = 'chip';
+                        noZoneChip.dataset.zone = 'none';
+                        noZoneChip.textContent = `❓ Sans zone (${noZoneCount})`;
+                        noZoneChip.addEventListener('click', () => filterLibraryByZone('none'));
+                        zonesFiltersDiv.appendChild(noZoneChip);
+                    }
                     
                     // Chips par zone
                     allZones.forEach(zone => {
@@ -6813,10 +6838,16 @@
             
             // Filtrer par zone si active
             if (currentZoneFilter !== 'all') {
-                filtered = filtered.filter(p => {
-                    if (!p.zones || p.zones.length === 0) return false;
-                    return p.zones.some(z => z.id == currentZoneFilter);
-                });
+                if (currentZoneFilter === 'none') {
+                    // Filtre "Sans zone" : ne garder que plantes sans zones
+                    filtered = filtered.filter(p => !p.zones || p.zones.length === 0);
+                } else {
+                    // Filtre zone spécifique
+                    filtered = filtered.filter(p => {
+                        if (!p.zones || p.zones.length === 0) return false;
+                        return p.zones.some(z => z.id == currentZoneFilter);
+                    });
+                }
             }
             
             // Filtrer par tag si actif
@@ -8544,6 +8575,16 @@
             let current = parseInt(quantityEl.textContent) || 1;
             current = Math.max(1, current + delta);
             quantityEl.textContent = current;
+            // Synchroniser avec l'input
+            document.getElementById('detail-quantity-input').value = current;
+        }
+
+        function setDirectQuantity() {
+            const input = document.getElementById('detail-quantity-input');
+            const value = parseInt(input.value) || 0;
+            if (value > 0) {
+                document.getElementById('detail-quantity').textContent = value;
+            }
         }
 
         
