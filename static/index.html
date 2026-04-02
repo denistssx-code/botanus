@@ -2297,6 +2297,10 @@
                         <button id="zones-manage-btn" onclick="showZonesManagementScreen()" style="width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                             Gérer mes zones →
                         </button>
+                        
+                        <button onclick="showStatsZonesScreen()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            📊 Statistiques →
+                        </button>
                     </div>
 
                     <!-- Paramètres Météo -->
@@ -3050,6 +3054,66 @@
 
                 </form>
 
+            </div>
+        </div>
+
+        <!-- Stats Zones Screen -->
+        <div class="screen" id="stats-zones-screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <button onclick="showProfilScreen()" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    ←
+                </button>
+                <div class="app-title">📊 Statistiques Zones</div>
+                <div class="app-subtitle">Vue d'ensemble de votre jardin</div>
+            </div>
+
+            <div class="main-content">
+                
+                <!-- Totaux globaux -->
+                <div class="info-group" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 12px;">📊 Vue globale</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <div>
+                            <div style="font-size: 28px; font-weight: 700;" id="stats-total-zones">0</div>
+                            <div style="font-size: 12px; opacity: 0.9;">Zones</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: 700;" id="stats-total-plantes">0</div>
+                            <div style="font-size: 12px; opacity: 0.9;">Plantes</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: 700;" id="stats-total-taches">0</div>
+                            <div style="font-size: 12px; opacity: 0.9;">Tâches</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: 700;" id="stats-total-journal">0</div>
+                            <div style="font-size: 12px; opacity: 0.9;">Journal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphique répartition -->
+                <div class="info-group">
+                    <div class="info-title">📊 Répartition par zone</div>
+                    <div style="margin-top: 12px; background: white; padding: 16px; border-radius: 10px;">
+                        <canvas id="zones-chart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Liste détaillée par zone -->
+                <div class="info-group">
+                    <div class="info-title">📋 Détails par zone</div>
+                    <div id="stats-zones-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                </div>
+
+                <!-- Message si vide -->
+                <div id="stats-zones-empty" style="text-align: center; padding: 60px 20px; color: #999; display: none;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📊</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucune donnée</div>
+                    <div style="font-size: 14px;">Créez des zones et ajoutez des plantes/tâches pour voir les stats</div>
+                </div>
             </div>
         </div>
 
@@ -5482,6 +5546,192 @@
                     button.disabled = false;
                 }, 2000);
             }
+        }
+        
+        // ========================================
+        // STATS ZONES
+        // ========================================
+        
+        function showStatsZonesScreen() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('stats-zones-screen').classList.add('active');
+            loadStatsZones();
+        }
+        
+        async function loadStatsZones() {
+            try {
+                const response = await fetch(`${API_URL}/stats/zones`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    console.error('Erreur chargement stats zones');
+                    return;
+                }
+                
+                const stats = data.stats;
+                const totaux = data.totaux;
+                
+                // Afficher totaux
+                document.getElementById('stats-total-zones').textContent = totaux.zones;
+                document.getElementById('stats-total-plantes').textContent = totaux.plantes;
+                document.getElementById('stats-total-taches').textContent = totaux.taches;
+                document.getElementById('stats-total-journal').textContent = totaux.journal;
+                
+                // Si pas de données
+                if (stats.length === 0) {
+                    document.getElementById('stats-zones-empty').style.display = 'block';
+                    document.getElementById('stats-zones-list').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('stats-zones-empty').style.display = 'none';
+                document.getElementById('stats-zones-list').style.display = 'flex';
+                
+                // Générer graphique
+                displayZonesChart(stats);
+                
+                // Générer liste détaillée
+                const listContainer = document.getElementById('stats-zones-list');
+                listContainer.innerHTML = '';
+                
+                stats.forEach(zone => {
+                    const total = zone.plantes + zone.taches + zone.journal + zone.inventaire;
+                    
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px;';
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 24px;">${zone.icon}</span>
+                                <span style="font-weight: 600; font-size: 16px;">${zone.nom}</span>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 4px 12px; border-radius: 16px; font-size: 13px; font-weight: 600;">
+                                ${total} total
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                            <div style="text-align: center; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+                                <div style="font-size: 18px; font-weight: 600; color: #4CAF50;">${zone.plantes}</div>
+                                <div style="font-size: 11px; color: #666;">Plantes</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+                                <div style="font-size: 18px; font-weight: 600; color: #2196F3;">${zone.taches}</div>
+                                <div style="font-size: 11px; color: #666;">Tâches</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+                                <div style="font-size: 18px; font-weight: 600; color: #FF9800;">${zone.journal}</div>
+                                <div style="font-size: 11px; color: #666;">Journal</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+                                <div style="font-size: 18px; font-weight: 600; color: #9C27B0;">${zone.inventaire}</div>
+                                <div style="font-size: 11px; color: #666;">Inventaire</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    listContainer.appendChild(card);
+                });
+                
+            } catch (error) {
+                console.error('Erreur chargement stats zones:', error);
+            }
+        }
+        
+        let zonesChartInstance = null;
+        
+        function displayZonesChart(stats) {
+            const canvas = document.getElementById('zones-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Détruire ancien graphique si existe
+            if (zonesChartInstance) {
+                zonesChartInstance.destroy();
+            }
+            
+            // Préparer données (top 5 zones par nombre total)
+            const sortedStats = [...stats].sort((a, b) => {
+                const totalA = a.plantes + a.taches + a.journal + a.inventaire;
+                const totalB = b.plantes + b.taches + b.journal + b.inventaire;
+                return totalB - totalA;
+            }).slice(0, 5);
+            
+            const labels = sortedStats.map(z => `${z.icon} ${z.nom}`);
+            const plantesData = sortedStats.map(z => z.plantes);
+            const tachesData = sortedStats.map(z => z.taches);
+            const journalData = sortedStats.map(z => z.journal);
+            
+            zonesChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Plantes',
+                            data: plantesData,
+                            backgroundColor: '#4CAF50',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Tâches',
+                            data: tachesData,
+                            backgroundColor: '#2196F3',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Journal',
+                            data: journalData,
+                            backgroundColor: '#FF9800',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
         
         async function loadWeather() {
