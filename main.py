@@ -824,6 +824,27 @@ def get_next_zone_id():
         return 1
     return max(zones_db.keys()) + 1
 
+def resolve_zone_ids(zone_record_ids):
+    """
+    Résout les record IDs Airtable en objets zone complets
+    Input: ["rec123", "rec456"]
+    Output: [{id: 1, nom: "Potager", icon: "🥕", airtable_id: "rec123"}, ...]
+    """
+    if not zone_record_ids or not isinstance(zone_record_ids, list):
+        return []
+    
+    resolved_zones = []
+    for zone_id, zone_data in zones_db.items():
+        if zone_data.get('airtable_id') in zone_record_ids:
+            resolved_zones.append({
+                'id': zone_id,
+                'nom': zone_data.get('nom', ''),
+                'icon': zone_data.get('icon', '🗺️'),
+                'airtable_id': zone_data.get('airtable_id', '')
+            })
+    
+    return resolved_zones
+
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
     if not library_db:
@@ -1175,6 +1196,12 @@ def handle_library():
         plant_with_notes = plant_data.copy()
         plant_with_notes['plant_id'] = plant_id
         
+        # Résoudre les zones (record IDs → objets complets)
+        if 'zones' in plant_with_notes and plant_with_notes['zones']:
+            plant_with_notes['zones'] = resolve_zone_ids(plant_with_notes['zones'])
+        else:
+            plant_with_notes['zones'] = []
+        
         # Ajouter notes, quantité et photo personnalisée si existants
         if plant_id in notes_db:
             plant_with_notes['notes'] = notes_db[plant_id].get('notes', '')
@@ -1460,18 +1487,27 @@ def save_notes(plant_id):
 
 @app.route('/api/library/<int:plant_id>/zone', methods=['PUT'])
 def save_plant_zone(plant_id):
-    """Sauvegarde la zone d'une plante"""
+    """Sauvegarde les zones d'une plante (multi-zones)"""
     data = request.json
     
     if plant_id not in library_db:
         return jsonify({'error': 'Plante non trouvée'}), 404
     
-    zone_id = data.get('zone_id')
+    # Récupérer array de zone IDs (integers) depuis frontend
+    zone_ids = data.get('zone_ids', [])
     
-    # Mettre à jour dans library_db
-    library_db[plant_id]['zone_id'] = zone_id
+    # Convertir zone IDs en record IDs Airtable
+    zone_record_ids = []
+    for zone_id in zone_ids:
+        if zone_id in zones_db:
+            airtable_id = zones_db[zone_id].get('airtable_id')
+            if airtable_id:
+                zone_record_ids.append(airtable_id)
     
-    print(f"✅ Zone {zone_id} sauvegardée pour plante {plant_id}")
+    # Mettre à jour dans library_db (stocker les record IDs)
+    library_db[plant_id]['zones'] = zone_record_ids
+    
+    print(f"✅ Zones {zone_ids} → record IDs {zone_record_ids} sauvegardées pour plante {plant_id}")
     
     # Synchroniser avec Airtable
     if AIRTABLE_ENABLED and airtable_client:
@@ -1479,7 +1515,7 @@ def save_plant_zone(plant_id):
         if 'airtable_id' in plant_data and plant_data['airtable_id']:
             airtable_client.update_plant(
                 plant_data['airtable_id'],
-                {'zone_id': zone_id}
+                {'zones': zone_record_ids}
             )
     
     return jsonify({'success': True})
