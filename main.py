@@ -838,8 +838,17 @@ def resolve_zone_ids(zone_record_ids):
     Input: ["rec123", "rec456"]
     Output: [{id: 1, nom: "Potager", icon: "🥕", airtable_id: "rec123"}, ...]
     """
+    print(f"\n🔍 resolve_zone_ids appelé:")
+    print(f"   Input: {zone_record_ids}")
+    print(f"   Type: {type(zone_record_ids)}")
+    
     if not zone_record_ids or not isinstance(zone_record_ids, list):
+        print(f"   ❌ Retour vide (pas de liste)")
         return []
+    
+    print(f"   Zones disponibles dans zones_db: {len(zones_db)}")
+    for zone_id, zone_data in zones_db.items():
+        print(f"      - Zone {zone_id}: airtable_id={zone_data.get('airtable_id')}, nom={zone_data.get('nom')}")
     
     resolved_zones = []
     for zone_id, zone_data in zones_db.items():
@@ -850,7 +859,9 @@ def resolve_zone_ids(zone_record_ids):
                 'icon': zone_data.get('icon', '🗺️'),
                 'airtable_id': zone_data.get('airtable_id', '')
             })
+            print(f"   ✅ Zone trouvée: {zone_data.get('nom')}")
     
+    print(f"   Output: {len(resolved_zones)} zones résolues")
     return resolved_zones
 
 def get_next_plant_id():
@@ -1324,17 +1335,26 @@ def get_or_create_plant_id():
     for plant_id, plant_data in library_db.items():
         if (plant_data['nom_francais'] == nom_francais and 
             plant_data['nom_latin'] == nom_latin):
-            # Plante existe déjà - mettre à jour les détails si fournis
+            # Plante existe déjà
+            
+            # Mettre à jour les détails SEULEMENT si fournis ET différents
             if 'details' in data and data['details']:
-                plant_data['details'] = data['details']
-                print(f"✅ Plante existe - Détails mis à jour pour ID {plant_id}")
-                
-                # Synchroniser avec Airtable si activé
-                if AIRTABLE_ENABLED and airtable_client:
-                    try:
-                        airtable_client.upsert_plant(plant_data)
-                    except Exception as e:
-                        print(f"⚠️ Erreur sync Airtable: {e}")
+                # Vérifier si les détails ont changé
+                if plant_data.get('details') != data['details']:
+                    plant_data['details'] = data['details']
+                    print(f"✅ Plante existe - Détails mis à jour pour ID {plant_id}")
+                    
+                    # Synchroniser avec Airtable UNIQUEMENT si les détails ont changé
+                    if AIRTABLE_ENABLED and airtable_client:
+                        try:
+                            airtable_client.upsert_plant(plant_data)
+                            print(f"✅ Plante mise à jour dans Airtable: {nom_francais}")
+                        except Exception as e:
+                            print(f"⚠️ Erreur sync Airtable: {e}")
+                else:
+                    print(f"ℹ️ Plante existe - Détails identiques, pas de mise à jour")
+            else:
+                print(f"ℹ️ Plante existe - ID {plant_id}, pas de nouveaux détails")
             
             return jsonify({
                 'plant_id': plant_id,
