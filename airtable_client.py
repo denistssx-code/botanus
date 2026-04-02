@@ -102,6 +102,10 @@ class AirtableClient:
         if plant_data.get('url'):
             fields['url_source'] = plant_data['url']
         
+        # Zone (optionnelle)
+        if plant_data.get('zone_id'):
+            fields['zone_id'] = plant_data['zone_id']
+        
         # Dimensions
         if plant_data.get('hauteur_maturite'):
             fields['hauteur_maturite'] = plant_data['hauteur_maturite']
@@ -359,7 +363,8 @@ class AirtableClient:
             'taille_technique', 'multiplication',
             'periode_taille', 'periode_raisonnable_taille', 'paillage', 'tuteurage', 'rabattage_periode',
             'description_courte', 'description_complete', 'utilisations',
-            'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes'
+            'image_principale', 'prix', 'disponibilite', 'source', 'statut', 'notes_internes',
+            'zone_id'  # Zone de plantation
         }
         
         

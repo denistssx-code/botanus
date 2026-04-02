@@ -1458,6 +1458,32 @@ def save_notes(plant_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/library/<int:plant_id>/zone', methods=['PUT'])
+def save_plant_zone(plant_id):
+    """Sauvegarde la zone d'une plante"""
+    data = request.json
+    
+    if plant_id not in library_db:
+        return jsonify({'error': 'Plante non trouvée'}), 404
+    
+    zone_id = data.get('zone_id')
+    
+    # Mettre à jour dans library_db
+    library_db[plant_id]['zone_id'] = zone_id
+    
+    print(f"✅ Zone {zone_id} sauvegardée pour plante {plant_id}")
+    
+    # Synchroniser avec Airtable
+    if AIRTABLE_ENABLED and airtable_client:
+        plant_data = library_db[plant_id]
+        if 'airtable_id' in plant_data and plant_data['airtable_id']:
+            airtable_client.update_plant(
+                plant_data['airtable_id'],
+                {'zone_id': zone_id}
+            )
+    
+    return jsonify({'success': True})
+
 @app.route('/api/library/plant/<int:plant_id>/photo', methods=['POST'])
 def save_custom_photo(plant_id):
     """Sauvegarde une photo personnalisée pour une plante"""
