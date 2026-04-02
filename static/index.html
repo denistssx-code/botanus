@@ -5292,9 +5292,11 @@
         
         async function loadZones() {
             try {
+                console.log('📥 Chargement zones...');
                 const response = await fetch(`${API_URL}/zones`);
                 const data = await response.json();
                 allZones = data.zones || [];
+                console.log(`✅ Zones chargées: ${allZones.length} zones`, allZones);
                 
                 // Mettre à jour aperçu profil
                 updateZonesPreview();
@@ -5303,7 +5305,7 @@
                 displayZonesList();
                 
             } catch (error) {
-                console.error('Erreur chargement zones:', error);
+                console.error('❌ Erreur chargement zones:', error);
             }
         }
         
