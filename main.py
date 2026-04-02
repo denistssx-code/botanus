@@ -860,22 +860,22 @@ def resolve_zone_ids(zone_ids):
     Input: [10, 7] ou [10.0, 7.0] (zone_id numériques)
     Output: [{id: 10, nom: "Potager", icon: "🥕"}, ...]
     """
-    print(f"\n🔍 resolve_zone_ids appelé:")
-    print(f"   Input: {zone_ids}")
-    print(f"   Type: {type(zone_ids)}")
+    # print(f"\n🔍 resolve_zone_ids appelé:")
+    # print(f"   Input: {zone_ids}")
+    # print(f"   Type: {type(zone_ids)}")
     
     if not zone_ids or not isinstance(zone_ids, list):
-        print(f"   ❌ Retour vide (pas de liste)")
+        # print(f"   ❌ Retour vide (pas de liste)")
         return []
     
-    print(f"   Zones disponibles dans zones_db: {len(zones_db)}")
+    # print(f"   Zones disponibles dans zones_db: {len(zones_db)}")
     
     resolved_zones = []
     for zone_id_input in zone_ids:
         # Convertir en int si c'est un float (10.0 → 10)
         zone_id_int = int(zone_id_input) if isinstance(zone_id_input, (int, float)) else zone_id_input
         
-        print(f"   Recherche zone_id: {zone_id_int} (type: {type(zone_id_int)})")
+        # print(f"   Recherche zone_id: {zone_id_int} (type: {type(zone_id_int)})")
         
         # Chercher dans zones_db par zone_id
         if zone_id_int in zones_db:
@@ -886,12 +886,12 @@ def resolve_zone_ids(zone_ids):
                 'icon': zone_data.get('icon', '🗺️'),
                 'description': zone_data.get('description', '')
             })
-            print(f"   ✅ Zone trouvée: {zone_data.get('nom')} (id={zone_id_int})")
-        else:
-            print(f"   ❌ Zone {zone_id_int} non trouvée dans zones_db")
-            print(f"      Clés disponibles: {list(zones_db.keys())}")
+            # print(f"   ✅ Zone trouvée: {zone_data.get('nom')} (id={zone_id_int})")
+        # else:
+            # print(f"   ❌ Zone {zone_id_int} non trouvée dans zones_db")
+            # print(f"      Clés disponibles: {list(zones_db.keys())}")
     
-    print(f"   Output: {len(resolved_zones)} zones résolues\n")
+    # print(f"   Output: {len(resolved_zones)} zones résolues\n")
     return resolved_zones
 
 def get_next_plant_id():
