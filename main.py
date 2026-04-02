@@ -1563,19 +1563,33 @@ def delete_custom_photo(plant_id):
 
 @app.route('/api/library/plant/<int:plant_id>', methods=['GET'])
 def get_plant_info(plant_id):
-    """Récupère les infos complètes d'une plante (notes + photo)"""
+    """Récupère les infos complètes d'une plante (notes + photo + tags + zones)"""
     if plant_id not in library_db:
         return jsonify({'error': 'Plante non trouvée'}), 404
     
     plant_data = library_db[plant_id].copy()
     notes_data = notes_db.get(plant_id, {})
     
+    # Récupérer les tags de cette plante
+    plant_tags = notes_data.get('tags', [])
+    tags_list = []
+    for tag_id in plant_tags:
+        if tag_id in tags_db:
+            tags_list.append({
+                'id': tag_id,
+                **tags_db[tag_id]
+            })
+    
+    # Résoudre les zones (déjà dans plant_data.zones)
+    # plant_data contient déjà les zones résolues si GET /api/library a été appelé
+    
     return jsonify({
         'in_library': True,
         'plant': plant_data,
         'notes': notes_data.get('notes', ''),
         'quantity': notes_data.get('quantity', 0),
-        'custom_photo': notes_data.get('custom_photo')
+        'custom_photo': notes_data.get('custom_photo'),
+        'tags': tags_list  # Ajouter tags
     })
 
 # ====== ENDPOINTS TAGS ======
