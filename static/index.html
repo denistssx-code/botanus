@@ -2587,9 +2587,10 @@
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Catégorie *</label>
                         <select id="inv-categorie" required onchange="updateInventoryFormFields()"
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
-                            <option value="Outillage">🔧 Outillage</option>
+                            <option value="Outil">🔧 Outillage</option>
                             <option value="Matériau">🧱 Matériau</option>
                             <option value="Produit">🧪 Produit</option>
+                            <option value="Équipement">⚙️ Équipement</option>
                         </select>
                     </div>
 
@@ -2705,9 +2706,10 @@
                         <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Catégorie *</label>
                         <select id="edit-inv-categorie" required onchange="updateInventoryEditFormFields()"
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
-                            <option value="Outillage">🔧 Outillage</option>
+                            <option value="Outil">🔧 Outillage</option>
                             <option value="Matériau">🧱 Matériau</option>
                             <option value="Produit">🧪 Produit</option>
+                            <option value="Équipement">⚙️ Équipement</option>
                         </select>
                     </div>
 
@@ -3782,13 +3784,15 @@
                                     <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                                         ${categoryEmoji} ${task.category}
                                     </span>
-                                    ${task.zone_id ? (() => {
-                                        const zone = allZones.find(z => z.id == task.zone_id);
-                                        return zone ? `
-                                            <span style="font-size: 12px; padding: 4px 8px; background: #f0f0f0; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
-                                                ${zone.icon} ${zone.nom}
-                                            </span>
-                                        ` : '';
+                                    ${task.zones && task.zones.length > 0 ? (() => {
+                                        return task.zones.map(zoneId => {
+                                            const zone = allZones.find(z => z.id == zoneId);
+                                            return zone ? `
+                                                <span style="font-size: 12px; padding: 4px 8px; background: #f0f7f4; border: 1px solid #c8e6d7; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    ${zone.icon} ${zone.nom}
+                                                </span>
+                                            ` : '';
+                                        }).join('');
                                     })() : ''}
                                     ${isDone && task.completed_at ? `
                                         <span style="font-size: 11px; color: #999;">
@@ -9005,14 +9009,22 @@
                 </div>
                 
                 <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Zone (optionnel)</label>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #555; font-size: 14px;">Zones (optionnel)</label>
+                    
+                    <!-- Zones sélectionnées -->
+                    <div id="task-zones-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 32px;">
+                        <!-- Chips zones générées dynamiquement -->
+                    </div>
+                    
+                    <!-- Select pour ajouter zone -->
                     <select 
                         id="task-modal-zone"
+                        onchange="addZoneToTask()"
                         style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; cursor: pointer; background: white; transition: border-color 0.3s;"
                         onfocus="this.style.borderColor='#4CAF50'"
                         onblur="this.style.borderColor='#e0e0e0'"
                     >
-                        <option value="">-- Aucune zone --</option>
+                        <option value="">+ Ajouter une zone</option>
                         <!-- Rempli dynamiquement -->
                     </select>
                 </div>
