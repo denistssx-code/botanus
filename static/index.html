@@ -2238,6 +2238,15 @@
 
             <div class="main-content">
                 
+                <!-- ============================================ -->
+                <!-- SECTION 1 : TABLEAU DE BORD -->
+                <!-- ============================================ -->
+                
+                <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">📊 TABLEAU DE BORD</div>
+                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Vue d'ensemble</div>
+                </div>
+                
                 <!-- Statistiques -->
                     <div class="info-group">
                         <div class="info-title">📊 Mes Statistiques</div>
@@ -2282,7 +2291,7 @@
 
                     <!-- Météo & Alertes -->
                     <div class="info-group">
-                        <div class="info-title">🌤️ Météo & Alertes - Malaucène</div>
+                        <div class="info-title">🌤️ Météo Locale</div>
                         
                         <!-- Météo actuelle -->
                         <div id="weather-current" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 12px; margin-top: 12px; text-align: center;">
@@ -2310,6 +2319,15 @@
                             Mis à jour automatiquement
                         </div>
                     </div>
+                    
+                <!-- ============================================ -->
+                <!-- SECTION 2 : MES DONNÉES -->
+                <!-- ============================================ -->
+                
+                <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
+                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">🗺️ MES DONNÉES</div>
+                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Zones, Inventaire, Journal</div>
+                </div>
 
                     <!-- Mes Zones -->
                     <div class="info-group">
@@ -2323,13 +2341,77 @@
                             Aucune zone créée
                         </div>
                         
-                        <button id="zones-manage-btn" onclick="showZonesManagementScreen()" style="width: 100%; margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            Gérer mes zones →
-                        </button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+                            <button onclick="showZonesManagementScreen()" style="padding: 12px; background: #667eea; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Gérer →
+                            </button>
+                            <button onclick="showStatsZonesScreen()" style="padding: 12px; background: #FF6B6B; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                📊 Stats →
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Inventaire Rapide -->
+                    <div class="info-group">
+                        <div class="info-title">🔧 Mon Inventaire</div>
                         
-                        <button onclick="showStatsZonesScreen()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            📊 Statistiques →
-                        </button>
+                        <div id="inventory-alerts-container" style="margin-top: 12px;">
+                            <div id="inventory-alerts-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;" id="inventory-total-items">0 items</div>
+                                    <div style="font-size: 12px; color: #666;" id="inventory-alerts-text">Aucune alerte</div>
+                                </div>
+                                <button onclick="showInventoryScreen()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                    Gérer →
+                                </button>
+                            </div>
+                            
+                            <div id="inventory-alerts-list" style="display: none; flex-direction: column; gap: 8px;">
+                                <!-- Alertes remplies dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Journal de bord -->
+                    <div class="info-group">
+                        <div class="info-title">📔 Mon Journal</div>
+                        
+                        <div id="journal-widget-container" style="margin-top: 12px;">
+                            <div id="journal-widget-summary">
+                                <div style="font-size: 13px; color: #666; margin-bottom: 12px;" id="journal-widget-text">
+                                    Aucune entrée
+                                </div>
+                                <div id="journal-widget-last" style="display: none; background: #f5f5f5; padding: 12px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #9B59B6;">
+                                    <!-- Dernière entrée -->
+                                </div>
+                            </div>
+                            
+                            <button onclick="showJournalScreen()" style="width: 100%; padding: 12px; background: #9B59B6; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Voir le journal →
+                            </button>
+                        </div>
+                    </div>
+                    
+                <!-- ============================================ -->
+                <!-- SECTION 3 : PARAMÈTRES & OUTILS -->
+                <!-- ============================================ -->
+                
+                <div style="background: linear-gradient(135deg, #FF9800, #FFA726); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
+                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">⚙️ PARAMÈTRES & OUTILS</div>
+                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Configuration et calculateurs</div>
+                </div>
+
+                    <!-- Outils -->
+                    <div class="info-group">
+                        <div class="info-title">🛠️ Outils de jardinage</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button onclick="showCalculatorsScreen()" style="padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                📐 Calculateurs (volumes, densité, arrosage...)
+                            </button>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 8px; padding: 8px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid #2196F3;">
+                            💡 Calculez les quantités de terre, gravier, nombre de plants nécessaires, besoins en eau, etc.
+                        </div>
                     </div>
 
                     <!-- Paramètres Météo -->
@@ -2377,60 +2459,6 @@
                             <button onclick="saveMeteoSettings()" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
                                 💾 Sauvegarder
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- Inventaire Rapide -->
-                    <div class="info-group">
-                        <div class="info-title">🔧 Inventaire</div>
-                        
-                        <div id="inventory-alerts-container" style="margin-top: 12px;">
-                            <div id="inventory-alerts-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 12px;">
-                                <div>
-                                    <div style="font-weight: 600; font-size: 14px;" id="inventory-total-items">0 items</div>
-                                    <div style="font-size: 12px; color: #666;" id="inventory-alerts-text">Aucune alerte</div>
-                                </div>
-                                <button onclick="showInventoryScreen()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                                    Gérer →
-                                </button>
-                            </div>
-                            
-                            <div id="inventory-alerts-list" style="display: none; flex-direction: column; gap: 8px;">
-                                <!-- Alertes remplies dynamiquement -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Journal de bord -->
-                    <div class="info-group">
-                        <div class="info-title">📔 Journal de bord</div>
-                        
-                        <div id="journal-widget-container" style="margin-top: 12px;">
-                            <div id="journal-widget-summary">
-                                <div style="font-size: 13px; color: #666; margin-bottom: 12px;" id="journal-widget-text">
-                                    Aucune entrée
-                                </div>
-                                <div id="journal-widget-last" style="display: none; background: #f5f5f5; padding: 12px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #9B59B6;">
-                                    <!-- Dernière entrée -->
-                                </div>
-                            </div>
-                            
-                            <button onclick="showJournalScreen()" style="width: 100%; padding: 12px; background: #9B59B6; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
-                                Voir le journal →
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Outils -->
-                    <div class="info-group">
-                        <div class="info-title">🛠️ Outils de jardinage</div>
-                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
-                            <button onclick="showCalculatorsScreen()" style="padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                📐 Calculateurs (volumes, densité, arrosage...)
-                            </button>
-                        </div>
-                        <div style="font-size: 12px; color: #666; margin-top: 8px; padding: 8px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid #2196F3;">
-                            💡 Calculez les quantités de terre, gravier, nombre de plants nécessaires, besoins en eau, etc.
                         </div>
                     </div>
 
@@ -6160,7 +6188,7 @@
                         >
                         <div style="font-size: 32px; ${isCompleted ? 'opacity: 0.5;' : ''}">${rappel.icon}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; ${isCompleted ? 'text-decoration: line-through; color: #999;' : ''}">${rappel.plante}</div>
+                            <div onclick="openPlantFromReminder(${rappel.plantId})" style="font-weight: 600; font-size: 15px; margin-bottom: 4px; cursor: pointer; ${isCompleted ? 'text-decoration: line-through; color: #999;' : 'color: #4CAF50;'}">${rappel.plante}</div>
                             <div style="font-size: 13px; color: ${isCompleted ? '#999' : '#4CAF50'}; font-weight: 600; margin-bottom: 6px; ${isCompleted ? 'text-decoration: line-through;' : ''}">${rappel.action} • ${rappel.periode}</div>
                             <div style="font-size: 13px; color: #666; line-height: 1.4; ${isCompleted ? 'text-decoration: line-through;' : ''}">${rappel.description.substring(0, 100)}${rappel.description.length > 100 ? '...' : ''}</div>
                         </div>
@@ -6202,6 +6230,17 @@
             
             // Réafficher les rappels avec le nouveau état
             filterRappels(currentRappelFilter);
+        }
+        
+        async function openPlantFromReminder(plantId) {
+            // Chercher la plante dans allLibraryPlants
+            const plant = allLibraryPlants.find(p => (p.plant_id || p.id) === plantId);
+            
+            if (plant) {
+                await showPlantDetail(plant, 'rappels');
+            } else {
+                console.error(`Plante ${plantId} non trouvée dans la bibliothèque`);
+            }
         }
         
         function filterRappels(filter) {
