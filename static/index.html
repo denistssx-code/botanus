@@ -600,12 +600,17 @@
             width: 40px;
             height: 40px;
             border-radius: 8px;
-            background: linear-gradient(135deg, #81C784, #4CAF50);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+        }
+        
+        .library-list-icon img {
+            background: none !important;
         }
         
         .library-list-content {
@@ -7198,6 +7203,17 @@
                 if (selectedPlants.has(plantId)) itemEl.classList.add('selected');
                 
                 const icon = plant.icon || '🌿';
+                
+                // Priorité: photo personnalisée > image principale > icône
+                let iconHTML;
+                if (plant.custom_photo) {
+                    iconHTML = `<img src="${plant.custom_photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" alt="${plant.nom_francais}">`;
+                } else if (plant.image_principale) {
+                    iconHTML = `<img src="${plant.image_principale}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" alt="${plant.nom_francais}">`;
+                } else {
+                    iconHTML = icon;
+                }
+                
                 const plantTags = getPlantTags(plantId);
                 const tagsHTML = plantTags.length > 0 ?
                     `<div style="display: flex; gap: 4px; margin-top: 2px;">
@@ -7213,7 +7229,7 @@
                 
                 itemEl.innerHTML = `
                     ${selectionMode ? `<input type="checkbox" class="selection-checkbox" style="position: absolute; left: 12px;" ${selectedPlants.has(plantId) ? 'checked' : ''} onchange="togglePlantSelection(${plantId}, this.checked)">` : ''}
-                    <div class="library-list-icon">${icon}</div>
+                    <div class="library-list-icon">${iconHTML}</div>
                     <div class="library-list-content" onclick="${selectionMode ? '' : `showPlantDetailById(${plantId})`}">
                         <div class="library-list-name">${plant.nom_francais}</div>
                         <div class="library-list-meta">
