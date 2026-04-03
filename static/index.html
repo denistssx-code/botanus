@@ -6507,22 +6507,68 @@
             
             try {
                 const response = await fetch(`${API_URL}/suggestions`);
-                const suggestions = await response.json();
+                const data = await response.json();
                 
-                resultsDiv.innerHTML = `
-                    <div class="recent-section">
+                resultsDiv.innerHTML = '';
+                
+                // Section 1 : Dernières recherches
+                if (data.recent_searches && data.recent_searches.length > 0) {
+                    const searchesSection = document.createElement('div');
+                    searchesSection.className = 'recent-section';
+                    searchesSection.innerHTML = `
                         <div class="section-header">
-                            <span>Suggestions populaires</span>
+                            <span>🔍 Dernières recherches</span>
                         </div>
-                    </div>
-                `;
+                    `;
+                    
+                    data.recent_searches.forEach(searchTerm => {
+                        const searchEl = document.createElement('div');
+                        searchEl.style.cssText = 'padding: 12px; background: #f5f5f5; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;';
+                        searchEl.innerHTML = `
+                            <span style="font-size: 18px;">🔍</span>
+                            <span style="flex: 1; font-size: 14px;">${searchTerm}</span>
+                            <span style="color: #999; font-size: 12px;">→</span>
+                        `;
+                        searchEl.onclick = () => {
+                            document.getElementById('search-main-input').value = searchTerm;
+                            performSearch();
+                        };
+                        searchesSection.appendChild(searchEl);
+                    });
+                    
+                    resultsDiv.appendChild(searchesSection);
+                }
                 
-                const sectionDiv = resultsDiv.querySelector('.recent-section');
+                // Section 2 : Derniers ajouts
+                if (data.recent_additions && data.recent_additions.length > 0) {
+                    const additionsSection = document.createElement('div');
+                    additionsSection.className = 'recent-section';
+                    additionsSection.style.marginTop = data.recent_searches.length > 0 ? '20px' : '0';
+                    additionsSection.innerHTML = `
+                        <div class="section-header">
+                            <span>⭐ Derniers ajouts à ma bibliothèque</span>
+                        </div>
+                    `;
+                    
+                    data.recent_additions.forEach(plant => {
+                        const plantEl = createSearchResultElement(plant);
+                        additionsSection.appendChild(plantEl);
+                    });
+                    
+                    resultsDiv.appendChild(additionsSection);
+                }
                 
-                suggestions.forEach(plant => {
-                    const plantEl = createSearchResultElement(plant);
-                    sectionDiv.appendChild(plantEl);
-                });
+                // Si aucune donnée
+                if ((!data.recent_searches || data.recent_searches.length === 0) && 
+                    (!data.recent_additions || data.recent_additions.length === 0)) {
+                    resultsDiv.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">🌱</div>
+                            <div style="font-size: 16px; margin-bottom: 8px;">Aucune suggestion</div>
+                            <div style="font-size: 14px;">Commencez par rechercher des plantes !</div>
+                        </div>
+                    `;
+                }
             } catch (error) {
                 console.error('Erreur chargement suggestions:', error);
             }
