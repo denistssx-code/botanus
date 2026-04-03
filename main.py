@@ -802,6 +802,8 @@ settings_db = {
     'meteo_mode': 'ville'
 }
 
+search_history = []  # Liste des 10 dernières recherches
+
 def get_next_tag_id():
     """Génère un ID unique pour un tag"""
     if not tags_db:
@@ -1177,51 +1179,48 @@ def scrape_aujardin_manual():
 
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
-    """Suggestions de plantes populaires"""
-    # Suggestions par défaut si la bibliothèque est vide
-    default_suggestions = [
-        PlantInfo(
-            nom_francais="Lavande vraie",
-            nom_latin="Lavandula angustifolia",
-            exposition="Plein soleil",
-            type_plante="Vivace",
-            prix="8,90 €",
-            description="Lavande officinale aux fleurs parfumées et mellifères",
-            icon="🌿",
-            url=""
-        ),
-        PlantInfo(
-            nom_francais="Rosier Pierre de Ronsard",
-            nom_latin="Rosa 'Pierre de Ronsard'",
-            exposition="Soleil",
-            type_plante="Rosier",
-            prix="24,90 €",
-            description="Rosier grimpant aux grandes fleurs roses et blanches",
-            icon="🌹",
-            url=""
-        ),
-        PlantInfo(
-            nom_francais="Hortensia paniculé",
-            nom_latin="Hydrangea paniculata",
-            exposition="Mi-ombre",
-            type_plante="Arbuste",
-            prix="19,90 €",
-            description="Arbuste à grandes panicules de fleurs blanches virant au rose",
-            icon="🌺",
-            url=""
-        )
-    ]
+    """Retourne derniers ajouts et recherches récentes"""
+    from datetime import datetime
     
-    return jsonify([asdict(plant) for plant in default_suggestions])
+    # 1. Derniers ajouts (5 plantes récemment ajoutées à la bibliothèque)
+    recent_additions = []
+    if library_db:
+        # Trier par date de création (plus récent d'abord)
+        sorted_plants = sorted(
+            library_db.items(),
+            key=lambda x: x[1].get('created_at', ''),
+            reverse=True
+        )[:5]
+        
+        for plant_id, plant_data in sorted_plants:
+            plant_copy = plant_data.copy()
+            plant_copy['plant_id'] = plant_id
+            recent_additions.append(plant_copy)
+    
+    # 2. Recherches récentes (inversé pour avoir les plus récentes d'abord)
+    recent_searches = list(reversed(search_history[-5:]))  # 5 dernières recherches
+    
+    return jsonify({
+        'recent_additions': recent_additions,
+        'recent_searches': recent_searches
+    })
 
 @app.route('/api/search', methods=['GET'])
 def search():
     """Endpoint de recherche"""
+    global search_history
+    
     query = request.args.get('q', '')
     max_results = int(request.args.get('max', 10))
     
     if not query:
         return jsonify({'error': 'Paramètre "q" requis'}), 400
+    
+    # Enregistrer la recherche (garder 10 dernières, pas de doublons consécutifs)
+    if not search_history or search_history[-1] != query:
+        search_history.append(query)
+        if len(search_history) > 10:
+            search_history.pop(0)  # Retirer la plus ancienne
     
     results = scraper.search_plants(query, max_results)
     
