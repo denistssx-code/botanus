@@ -1885,6 +1885,13 @@ def update_task(task_id):
             if 'completed_at' in tasks_db[task_id]:
                 del tasks_db[task_id]['completed_at']
     
+    # Mise à jour zone si fournie
+    if 'zone_id' in data:
+        tasks_db[task_id]['zone_id'] = data['zone_id']
+    
+    # Sauvegarder tasks_db
+    save_tasks_db()
+    
     # Synchroniser avec Airtable
     if AIRTABLE_ENABLED and airtable_client and 'airtable_id' in tasks_db[task_id]:
         # Préparer les données pour Airtable
