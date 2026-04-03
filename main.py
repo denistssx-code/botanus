@@ -1837,10 +1837,12 @@ def create_task():
         'category': data.get('category', 'Autre'),
         'status': 'todo',
         'created_at': datetime.now().strftime('%Y-%m-%d'),
-        'subtasks': data.get('subtasks', [])  # Liste de {text: str, completed: bool}
+        'subtasks': data.get('subtasks', []),  # Liste de {text: str, completed: bool}
+        'zone_id': data.get('zone_id')  # Ajouter zone_id si fourni
     }
     
     tasks_db[task_id] = task_data
+    save_tasks_db()  # SAUVEGARDER !
     
     # Synchroniser avec Airtable
     if AIRTABLE_ENABLED and airtable_client:
@@ -1851,6 +1853,7 @@ def create_task():
         airtable_id = airtable_client.create_task(task_data_with_id)
         if airtable_id:
             tasks_db[task_id]['airtable_id'] = airtable_id
+            save_tasks_db()  # Resauvegarder avec airtable_id
     
     return jsonify({
         'success': True,
@@ -1920,6 +1923,7 @@ def delete_task_route(task_id):
             airtable_client.delete_task(task_id)
         
         del tasks_db[task_id]
+        save_tasks_db()  # SAUVEGARDER après suppression !
         return jsonify({'success': True})
     
     return jsonify({'error': 'Tâche non trouvée'}), 404
