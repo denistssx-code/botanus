@@ -910,6 +910,11 @@ def save_notes_db():
     # TODO: Implémenter sauvegarde fichier JSON si nécessaire
     pass
 
+def save_tasks_db():
+    """Sauvegarde tasks_db (no-op pour l'instant, données en mémoire)"""
+    # TODO: Implémenter sauvegarde fichier JSON si nécessaire
+    pass
+
 @app.route('/')
 def index():
     """Page d'accueil"""
@@ -1838,7 +1843,7 @@ def create_task():
         'status': 'todo',
         'created_at': datetime.now().strftime('%Y-%m-%d'),
         'subtasks': data.get('subtasks', []),  # Liste de {text: str, completed: bool}
-        'zone_id': data.get('zone_id')  # Ajouter zone_id si fourni
+        'zones': data.get('zones', [])  # Liste de zone_ids (multi-zones)
     }
     
     tasks_db[task_id] = task_data
@@ -1888,9 +1893,9 @@ def update_task(task_id):
             if 'completed_at' in tasks_db[task_id]:
                 del tasks_db[task_id]['completed_at']
     
-    # Mise à jour zone si fournie
-    if 'zone_id' in data:
-        tasks_db[task_id]['zone_id'] = data['zone_id']
+    # Mise à jour zones si fournies (multi-zones)
+    if 'zones' in data:
+        tasks_db[task_id]['zones'] = data['zones']
     
     # Sauvegarder tasks_db
     save_tasks_db()
