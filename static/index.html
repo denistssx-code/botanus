@@ -1455,23 +1455,17 @@
                 <!-- Boutons de tri -->
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                     <span style="font-size: 13px; color: #666;">Trier par :</span>
-                    <button class="sort-btn active" onclick="sortLibrary('name_asc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        Nom A→Z
+                    <button id="sort-date-btn" class="sort-btn" onclick="toggleSort('date')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        📅 Récent ↓
                     </button>
-                    <button class="sort-btn" onclick="sortLibrary('name_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        Nom Z→A
+                    <button id="sort-name-btn" class="sort-btn active" onclick="toggleSort('name')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        🔤 A→Z ↑
                     </button>
-                    <button class="sort-btn" onclick="sortLibrary('date_desc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        📅 Récent
-                    </button>
-                    <button class="sort-btn" onclick="sortLibrary('date_asc')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        📅 Ancien
+                    <button id="sort-quantity-btn" class="sort-btn" onclick="toggleSort('quantity')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        📊 Qté ↑
                     </button>
                     <button class="sort-btn" onclick="sortLibrary('type')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
                         🌿 Type
-                    </button>
-                    <button class="sort-btn" onclick="sortLibrary('quantity')" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        📊 Quantité
                     </button>
                 </div>
             </div>
@@ -7161,6 +7155,33 @@
             filterLibrary(currentLibraryFilter);
         }
         
+        // Toggle sort (pour date, nom, quantité)
+        function toggleSort(type) {
+            const btn = event.target;
+            
+            // Déterminer direction actuelle et inverser
+            let newMode;
+            if (type === 'date') {
+                newMode = currentSortMode === 'date_desc' ? 'date_asc' : 'date_desc';
+                btn.textContent = newMode === 'date_desc' ? '📅 Récent ↓' : '📅 Ancien ↑';
+            } else if (type === 'name') {
+                newMode = currentSortMode === 'name_asc' ? 'name_desc' : 'name_asc';
+                btn.textContent = newMode === 'name_asc' ? '🔤 A→Z ↑' : '🔤 Z→A ↓';
+            } else if (type === 'quantity') {
+                newMode = currentSortMode === 'quantity_desc' ? 'quantity_asc' : 'quantity_desc';
+                btn.textContent = newMode === 'quantity_desc' ? '📊 Qté ↓' : '📊 Qté ↑';
+            }
+            
+            currentSortMode = newMode;
+            
+            // Mettre à jour boutons actifs
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Appliquer le filtre actuel avec le nouveau tri
+            filterLibrary(currentLibraryFilter);
+        }
+        
         // NOUVEAU: Fonction toggle vue
         function switchView(mode) {
             currentViewMode = mode;
@@ -7211,7 +7232,16 @@
                         return typeCompare !== 0 ? typeCompare : a.nom_francais.localeCompare(b.nom_francais);
                     });
                     break;
+                case 'quantity_desc':
+                    // Quantité décroissante (plus grand en premier)
+                    sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+                    break;
+                case 'quantity_asc':
+                    // Quantité croissante (plus petit en premier)
+                    sorted.sort((a, b) => (a.quantity || 0) - (b.quantity || 0));
+                    break;
                 case 'quantity':
+                    // Fallback pour compatibilité (défaut = desc)
                     sorted.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
                     break;
             }
