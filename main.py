@@ -2260,6 +2260,68 @@ def update_meteo_settings():
         'settings': settings_db
     })
 
+@app.route('/api/geocode', methods=['GET'])
+def geocode_city():
+    """Recherche coordonnées d'une ville via Nominatim (OpenStreetMap)"""
+    query = request.args.get('q', '').strip()
+    
+    if not query or len(query) < 2:
+        return jsonify({'results': []})
+    
+    try:
+        import requests
+        from urllib.parse import quote
+        
+        # API Nominatim (gratuite, pas de clé requise)
+        url = f"https://nominatim.openstreetmap.org/search?q={quote(query)}&format=json&limit=5&addressdetails=1"
+        
+        headers = {
+            'User-Agent': 'Botanus/1.0 (Garden Management App)'  # Required by Nominatim
+        }
+        
+        response = requests.get(url, headers=headers, timeout=5)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        # Formater les résultats
+        results = []
+        for place in data:
+            # Construire nom affichage (ville, département, pays)
+            address = place.get('address', {})
+            name_parts = []
+            
+            # Ville/village
+            city = address.get('city') or address.get('town') or address.get('village') or address.get('municipality')
+            if city:
+                name_parts.append(city)
+            
+            # Département/région
+            state = address.get('state') or address.get('county')
+            if state and state not in name_parts:
+                name_parts.append(state)
+            
+            # Pays
+            country = address.get('country')
+            if country:
+                name_parts.append(country)
+            
+            display_name = ', '.join(name_parts) if name_parts else place.get('display_name', '')
+            
+            results.append({
+                'name': display_name,
+                'lat': float(place['lat']),
+                'lon': float(place['lon']),
+                'raw_name': place.get('name', ''),
+                'type': place.get('type', '')
+            })
+        
+        return jsonify({'results': results})
+        
+    except Exception as e:
+        print(f"❌ Erreur geocoding: {e}")
+        return jsonify({'results': [], 'error': str(e)})
+
 # ========================================
 # STATS ZONES
 # ========================================
