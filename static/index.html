@@ -2425,40 +2425,37 @@
                         
                         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
                             <div>
-                                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">📍 Ville</label>
-                                <input 
-                                    type="text" 
-                                    id="settings-meteo-ville" 
-                                    placeholder="Malaucène"
-                                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                                >
+                                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">📍 Rechercher une ville</label>
+                                <div style="position: relative;">
+                                    <input 
+                                        type="text" 
+                                        id="settings-meteo-search" 
+                                        placeholder="Ex: Malaucène, Paris, Lyon..."
+                                        style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                                        oninput="searchCity(this.value)"
+                                        onfocus="this.style.borderColor='#4CAF50'"
+                                        onblur="setTimeout(() => { this.style.borderColor='#e0e0e0'; hideCitySuggestions(); }, 200)"
+                                    >
+                                    <!-- Résultats recherche ville -->
+                                    <div id="city-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #4CAF50; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                        <!-- Suggestions générées dynamiquement -->
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <div>
-                                    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Latitude</label>
-                                    <input 
-                                        type="number" 
-                                        id="settings-meteo-latitude" 
-                                        step="0.0001"
-                                        placeholder="44.1736"
-                                        style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                                    >
-                                </div>
-                                <div>
-                                    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Longitude</label>
-                                    <input 
-                                        type="number" 
-                                        id="settings-meteo-longitude" 
-                                        step="0.0001"
-                                        placeholder="5.1314"
-                                        style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                                    >
-                                </div>
+                            <!-- Ville sélectionnée (affichage) -->
+                            <div id="selected-city-display" style="display: none; padding: 12px; background: #e8f5e9; border: 1px solid #4CAF50; border-radius: 8px;">
+                                <div style="font-size: 13px; color: #2e7d32; font-weight: 600;" id="selected-city-name"></div>
+                                <div style="font-size: 11px; color: #666; margin-top: 4px;" id="selected-city-coords"></div>
                             </div>
+                            
+                            <!-- Coordonnées cachées (auto-remplies) -->
+                            <input type="hidden" id="settings-meteo-ville">
+                            <input type="hidden" id="settings-meteo-latitude">
+                            <input type="hidden" id="settings-meteo-longitude">
                             
                             <div style="font-size: 11px; color: #999; padding: 8px; background: #f5f5f5; border-radius: 6px;">
-                                💡 Modifiez la ville ou les coordonnées GPS pour personnaliser votre météo
+                                💡 Tapez le nom de votre ville et sélectionnez-la dans la liste
                             </div>
                             
                             <button onclick="saveMeteoSettings()" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
@@ -5616,6 +5613,77 @@
         // SETTINGS MÉTÉO
         // ========================================
         
+        let citySearchTimeout = null;
+        
+        async function searchCity(query) {
+            // Debounce (attendre 300ms après dernière frappe)
+            clearTimeout(citySearchTimeout);
+            
+            if (!query || query.length < 2) {
+                document.getElementById('city-suggestions').style.display = 'none';
+                return;
+            }
+            
+            citySearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/geocode?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    
+                    const suggestionsDiv = document.getElementById('city-suggestions');
+                    
+                    if (data.results && data.results.length > 0) {
+                        suggestionsDiv.innerHTML = '';
+                        
+                        data.results.forEach(city => {
+                            const item = document.createElement('div');
+                            item.style.cssText = 'padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s;';
+                            item.onmouseover = () => item.style.background = '#f0f9f0';
+                            item.onmouseout = () => item.style.background = 'white';
+                            
+                            item.innerHTML = `
+                                <div style="font-weight: 600; font-size: 14px; color: #333;">${city.name}</div>
+                                <div style="font-size: 11px; color: #999; margin-top: 2px;">📍 ${city.lat.toFixed(4)}, ${city.lon.toFixed(4)}</div>
+                            `;
+                            
+                            item.onclick = () => selectCity(city);
+                            
+                            suggestionsDiv.appendChild(item);
+                        });
+                        
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Erreur recherche ville:', error);
+                }
+            }, 300);
+        }
+        
+        function selectCity(city) {
+            // Masquer suggestions
+            document.getElementById('city-suggestions').style.display = 'none';
+            
+            // Vider champ recherche
+            document.getElementById('settings-meteo-search').value = '';
+            
+            // Remplir champs cachés
+            document.getElementById('settings-meteo-ville').value = city.name;
+            document.getElementById('settings-meteo-latitude').value = city.lat;
+            document.getElementById('settings-meteo-longitude').value = city.lon;
+            
+            // Afficher ville sélectionnée
+            document.getElementById('selected-city-name').textContent = city.name;
+            document.getElementById('selected-city-coords').textContent = `📍 ${city.lat.toFixed(4)}, ${city.lon.toFixed(4)}`;
+            document.getElementById('selected-city-display').style.display = 'block';
+            
+            console.log('✅ Ville sélectionnée:', city);
+        }
+        
+        function hideCitySuggestions() {
+            document.getElementById('city-suggestions').style.display = 'none';
+        }
+        
         async function loadMeteoSettings() {
             try {
                 const response = await fetch(`${API_URL}/settings/meteo`);
@@ -5623,9 +5691,18 @@
                 
                 if (data.success) {
                     const settings = data.settings;
+                    
+                    // Remplir champs cachés
                     document.getElementById('settings-meteo-ville').value = settings.meteo_ville || 'Malaucène';
                     document.getElementById('settings-meteo-latitude').value = settings.meteo_latitude || 44.1736;
                     document.getElementById('settings-meteo-longitude').value = settings.meteo_longitude || 5.1314;
+                    
+                    // Afficher ville actuelle
+                    if (settings.meteo_ville) {
+                        document.getElementById('selected-city-name').textContent = settings.meteo_ville;
+                        document.getElementById('selected-city-coords').textContent = `📍 ${settings.meteo_latitude.toFixed(4)}, ${settings.meteo_longitude.toFixed(4)}`;
+                        document.getElementById('selected-city-display').style.display = 'block';
+                    }
                     
                     console.log('✅ Settings météo chargés:', settings);
                 }
