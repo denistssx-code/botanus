@@ -822,9 +822,13 @@ class AirtableClient:
             if task_data.get('completed_at'):
                 fields['completed_at'] = task_data['completed_at']
             
-            # Zone optionnelle
+            # Zone optionnelle (compatibilité, Number)
             if task_data.get('zone_id'):
                 fields['zone_id'] = task_data['zone_id']
+            
+            # Zones multiples (nouveau, Link to records)
+            if task_data.get('zones'):
+                fields['zones'] = task_data['zones']  # ["recABC", "recDEF"]
             
             # Stocker les subtasks en JSON
             if task_data.get('subtasks'):
@@ -862,6 +866,8 @@ class AirtableClient:
                 fields['subtasks'] = json.dumps(task_data['subtasks'])
             if 'zone_id' in task_data:
                 fields['zone_id'] = task_data['zone_id']
+            if 'zones' in task_data:
+                fields['zones'] = task_data['zones']  # ["recABC", "recDEF"]
             if 'completed_at' in task_data:
                 # Envoyer completed_at même si None (pour vider le champ)
                 # Ne l'envoyer que s'il est présent dans task_data

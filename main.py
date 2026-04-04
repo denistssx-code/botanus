@@ -896,6 +896,26 @@ def resolve_zone_ids(zone_ids):
     # print(f"   Output: {len(resolved_zones)} zones résolues\n")
     return resolved_zones
 
+def get_zone_airtable_ids(zone_ids):
+    """
+    Convertit zone IDs numériques → Airtable record IDs
+    Input: [10, 7, 13] (zone_id numériques)
+    Output: ["recABC123", "recDEF456", "recGHI789"] (Airtable record IDs)
+    """
+    if not zone_ids or not isinstance(zone_ids, list):
+        return []
+    
+    airtable_ids = []
+    for zone_id_input in zone_ids:
+        zone_id_int = int(zone_id_input) if isinstance(zone_id_input, (int, float)) else zone_id_input
+        
+        if zone_id_int in zones_db:
+            airtable_id = zones_db[zone_id_int].get('airtable_id')
+            if airtable_id:
+                airtable_ids.append(airtable_id)
+    
+    return airtable_ids
+
 def get_next_plant_id():
     """Génère un ID unique pour une plante"""
     if not library_db:
@@ -1854,6 +1874,24 @@ def create_task():
             'task_id': task_id,
             **task_data
         }
+        
+        # Convertir zones numériques → IDs Airtable + garder zone_id pour compat
+        if 'zones' in task_data_with_id and task_data_with_id['zones']:
+            # zone_id = première zone (compatibilité, champ Number)
+            task_data_with_id['zone_id'] = task_data_with_id['zones'][0]
+            
+            # zones = toutes les zones (nouveau, champ Link records)
+            zone_airtable_ids = get_zone_airtable_ids(task_data_with_id['zones'])
+            if zone_airtable_ids:
+                task_data_with_id['zones'] = zone_airtable_ids  # ["recABC", "recDEF"]
+            else:
+                del task_data_with_id['zones']  # Pas de record IDs = pas envoyer
+        else:
+            # Aucune zone
+            task_data_with_id['zone_id'] = None
+            if 'zones' in task_data_with_id:
+                del task_data_with_id['zones']
+        
         airtable_id = airtable_client.create_task(task_data_with_id)
         if airtable_id:
             tasks_db[task_id]['airtable_id'] = airtable_id
@@ -1903,6 +1941,23 @@ def update_task(task_id):
     if AIRTABLE_ENABLED and airtable_client and 'airtable_id' in tasks_db[task_id]:
         # Préparer les données pour Airtable
         airtable_data = data.copy()
+        
+        # Convertir zones numériques → IDs Airtable + garder zone_id pour compat
+        if 'zones' in airtable_data:
+            if airtable_data['zones'] and len(airtable_data['zones']) > 0:
+                # zone_id = première zone (compatibilité, champ Number)
+                airtable_data['zone_id'] = airtable_data['zones'][0]
+                
+                # zones = toutes les zones (nouveau, champ Link records)
+                zone_airtable_ids = get_zone_airtable_ids(airtable_data['zones'])
+                if zone_airtable_ids:
+                    airtable_data['zones'] = zone_airtable_ids  # ["recABC", "recDEF"]
+                else:
+                    del airtable_data['zones']  # Pas de record IDs = pas envoyer
+            else:
+                # Aucune zone
+                airtable_data['zone_id'] = None
+                del airtable_data['zones']
         
         # Si on est passé à "done", ajouter completed_at
         if 'status' in data and data['status'] == 'done' and 'completed_at' in tasks_db[task_id]:
