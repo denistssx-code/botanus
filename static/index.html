@@ -2877,7 +2877,7 @@
                         <select id="journal-categorie" required
                             style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                             <option value="Semis / Plantation">🌱 Semis / Plantation</option>
-                            <option value="Entretien / Taille">🔧 Entretien / Taille</option>
+                            <option value="Entretien / Taille">✂️ Entretien / Taille</option>
                             <option value="Arrosage">💧 Arrosage</option>
                             <option value="Traitement">🧪 Traitement</option>
                             <option value="Travaux / Aménagement">🏗️ Travaux / Aménagement</option>
@@ -4761,7 +4761,7 @@
             
             const catIcon = {
                 'Semis / Plantation': '🌱',
-                'Entretien / Taille': '🔧',
+                'Entretien / Taille': '✂️',
                 'Arrosage': '💧',
                 'Traitement': '🧪',
                 'Travaux / Aménagement': '🏗️',
@@ -5087,7 +5087,7 @@
             if (lastEntry) {
                 const catIcon = {
                     'Semis / Plantation': '🌱',
-                    'Entretien / Taille': '🔧',
+                    'Entretien / Taille': '✂️',
                     'Arrosage': '💧',
                     'Traitement': '🧪',
                     'Travaux / Aménagement': '🏗️',
@@ -7227,16 +7227,15 @@
             gridDiv.innerHTML = '';
             listDiv.innerHTML = '';
             
+            // TOUJOURS afficher les contrôles (pour permettre réinitialisation)
+            controlsDiv.style.display = 'block';
+            
             if (plants.length === 0) {
                 gridDiv.style.display = 'block';
                 listDiv.style.display = 'none';
-                gridDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Aucune plante de ce type</div>';
-                controlsDiv.style.display = 'none';
+                gridDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Aucune plante ne correspond aux filtres sélectionnés</div>';
                 return;
             }
-            
-            // Afficher les contrôles
-            controlsDiv.style.display = 'block';
             
             // Trier les plantes
             const sortedPlants = sortPlants(plants);
