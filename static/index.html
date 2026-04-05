@@ -200,7 +200,7 @@
         }
         
         .bottom-nav {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
@@ -9451,6 +9451,132 @@
             }
         `;
         document.head.appendChild(style);
+    </script>
+    
+    <!-- Swipe Navigation pour Mobile -->
+    <script>
+        // Configuration swipe
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let touchStartY = 0;
+        let touchEndY = 0;
+        const minSwipeDistance = 50;
+        
+        // Pages du bottom-nav dans l'ordre (basé sur les nav-items)
+        const navOrder = [
+            { id: 'nav-profil', func: 'showProfilScreen' },
+            { id: 'nav-search', func: 'showSearchScreen' },
+            { id: 'nav-library', func: 'showLibraryScreen' },
+            { id: 'nav-tasks', func: 'showTasksScreen' },
+            { id: 'nav-inventory', func: 'showInventoryScreen' },
+            { id: 'nav-rappels', func: 'showRappelsScreen' },
+            { id: 'nav-calendrier', func: 'showCalendrierScreen' },
+            { id: 'nav-journal', func: 'showJournalScreen' }
+        ];
+        
+        function getCurrentPageIndex() {
+            // Trouver quel nav-item a la classe active
+            for (let i = 0; i < navOrder.length; i++) {
+                const navItem = document.getElementById(navOrder[i].id);
+                if (navItem && navItem.classList.contains('active')) {
+                    console.log('🎯 Page active détectée:', navOrder[i].id, 'index:', i);
+                    return i;
+                }
+            }
+            
+            // Si aucun nav actif, chercher quel screen a la classe active
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen) {
+                const screenId = activeScreen.id;
+                console.log('📍 Screen actif:', screenId);
+                
+                // Mapper screen ID vers nav index
+                const screenToNav = {
+                    'profil-screen': 0,
+                    'home-screen': 0,
+                    'search-screen': 1,
+                    'library-screen': 2,
+                    'tasks-screen': 3,
+                    'inventory-screen': 4,
+                    'rappels-screen': 5,
+                    'calendrier-screen': 6,
+                    'journal-screen': 7
+                };
+                
+                if (screenToNav[screenId] !== undefined) {
+                    return screenToNav[screenId];
+                }
+            }
+            
+            console.log('⚠️ Aucune page active trouvée, défaut = 2 (Bibliothèque)');
+            return 2; // Par défaut bibliothèque
+        }
+        
+        function navigateToPage(index) {
+            if (index >= 0 && index < navOrder.length) {
+                const funcName = navOrder[index].func;
+                console.log('🚀 Navigation vers:', funcName);
+                if (typeof window[funcName] === 'function') {
+                    window[funcName]();
+                } else {
+                    console.error('❌ Fonction non trouvée:', funcName);
+                }
+            }
+        }
+        
+        function handleSwipe() {
+            const swipeDistanceX = touchEndX - touchStartX;
+            const swipeDistanceY = Math.abs(touchEndY - touchStartY);
+            
+            // Vérifier que c'est un swipe horizontal (et pas vertical)
+            if (swipeDistanceY > 100) {
+                console.log('↕️ Scroll vertical détecté, pas de swipe');
+                return;
+            }
+            
+            const currentIndex = getCurrentPageIndex();
+            console.log('📊 Swipe depuis index:', currentIndex);
+            
+            // Swipe vers la gauche = page suivante
+            if (swipeDistanceX < -minSwipeDistance) {
+                if (currentIndex < navOrder.length - 1) {
+                    console.log('← Swipe gauche: page suivante');
+                    navigateToPage(currentIndex + 1);
+                } else {
+                    console.log('⚠️ Déjà à la dernière page');
+                }
+            }
+            
+            // Swipe vers la droite = page précédente
+            if (swipeDistanceX > minSwipeDistance) {
+                if (currentIndex > 0) {
+                    console.log('→ Swipe droite: page précédente');
+                    navigateToPage(currentIndex - 1);
+                } else {
+                    console.log('⚠️ Déjà à la première page');
+                }
+            }
+        }
+        
+        // Event listeners sur phone-container
+        const phoneContainer = document.querySelector('.phone-container');
+        
+        if (phoneContainer) {
+            phoneContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+            
+            phoneContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipe();
+            }, { passive: true });
+            
+            console.log('🌿 Swipe navigation activée ! Pages:', navOrder.length);
+        } else {
+            console.error('❌ phone-container non trouvé');
+        }
     </script>
     
 </body>
