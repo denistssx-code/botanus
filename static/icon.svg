@@ -1,0 +1,53 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #2d5a2d; }
+      .leaf { fill: #7cb342; }
+      .leaf-dark { fill: #558b2f; }
+      .stem { stroke: #558b2f; }
+      .letter { fill: #ffffff; }
+    }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #4CAF50; }
+      .leaf { fill: #9ccc65; }
+      .leaf-dark { fill: #7cb342; }
+      .stem { stroke: #689f38; }
+      .letter { fill: #ffffff; }
+    }
+  </style>
+  
+  <circle cx="256" cy="256" r="240" class="bg"/>
+  
+  <line x1="256" y1="380" x2="256" y2="130" class="stem" stroke-width="6" fill="none" stroke-linecap="round"/>
+  
+  <ellipse cx="210" cy="340" rx="35" ry="12" class="leaf" transform="rotate(-40 210 340)"/>
+  <ellipse cx="210" cy="340" rx="28" ry="9" class="leaf-dark" transform="rotate(-40 210 340)"/>
+  
+  <ellipse cx="302" cy="340" rx="35" ry="12" class="leaf" transform="rotate(40 302 340)"/>
+  <ellipse cx="302" cy="340" rx="28" ry="9" class="leaf-dark" transform="rotate(40 302 340)"/>
+  
+  <ellipse cx="200" cy="290" rx="38" ry="13" class="leaf" transform="rotate(-45 200 290)"/>
+  <ellipse cx="200" cy="290" rx="30" ry="10" class="leaf-dark" transform="rotate(-45 200 290)"/>
+  
+  <ellipse cx="312" cy="290" rx="38" ry="13" class="leaf" transform="rotate(45 312 290)"/>
+  <ellipse cx="312" cy="290" rx="30" ry="10" class="leaf-dark" transform="rotate(45 312 290)"/>
+  
+  <ellipse cx="190" cy="240" rx="40" ry="14" class="leaf" transform="rotate(-50 190 240)"/>
+  <ellipse cx="190" cy="240" rx="32" ry="11" class="leaf-dark" transform="rotate(-50 190 240)"/>
+  
+  <ellipse cx="322" cy="240" rx="40" ry="14" class="leaf" transform="rotate(50 322 240)"/>
+  <ellipse cx="322" cy="240" rx="32" ry="11" class="leaf-dark" transform="rotate(50 322 240)"/>
+  
+  <ellipse cx="195" cy="190" rx="38" ry="13" class="leaf" transform="rotate(-55 195 190)"/>
+  <ellipse cx="195" cy="190" rx="30" ry="10" class="leaf-dark" transform="rotate(-55 195 190)"/>
+  
+  <ellipse cx="317" cy="190" rx="38" ry="13" class="leaf" transform="rotate(55 317 190)"/>
+  <ellipse cx="317" cy="190" rx="30" ry="10" class="leaf-dark" transform="rotate(55 317 190)"/>
+  
+  <ellipse cx="256" cy="140" rx="42" ry="15" class="leaf" transform="rotate(0 256 140)"/>
+  <ellipse cx="256" cy="140" rx="34" ry="12" class="leaf-dark" transform="rotate(0 256 140)"/>
+  
+  <g opacity="0.95">
+    <text x="256" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="280" font-weight="700" text-anchor="middle" class="letter">B</text>
+  </g>
+</svg>

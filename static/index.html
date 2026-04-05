@@ -3,8 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ma Bibliothèque Végétale</title>
-    <!-- VERSION 11.1 - Corrections: corbeille visible, quantité fonctionne, tri date bidirectionnel, type plante amélioré, fiche structurée - 2026-03-01 -->
+    <title>Botanus - Ma Bibliothèque Végétale</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Gestionnaire de jardin et plantes - Botanus">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Botanus">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    
+    <!-- VERSION 13.5 PWA - Progressive Web App + Toutes fonctionnalités v13.5 - 2026-04-04 -->
     <style>
         * {
             margin: 0;
@@ -9294,6 +9305,115 @@
             </form>
         </div>
     </div>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Enregistrement du Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('🌿 Service Worker enregistré:', registration.scope);
+                        
+                        // Vérifier les mises à jour
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Nouvelle version disponible
+                                    if (confirm('🌿 Nouvelle version de Botanus disponible ! Recharger maintenant ?')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.log('❌ Erreur Service Worker:', error);
+                    });
+            });
+        }
+
+        // Gestion de l'installation PWA
+        let deferredPrompt;
+        const installBanner = document.createElement('div');
+        installBanner.id = 'install-banner';
+        installBanner.style.cssText = `
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            right: 16px;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: slideUp 0.3s ease-out;
+        `;
+        installBanner.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 32px;">🌿</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">Installer Botanus</div>
+                    <div style="font-size: 13px; color: #666;">Accès rapide depuis votre écran d'accueil</div>
+                </div>
+                <button id="install-button" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Installer
+                </button>
+                <button id="install-close" style="padding: 8px; background: transparent; border: none; font-size: 20px; cursor: pointer; color: #999;">
+                    ×
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(installBanner);
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Afficher bannière après 3 secondes
+            setTimeout(() => {
+                installBanner.style.display = 'block';
+            }, 3000);
+        });
+
+        document.getElementById('install-button').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('🌿 PWA installée !');
+            }
+            
+            deferredPrompt = null;
+            installBanner.style.display = 'none';
+        });
+
+        document.getElementById('install-close').addEventListener('click', () => {
+            installBanner.style.display = 'none';
+        });
+
+        // Animation slideUp
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    transform: translateY(100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
     
 </body>
 </html>

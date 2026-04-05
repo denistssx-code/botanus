@@ -1,0 +1,54 @@
+{
+  "name": "Botanus",
+  "short_name": "Botanus",
+  "description": "Gestionnaire de jardin et plantes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Ma bibliothèque",
+      "short_name": "Bibliothèque",
+      "description": "Voir mes plantes",
+      "url": "/#bibliotheque",
+      "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mes tâches",
+      "short_name": "Tâches",
+      "description": "Voir mes tâches du jour",
+      "url": "/#taches",
+      "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mon journal",
+      "short_name": "Journal",
+      "description": "Ajouter une entrée",
+      "url": "/#journal",
+      "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
