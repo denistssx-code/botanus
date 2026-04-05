@@ -15,7 +15,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     
-    <!-- VERSION 13.5 PWA - Progressive Web App + Toutes fonctionnalités v13.5 - 2026-04-04 -->
+    <!-- VERSION 13.5 PWA - Progressive Web App + Sans Rustica - 2026-04-05 -->
     <style>
         * {
             margin: 0;
@@ -43,12 +43,35 @@
             contain: paint;
         }
         
-        @media (max-width: 400px) {
+        /* Mobile réel et PWA : plein écran sans bordures */
+        @media (max-width: 768px) {
+            body {
+                background: white;
+            }
+            
             .phone-container {
                 width: 100%;
                 margin: 0;
                 border-radius: 0;
+                box-shadow: none;
                 height: 100vh;
+                max-width: none;
+            }
+        }
+        
+        /* PWA mode standalone : plein écran */
+        @media (display-mode: standalone) {
+            body {
+                background: white;
+            }
+            
+            .phone-container {
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+                height: 100vh;
+                max-width: none;
             }
         }
         
@@ -9320,7 +9343,6 @@
                             const newWorker = registration.installing;
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // Nouvelle version disponible
                                     if (confirm('🌿 Nouvelle version de Botanus disponible ! Recharger maintenant ?')) {
                                         newWorker.postMessage({ type: 'SKIP_WAITING' });
                                         window.location.reload();
@@ -9374,7 +9396,6 @@
             e.preventDefault();
             deferredPrompt = e;
             
-            // Afficher bannière après 3 secondes
             setTimeout(() => {
                 installBanner.style.display = 'block';
             }, 3000);
@@ -9398,7 +9419,6 @@
             installBanner.style.display = 'none';
         });
 
-        // Animation slideUp
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideUp {
