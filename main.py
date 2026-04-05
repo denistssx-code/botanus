@@ -942,6 +942,21 @@ def index():
     """Page d'accueil"""
     return send_from_directory('static', 'index.html')
 
+@app.route('/manifest.json')
+def serve_manifest():
+    """Servir le manifest PWA"""
+    return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
+@app.route('/service-worker.js')
+def serve_sw():
+    """Servir le service worker"""
+    response = send_from_directory('static', 'service-worker.js', mimetype='application/javascript')
+    # Désactiver le cache pour le service worker (toujours récupérer la dernière version)
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 @app.route('/<path:path>')
 def serve_static(path):
     """Sert les fichiers statiques"""
