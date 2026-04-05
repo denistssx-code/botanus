@@ -7220,11 +7220,11 @@
                     break;
                 case 'date_desc':
                     // Plus récent en premier (ID plus grand = plus récent)
-                    sorted.sort((a, b) => b.id - a.id);
+                    sorted.sort((a, b) => b.plant_id - a.plant_id);
                     break;
                 case 'date_asc':
                     // Plus ancien en premier (ID plus petit = plus ancien)
-                    sorted.sort((a, b) => a.id - b.id);
+                    sorted.sort((a, b) => a.plant_id - b.plant_id);
                     break;
                 case 'type':
                     sorted.sort((a, b) => {
