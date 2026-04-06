@@ -5266,14 +5266,7 @@
                 if (response.ok) {
                     document.getElementById('heures-recup-note').value = '';
                     await loadHeuresRecup();
-                    
-                    // Feedback visuel
-                    const btn = event.target;
-                    const originalText = btn.textContent;
-                    btn.textContent = '✓';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                    }, 1000);
+                    // Succès silencieux - la page se met à jour
                 } else {
                     alert('Erreur lors de l\'enregistrement');
                 }
