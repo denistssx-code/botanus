@@ -1452,6 +1452,66 @@ class AirtableClient:
         
         return False
 
+    # ============================================
+    # HEURES RÉCUP
+    # ============================================
+    
+    def get_all_heures_recup(self) -> List[Dict]:
+        """Récupère toutes les heures récup depuis Airtable"""
+        try:
+            if not self.base:
+                return []
+            
+            table = self.base.table('HeuresRecup')
+            records = table.all()
+            
+            heures = []
+            for record in records:
+                fields = record['fields']
+                heure = {
+                    'id': record['id'],
+                    'airtable_id': record['id'],
+                    'date': fields.get('Date', ''),
+                    'type': fields.get('Type', 'Supp'),
+                    'duree': fields.get('Duree', 0),
+                    'note': fields.get('Note', ''),
+                    'statut': fields.get('Statut', 'À récupérer')
+                }
+                heures.append(heure)
+            
+            print(f"📥 {len(heures)} heures récup chargées depuis Airtable")
+            return heures
+            
+        except Exception as e:
+            print(f"❌ Erreur get_all_heures_recup: {e}")
+            return []
+    
+    def create_heure_recup(self, heure_data: Dict) -> Optional[Dict]:
+        """Crée une entrée heure récup dans Airtable"""
+        try:
+            if not self.base:
+                return None
+            
+            table = self.base.table('HeuresRecup')
+            
+            # Préparer les données
+            fields = {
+                'Date': heure_data.get('Date', ''),
+                'Type': heure_data.get('Type', 'Supp'),
+                'Duree': heure_data.get('Duree', 0),
+                'Note': heure_data.get('Note', ''),
+                'Statut': heure_data.get('Statut', 'À récupérer')
+            }
+            
+            # Créer le record
+            record = table.create(fields)
+            print(f"✅ Heure récup créée: {record['id']}")
+            return record
+            
+        except Exception as e:
+            print(f"❌ Erreur create_heure_recup: {e}")
+            return None
+
 
 # Instance globale
 airtable_client = AirtableClient()

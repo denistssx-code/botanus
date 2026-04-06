@@ -2906,18 +2906,102 @@ def load_from_airtable():
         
         print(f"✅ Paramètres chargés: {settings_db['meteo_ville']} ({settings_db['meteo_latitude']}, {settings_db['meteo_longitude']})")
         
+        # ====== CHARGER LES HEURES RÉCUP ======
+        print("\n📥 Chargement des heures récup...")
+        global heures_recup_db
+        airtable_heures = airtable_client.get_all_heures_recup()
+        
+        heures_recup_db = []
+        for heure in airtable_heures:
+            heures_recup_db.append({
+                'id': heure['id'],
+                'airtable_id': heure['airtable_id'],
+                'date': heure['date'],
+                'type': heure['type'],
+                'duree': heure['duree'],
+                'note': heure['note'],
+                'statut': heure['statut']
+            })
+        
+        print(f"✅ {len(heures_recup_db)} heures récup chargées")
+        
         print(f"\n📊 État final:")
         print(f"   - library_db: {len(library_db)} plantes")
         print(f"   - notes_db: {len(notes_db)} entrées")
         print(f"   - tags_db: {len(tags_db)} tags")
         print(f"   - tasks_db: {len(tasks_db)} tâches")
         print(f"   - inventory_db: {len(inventory_db)} items")
+        print(f"   - heures_recup_db: {len(heures_recup_db)} entrées")
         print("="*60 + "\n")
         
     except Exception as e:
         print(f"❌ ERREUR CRITIQUE lors du chargement Airtable: {e}")
         print("⚠️ Démarrage avec base vide")
         print("="*60 + "\n")
+
+# ============================================
+# ROUTES HEURES RÉCUP
+# ============================================
+
+# Base de données en mémoire heures récup
+heures_recup_db = []
+
+@app.route('/api/heures-recup', methods=['GET'])
+def get_heures_recup():
+    """Récupérer toutes les heures récup"""
+    try:
+        return jsonify({
+            'success': True,
+            'heures': heures_recup_db
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/heures-recup', methods=['POST'])
+def add_heure_recup():
+    """Ajouter une heure récup"""
+    try:
+        data = request.json
+        
+        # Validation
+        if not data.get('date') or not data.get('type') or data.get('duree') is None:
+            return jsonify({'error': 'Champs requis manquants'}), 400
+        
+        # Créer l'entrée
+        heure = {
+            'id': str(len(heures_recup_db) + 1),
+            'date': data['date'],
+            'type': data['type'],  # 'Supp' ou 'Récup'
+            'duree': float(data['duree']),
+            'note': data.get('note', ''),
+            'statut': data.get('statut', 'À récupérer')
+        }
+        
+        heures_recup_db.append(heure)
+        
+        # Sync Airtable si disponible
+        if airtable_client:
+            try:
+                airtable_data = {
+                    'Date': heure['date'],
+                    'Type': heure['type'],
+                    'Duree': heure['duree'],
+                    'Note': heure['note'],
+                    'Statut': heure['statut']
+                }
+                record = airtable_client.create_heure_recup(airtable_data)
+                if record:
+                    heure['airtable_id'] = record['id']
+            except Exception as e:
+                print(f"⚠️ Erreur sync Airtable heures récup: {e}")
+        
+        return jsonify({
+            'success': True,
+            'heure': heure
+        })
+    except Exception as e:
+        print(f"❌ Erreur ajout heure récup: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Charger les données depuis Airtable au démarrage
