@@ -1508,9 +1508,15 @@ class AirtableClient:
             return None
         
         try:
+            # Extraire juste la date (YYYY-MM-DD) depuis ISO format
+            date_str = heure_data.get('Date', '')
+            if 'T' in date_str:
+                # Format ISO complet : "2026-04-06T14:49:13.000Z" → "2026-04-06"
+                date_str = date_str.split('T')[0]
+            
             # Préparer les données
             fields = {
-                'Date': heure_data.get('Date', ''),
+                'Date': date_str,
                 'Type': heure_data.get('Type', 'Supp'),
                 'Duree': heure_data.get('Duree', 0),
                 'Note': heure_data.get('Note', ''),
