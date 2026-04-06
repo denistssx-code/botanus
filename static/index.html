@@ -2550,6 +2550,77 @@
                         </div>
                     </div>
 
+                    <!-- ============================================ -->
+                    <!-- SECTION : HEURES RÉCUP -->
+                    <!-- ============================================ -->
+                    
+                    <div style="background: linear-gradient(135deg, #FF9800, #FFB74D); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
+                        <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">⏱️ HEURES À RÉCUPÉRER</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Suivi heures supplémentaires</div>
+                    </div>
+
+                    <div class="info-group">
+                        <!-- Ajout rapide heures supp -->
+                        <div class="info-title">📅 Aujourd'hui</div>
+                        <div style="margin-top: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
+                                <button onclick="addHeuresRecup(0.5)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                    +30min
+                                </button>
+                                <button onclick="addHeuresRecup(1)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                    +1h
+                                </button>
+                                <button onclick="addHeuresRecup(2)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                    +2h
+                                </button>
+                                <button onclick="addHeuresRecup(3)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                    +3h
+                                </button>
+                            </div>
+                            
+                            <div style="margin-top: 12px;">
+                                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">Note (optionnel) :</label>
+                                <input type="text" id="heures-recup-note" placeholder="Ex: Urgence gel, finir plantation..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Solde et conversion -->
+                    <div class="info-group" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">💰 MON SOLDE RÉCUP</div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Cette semaine</div>
+                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-semaine">0h</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Ce mois</div>
+                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-mois">0h</div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🎯 TOTAL À RÉCUPÉRER</div>
+                            <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;" id="heures-recup-total">0h</div>
+                            <div style="font-size: 16px; opacity: 0.9;" id="heures-recup-jours">= 0 jour</div>
+                        </div>
+                        
+                        <button onclick="showMarquerRecupModal()" style="width: 100%; margin-top: 16px; padding: 14px; background: white; color: #667eea; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                            ➖ Marquer une récupération
+                        </button>
+                    </div>
+
+                    <!-- Historique -->
+                    <div class="info-group">
+                        <div class="info-title">📋 Historique</div>
+                        <div id="heures-recup-historique" style="margin-top: 12px; max-height: 300px; overflow-y: auto;">
+                            <div style="text-align: center; padding: 40px; color: #999;">
+                                Aucune heure enregistrée
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- À propos -->
                     <div class="info-group">
                         <div class="info-title">ℹ️ À propos</div>
@@ -5167,6 +5238,179 @@
             updateBottomNav('profil');
             loadProfilStats();
             loadMeteoSettings();
+            loadHeuresRecup(); // Charger heures récup
+        }
+
+        // ============================================
+        // FONCTIONS HEURES RÉCUP
+        // ============================================
+        
+        async function addHeuresRecup(heures) {
+            const note = document.getElementById('heures-recup-note').value.trim();
+            
+            const data = {
+                date: new Date().toISOString(),
+                type: 'Supp',
+                duree: heures,
+                note: note || '',
+                statut: 'À récupérer'
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/heures-recup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    document.getElementById('heures-recup-note').value = '';
+                    await loadHeuresRecup();
+                    
+                    // Feedback visuel
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = '✓';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 1000);
+                } else {
+                    alert('Erreur lors de l\'enregistrement');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur de connexion');
+            }
+        }
+        
+        async function loadHeuresRecup() {
+            try {
+                const response = await fetch(`${API_URL}/heures-recup`);
+                const data = await response.json();
+                const heures = data.heures || [];
+                
+                // Calculer soldes
+                const now = new Date();
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Lundi
+                startOfWeek.setHours(0, 0, 0, 0);
+                
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                let totalSupp = 0;
+                let totalRecup = 0;
+                let semaine = 0;
+                let mois = 0;
+                
+                heures.forEach(h => {
+                    const hDate = new Date(h.date);
+                    const duree = parseFloat(h.duree) || 0;
+                    
+                    if (h.type === 'Supp' && h.statut === 'À récupérer') {
+                        totalSupp += duree;
+                        
+                        if (hDate >= startOfWeek) {
+                            semaine += duree;
+                        }
+                        if (hDate >= startOfMonth) {
+                            mois += duree;
+                        }
+                    } else if (h.type === 'Récup') {
+                        totalRecup += Math.abs(duree);
+                    }
+                });
+                
+                const solde = totalSupp - totalRecup;
+                const jours = (solde / 8).toFixed(1);
+                
+                // Afficher soldes
+                document.getElementById('heures-recup-semaine').textContent = semaine + 'h';
+                document.getElementById('heures-recup-mois').textContent = mois + 'h';
+                document.getElementById('heures-recup-total').textContent = solde + 'h';
+                document.getElementById('heures-recup-jours').textContent = `= ${jours} jour${jours > 1 ? 's' : ''}`;
+                
+                // Afficher historique
+                const historiqueDiv = document.getElementById('heures-recup-historique');
+                
+                if (heures.length === 0) {
+                    historiqueDiv.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            Aucune heure enregistrée
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Trier par date décroissante
+                heures.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                historiqueDiv.innerHTML = heures.slice(0, 20).map(h => {
+                    const date = new Date(h.date);
+                    const dateStr = date.toLocaleDateString('fr-FR', { 
+                        weekday: 'short', 
+                        day: '2-digit', 
+                        month: '2-digit'
+                    });
+                    
+                    const isSupp = h.type === 'Supp';
+                    const color = isSupp ? '#4CAF50' : '#FF9800';
+                    const icon = isSupp ? '➕' : '➖';
+                    const duree = isSupp ? `+${h.duree}h` : `-${Math.abs(h.duree)}h`;
+                    
+                    return `
+                        <div style="padding: 12px; background: ${isSupp ? '#f1f8f4' : '#fff3e0'}; border-left: 4px solid ${color}; border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
+                                <div style="font-weight: 600; color: #333;">${icon} ${dateStr}</div>
+                                <div style="font-weight: 700; color: ${color}; font-size: 16px;">${duree}</div>
+                            </div>
+                            ${h.note ? `<div style="font-size: 13px; color: #666; margin-top: 4px;">${h.note}</div>` : ''}
+                            ${!isSupp ? `<div style="font-size: 12px; color: #999; margin-top: 4px; font-style: italic;">Récupéré</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Erreur chargement heures récup:', error);
+            }
+        }
+        
+        function showMarquerRecupModal() {
+            const heures = prompt('Combien d\'heures avez-vous récupérées ?', '');
+            if (!heures || isNaN(heures) || parseFloat(heures) <= 0) {
+                return;
+            }
+            
+            const note = prompt('Note (optionnel) :', 'Journée récupération');
+            
+            marquerRecuperation(parseFloat(heures), note || '');
+        }
+        
+        async function marquerRecuperation(heures, note) {
+            const data = {
+                date: new Date().toISOString(),
+                type: 'Récup',
+                duree: -Math.abs(heures), // Négatif pour récup
+                note: note,
+                statut: 'Récupéré'
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/heures-recup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    await loadHeuresRecup();
+                    alert(`✓ ${heures}h récupérées !`);
+                } else {
+                    alert('Erreur lors de l\'enregistrement');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur de connexion');
+            }
         }
 
         function showCalculatorsScreen() {
