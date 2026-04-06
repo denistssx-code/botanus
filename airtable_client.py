@@ -1458,29 +1458,45 @@ class AirtableClient:
     
     def get_all_heures_recup(self) -> List[Dict]:
         """Récupère toutes les heures récup depuis Airtable"""
+        if not self.enabled:
+            return []
+        
         try:
-            if not self.base:
-                return []
+            endpoint = 'HeuresRecup'
+            all_records = []
+            offset = None
             
-            table = self.base.table('HeuresRecup')
-            records = table.all()
+            while True:
+                url = endpoint
+                if offset:
+                    url += f"?offset={offset}"
+                
+                response = self._request('GET', url)
+                
+                if not response:
+                    break
+                
+                records = response.get('records', [])
+                for r in records:
+                    fields = r['fields']
+                    heure = {
+                        'id': r['id'],
+                        'airtable_id': r['id'],
+                        'date': fields.get('Date', ''),
+                        'type': fields.get('Type', 'Supp'),
+                        'duree': fields.get('Duree', 0),
+                        'note': fields.get('Note', ''),
+                        'statut': fields.get('Statut', 'À récupérer')
+                    }
+                    all_records.append(heure)
+                
+                # Pagination
+                offset = response.get('offset')
+                if not offset:
+                    break
             
-            heures = []
-            for record in records:
-                fields = record['fields']
-                heure = {
-                    'id': record['id'],
-                    'airtable_id': record['id'],
-                    'date': fields.get('Date', ''),
-                    'type': fields.get('Type', 'Supp'),
-                    'duree': fields.get('Duree', 0),
-                    'note': fields.get('Note', ''),
-                    'statut': fields.get('Statut', 'À récupérer')
-                }
-                heures.append(heure)
-            
-            print(f"📥 {len(heures)} heures récup chargées depuis Airtable")
-            return heures
+            print(f"📥 {len(all_records)} heures récup chargées depuis Airtable")
+            return all_records
             
         except Exception as e:
             print(f"❌ Erreur get_all_heures_recup: {e}")
@@ -1488,12 +1504,10 @@ class AirtableClient:
     
     def create_heure_recup(self, heure_data: Dict) -> Optional[Dict]:
         """Crée une entrée heure récup dans Airtable"""
+        if not self.enabled:
+            return None
+        
         try:
-            if not self.base:
-                return None
-            
-            table = self.base.table('HeuresRecup')
-            
             # Préparer les données
             fields = {
                 'Date': heure_data.get('Date', ''),
@@ -1503,10 +1517,17 @@ class AirtableClient:
                 'Statut': heure_data.get('Statut', 'À récupérer')
             }
             
+            data = {'fields': fields}
+            
             # Créer le record
-            record = table.create(fields)
-            print(f"✅ Heure récup créée: {record['id']}")
-            return record
+            response = self._request('POST', 'HeuresRecup', data)
+            
+            if response:
+                print(f"✅ Heure récup créée: {response['id']}")
+                return response
+            else:
+                print(f"❌ Échec création heure récup")
+                return None
             
         except Exception as e:
             print(f"❌ Erreur create_heure_recup: {e}")
