@@ -199,20 +199,6 @@
             color: white;
         }
         
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            padding: 8px 0;
-            z-index: 1000;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-        }
         
         .bottom-nav::-webkit-scrollbar {
             height: 0;
@@ -1300,6 +1286,104 @@
                 gap: 16px;
             }
         }
+        
+        /* ============================================ */
+        /* PROFIL - MENU LATÉRAL + ACCORDÉONS */
+        /* ============================================ */
+        
+        .profil-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+        }
+        
+        .profil-menu-item:hover {
+            background: #e9ecef;
+        }
+        
+        .profil-menu-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 700;
+        }
+        
+        .profil-section {
+            margin-bottom: 24px;
+            scroll-margin-top: 20px;
+        }
+        
+        .profil-accordion {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .profil-accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .profil-accordion-header:hover {
+            opacity: 0.9;
+        }
+        
+        .profil-accordion-arrow {
+            font-size: 14px;
+            transition: transform 0.3s;
+        }
+        
+        .profil-accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: white;
+        }
+        
+        .profil-accordion-content.open {
+            max-height: 2000px;
+        }
+        
+        .profil-accordion-body {
+            padding: 20px;
+        }
+        
+        /* Couleurs par section */
+        .accordion-stats { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .accordion-zones { background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; }
+        .accordion-recup { background: linear-gradient(135deg, #FF9800, #FFB74D); color: white; }
+        .accordion-meteo { background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; }
+        .accordion-meteo { background: linear-gradient(135deg, #2196F3, #42A5F5); color: white; }
+        .accordion-prefs { background: linear-gradient(135deg, #9E9E9E, #BDBDBD); color: white; }
+        
+        /* Responsive mobile */
+        @media (max-width: 768px) {
+            #profil-menu {
+                display: none !important;
+            }
+            
+            #profil-content {
+                padding: 12px !important;
+            }
+        }
+        
+        @media (display-mode: standalone) {
+            #profil-menu {
+                display: none !important;
+            }
+        }
     </style>
     
     <!-- Chart.js pour les camemberts -->
@@ -2287,16 +2371,50 @@
                 <div class="app-subtitle">Paramètres et statistiques</div>
             </div>
 
-            <div class="main-content">
+            <!-- Layout profil avec menu latéral -->
+            <div style="display: flex; height: calc(100vh - 140px); overflow: hidden;">
                 
-                <!-- ============================================ -->
-                <!-- SECTION 1 : TABLEAU DE BORD -->
-                <!-- ============================================ -->
-                
-                <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">📊 TABLEAU DE BORD</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Vue d'ensemble</div>
+                <!-- MENU LATÉRAL -->
+                <div id="profil-menu" style="width: 200px; background: #f8f9fa; border-right: 2px solid #e0e0e0; overflow-y: auto; flex-shrink: 0;">
+                    <div style="padding: 16px 8px;">
+                        <div class="profil-menu-item active" onclick="scrollToProfilSection('stats')" data-section="stats">
+                            <span style="font-size: 20px;">📊</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Stats</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('zones')" data-section="zones">
+                            <span style="font-size: 20px;">🌍</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Zones</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('recup')" data-section="recup">
+                            <span style="font-size: 20px;">⏱️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Récup</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('meteo')" data-section="meteo">
+                            <span style="font-size: 20px;">🌤️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Météo</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('prefs')" data-section="prefs">
+                            <span style="font-size: 20px;">⚙️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Préfs</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('about')" data-section="about">
+                            <span style="font-size: 20px;">ℹ️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Infos</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- CONTENU PRINCIPAL -->
+                <div id="profil-content" style="flex: 1; overflow-y: auto; padding: 20px;">
+                    
+                    <!-- ============================================ -->
+                    <!-- SECTION STATS (toujours ouverte) -->
+                    <!-- ============================================ -->
+                    <div id="section-stats" class="profil-section">
+                        <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">📊 TABLEAU DE BORD</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Vue d'ensemble</div>
+                        </div>
                 
                 <!-- Statistiques -->
                     <div class="info-group">
@@ -2340,34 +2458,47 @@
                         </div>
                     </div>
 
-                    <!-- Météo & Alertes -->
-                    <div class="info-group">
-                        <div class="info-title">🌤️ Météo Locale</div>
-                        
-                        <!-- Météo actuelle -->
-                        <div id="weather-current" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 12px; margin-top: 12px; text-align: center;">
-                            <div style="font-size: 48px;" id="weather-icon">☀️</div>
-                            <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="weather-temp">--°C</div>
-                            <div style="font-size: 14px; opacity: 0.9;" id="weather-desc">Chargement...</div>
-                        </div>
-                        
-                        <!-- Prévisions 3 jours -->
-                        <div id="weather-forecast" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
-                            <!-- Rempli dynamiquement -->
-                        </div>
-                        
-                        <!-- Alertes -->
-                        <div id="weather-alerts-container" style="margin-top: 12px; display: none;">
-                            <div style="font-weight: 600; color: #f44336; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                                ⚠️ <span id="weather-alerts-count">0</span> ALERTE(S)
+                    <!-- Section Météo (accordéon) -->
+                    <div id="section-meteo" class="profil-section" style="margin-top: 24px;">
+                        <div class="profil-accordion">
+                            <div class="profil-accordion-header accordion-meteo" onclick="toggleAccordion('meteo-content')">
+                                <div>
+                                    <span style="font-size: 20px; margin-right: 8px;">🌤️</span>
+                                    <span style="font-size: 16px; font-weight: 600;">MÉTÉO LOCALE</span>
+                                </div>
+                                <span class="profil-accordion-arrow" id="meteo-content-arrow">▼</span>
                             </div>
-                            <div id="weather-alerts" style="display: flex; flex-direction: column; gap: 8px;">
-                                <!-- Alertes remplies dynamiquement -->
-                            </div>
-                        </div>
+                            <div class="profil-accordion-content open" id="meteo-content">
+                                <div class="profil-accordion-body">
                         
-                        <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
-                            Mis à jour automatiquement
+                                    <!-- Météo actuelle -->
+                                    <div id="weather-current" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 12px; margin-top: 12px; text-align: center;">
+                                        <div style="font-size: 48px;" id="weather-icon">☀️</div>
+                                        <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="weather-temp">--°C</div>
+                                        <div style="font-size: 14px; opacity: 0.9;" id="weather-desc">Chargement...</div>
+                                    </div>
+                                    
+                                    <!-- Prévisions 3 jours -->
+                                    <div id="weather-forecast" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
+                                        <!-- Rempli dynamiquement -->
+                                    </div>
+                                    
+                                    <!-- Alertes -->
+                                    <div id="weather-alerts-container" style="margin-top: 12px; display: none;">
+                                        <div style="font-weight: 600; color: #f44336; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                            ⚠️ <span id="weather-alerts-count">0</span> ALERTE(S)
+                                        </div>
+                                        <div id="weather-alerts" style="display: flex; flex-direction: column; gap: 8px;">
+                                            <!-- Alertes remplies dynamiquement -->
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="font-size: 11px; color: #999; margin-top: 8px; text-align: center;">
+                                        Mis à jour automatiquement
+                                    </div>
+                                    
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -2551,72 +2682,84 @@
                     </div>
 
                     <!-- ============================================ -->
-                    <!-- SECTION : HEURES RÉCUP -->
+                    <!-- SECTION : HEURES RÉCUP (accordéon) -->
                     <!-- ============================================ -->
                     
-                    <div style="background: linear-gradient(135deg, #FF9800, #FFB74D); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
-                        <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">⏱️ HEURES À RÉCUPÉRER</div>
-                        <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Suivi heures supplémentaires</div>
-                    </div>
+                    <div id="section-recup" class="profil-section" style="margin-top: 24px;">
+                        <div class="profil-accordion">
+                            <div class="profil-accordion-header accordion-recup" onclick="toggleAccordion('recup-content')">
+                                <div>
+                                    <span style="font-size: 20px; margin-right: 8px;">⏱️</span>
+                                    <span style="font-size: 16px; font-weight: 600;">HEURES À RÉCUPÉRER</span>
+                                </div>
+                                <span class="profil-accordion-arrow" id="recup-content-arrow">▼</span>
+                            </div>
+                            <div class="profil-accordion-content open" id="recup-content">
+                                <div class="profil-accordion-body">
 
-                    <div class="info-group">
-                        <!-- Ajout rapide heures supp -->
-                        <div class="info-title">📅 Aujourd'hui</div>
-                        <div style="margin-top: 12px;">
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
-                                <button onclick="addHeuresRecup(0.5)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
-                                    +30min
-                                </button>
-                                <button onclick="addHeuresRecup(1)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
-                                    +1h
-                                </button>
-                                <button onclick="addHeuresRecup(2)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
-                                    +2h
-                                </button>
-                                <button onclick="addHeuresRecup(3)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
-                                    +3h
-                                </button>
-                            </div>
-                            
-                            <div style="margin-top: 12px;">
-                                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">Note (optionnel) :</label>
-                                <input type="text" id="heures-recup-note" placeholder="Ex: Urgence gel, finir plantation..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            </div>
-                        </div>
-                    </div>
+                                    <div class="info-group">
+                                        <!-- Ajout rapide heures supp -->
+                                        <div class="info-title">📅 Aujourd'hui</div>
+                                        <div style="margin-top: 12px;">
+                                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
+                                                <button onclick="addHeuresRecup(0.5)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                                    +30min
+                                                </button>
+                                                <button onclick="addHeuresRecup(1)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                                    +1h
+                                                </button>
+                                                <button onclick="addHeuresRecup(2)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                                    +2h
+                                                </button>
+                                                <button onclick="addHeuresRecup(3)" style="padding: 16px 8px; background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,0.3);">
+                                                    +3h
+                                                </button>
+                                            </div>
+                                            
+                                            <div style="margin-top: 12px;">
+                                                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">Note (optionnel) :</label>
+                                                <input type="text" id="heures-recup-note" placeholder="Ex: Urgence gel, finir plantation..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                            </div>
+                                        </div>
+                                    </div>
 
-                    <!-- Solde et conversion -->
-                    <div class="info-group" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
-                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">💰 MON SOLDE RÉCUP</div>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
-                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Cette semaine</div>
-                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-semaine">0h</div>
-                            </div>
-                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Ce mois</div>
-                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-mois">0h</div>
-                            </div>
-                        </div>
-                        
-                        <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🎯 TOTAL À RÉCUPÉRER</div>
-                            <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;" id="heures-recup-total">0h</div>
-                            <div style="font-size: 16px; opacity: 0.9;" id="heures-recup-jours">= 0 jour</div>
-                        </div>
-                        
-                        <button onclick="showMarquerRecupModal()" style="width: 100%; margin-top: 16px; padding: 14px; background: white; color: #667eea; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                            ➖ Marquer une récupération
-                        </button>
-                    </div>
+                                    <!-- Solde et conversion -->
+                                    <div class="info-group" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
+                                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">💰 MON SOLDE RÉCUP</div>
+                                        
+                                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+                                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Cette semaine</div>
+                                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-semaine">0h</div>
+                                            </div>
+                                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+                                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">Ce mois</div>
+                                                <div style="font-size: 20px; font-weight: 700;" id="heures-recup-mois">0h</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; text-align: center;">
+                                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🎯 TOTAL À RÉCUPÉRER</div>
+                                            <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;" id="heures-recup-total">0h</div>
+                                            <div style="font-size: 16px; opacity: 0.9;" id="heures-recup-jours">= 0 jour</div>
+                                        </div>
+                                        
+                                        <button onclick="showMarquerRecupModal()" style="width: 100%; margin-top: 16px; padding: 14px; background: white; color: #667eea; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                            ➖ Marquer une récupération
+                                        </button>
+                                    </div>
 
-                    <!-- Historique -->
-                    <div class="info-group">
-                        <div class="info-title">📋 Historique</div>
-                        <div id="heures-recup-historique" style="margin-top: 12px; max-height: 300px; overflow-y: auto;">
-                            <div style="text-align: center; padding: 40px; color: #999;">
-                                Aucune heure enregistrée
+                                    <!-- Historique -->
+                                    <div class="info-group">
+                                        <div class="info-title">📋 Historique</div>
+                                        <div id="heures-recup-historique" style="margin-top: 12px; max-height: 300px; overflow-y: auto;">
+                                            <div style="text-align: center; padding: 40px; color: #999;">
+                                                Aucune heure enregistrée
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -5239,6 +5382,40 @@
             loadProfilStats();
             loadMeteoSettings();
             loadHeuresRecup(); // Charger heures récup
+        }
+
+        // ============================================
+        // NAVIGATION PROFIL + ACCORDÉONS
+        // ============================================
+        
+        function scrollToProfilSection(sectionId) {
+            // Mettre à jour menu actif
+            document.querySelectorAll('.profil-menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeItem = document.querySelector(`[data-section="${sectionId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+            
+            // Scroll vers section
+            const section = document.getElementById(`section-${sectionId}`);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function toggleAccordion(accordionId) {
+            const content = document.getElementById(accordionId);
+            const arrow = document.getElementById(`${accordionId}-arrow`);
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                arrow.textContent = '▶';
+            } else {
+                content.classList.add('open');
+                arrow.textContent = '▼';
+            }
         }
 
         // ============================================
