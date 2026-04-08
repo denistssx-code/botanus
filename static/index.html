@@ -1379,6 +1379,17 @@
             }
         }
         
+        /* Responsive mobile : cacher menu latéral sur petits écrans */
+        @media (max-width: 768px) {
+            #profil-menu {
+                display: none !important;
+            }
+            
+            #profil-content {
+                width: 100% !important;
+            }
+        }
+        
         @media (display-mode: standalone) {
             #profil-menu {
                 display: none !important;
@@ -2466,9 +2477,9 @@
                                     <span style="font-size: 20px; margin-right: 8px;">🌤️</span>
                                     <span style="font-size: 16px; font-weight: 600;">MÉTÉO LOCALE</span>
                                 </div>
-                                <span class="profil-accordion-arrow" id="meteo-content-arrow">▼</span>
+                                <span class="profil-accordion-arrow" id="meteo-content-arrow">▶</span>
                             </div>
-                            <div class="profil-accordion-content open" id="meteo-content">
+                            <div class="profil-accordion-content" id="meteo-content">
                                 <div class="profil-accordion-body">
                         
                                     <!-- Météo actuelle -->
@@ -2502,71 +2513,77 @@
                         </div>
                     </div>
                     
-                <!-- ============================================ -->
-                <!-- SECTION 2 : MES DONNÉES -->
-                <!-- ============================================ -->
-                
-                <div style="background: linear-gradient(135deg, #4CAF50, #66BB6A); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
-                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">🗺️ MES DONNÉES</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Zones, Inventaire, Journal</div>
-                </div>
-
-                    <!-- Mes Zones -->
-                    <div class="info-group">
-                        <div class="info-title">🗺️ Mes Zones</div>
-                        
-                        <div id="zones-preview" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px;">
-                            <!-- Rempli dynamiquement -->
-                        </div>
-                        
-                        <div id="zones-empty" style="text-align: center; padding: 20px; color: #999; font-size: 13px; display: none;">
-                            Aucune zone créée
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
-                            <button onclick="showZonesManagementScreen()" style="padding: 12px; background: #667eea; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
-                                Gérer →
-                            </button>
-                            <button onclick="showStatsZonesScreen()" style="padding: 12px; background: #FF6B6B; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
-                                📊 Stats →
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Inventaire Rapide -->
-                    <div class="info-group">
-                        <div class="info-title">🔧 Mon Inventaire</div>
-                        
-                        <div id="inventory-alerts-container" style="margin-top: 12px;">
-                            <div id="inventory-alerts-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 12px;">
+                    
+                    <!-- ============================================ -->
+                    <!-- SECTION ZONES (accordéon vert) -->
+                    <!-- ============================================ -->
+                    <div id="section-zones" class="profil-section" style="margin-top: 24px;">
+                        <div class="profil-accordion">
+                            <div class="profil-accordion-header accordion-zones" onclick="toggleAccordion('zones-content')">
                                 <div>
-                                    <div style="font-weight: 600; font-size: 14px;" id="inventory-total-items">0 items</div>
-                                    <div style="font-size: 12px; color: #666;" id="inventory-alerts-text">Aucune alerte</div>
+                                    <span style="font-size: 20px; margin-right: 8px;">🌍</span>
+                                    <span style="font-size: 16px; font-weight: 600;">MES ZONES</span>
                                 </div>
-                                <button onclick="showInventoryScreen()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                                    Gérer →
-                                </button>
+                                <span class="profil-accordion-arrow" id="zones-content-arrow">▶</span>
                             </div>
-                            
-                            <div id="inventory-alerts-list" style="display: none; flex-direction: column; gap: 8px;">
-                                <!-- Alertes remplies dynamiquement -->
-                            </div>
-                        </div>
-                    </div>
+                            <div class="profil-accordion-content" id="zones-content">
+                                <div class="profil-accordion-body">
 
-                    <!-- Journal de bord -->
-                    <div class="info-group">
-                        <div class="info-title">📔 Mon Journal</div>
-                        
-                        <div id="journal-widget-container" style="margin-top: 12px;">
-                            <div id="journal-widget-summary">
-                                <div style="font-size: 13px; color: #666; margin-bottom: 12px;" id="journal-widget-text">
-                                    Aucune entrée
-                                </div>
-                                <div id="journal-widget-last" style="display: none; background: #f5f5f5; padding: 12px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #9B59B6;">
-                                    <!-- Dernière entrée -->
-                                </div>
-                            </div>
+                                    <div class="info-group">
+                                        <div class="info-title">🗺️ Zones de jardin</div>
+                                        
+                                        <div id="zones-preview" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px;">
+                                            <!-- Rempli dynamiquement -->
+                                        </div>
+                                        
+                                        <div id="zones-empty" style="text-align: center; padding: 20px; color: #999; font-size: 13px; display: none;">
+                                            Aucune zone créée
+                                        </div>
+                                        
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+                                            <button onclick="showZonesManagementScreen()" style="padding: 12px; background: #667eea; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                                Gérer →
+                                            </button>
+                                            <button onclick="showStatsZonesScreen()" style="padding: 12px; background: #FF6B6B; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                                📊 Stats →
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Inventaire Rapide -->
+                                    <div class="info-group" style="margin-top: 20px;">
+                                        <div class="info-title">🔧 Mon Inventaire</div>
+                                        
+                                        <div id="inventory-alerts-container" style="margin-top: 12px;">
+                                            <div id="inventory-alerts-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 12px;">
+                                                <div>
+                                                    <div style="font-weight: 600; font-size: 14px;" id="inventory-total-items">0 items</div>
+                                                    <div style="font-size: 12px; color: #666;" id="inventory-alerts-text">Aucune alerte</div>
+                                                </div>
+                                                <button onclick="showInventoryScreen()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                                    Gérer →
+                                                </button>
+                                            </div>
+                                            
+                                            <div id="inventory-alerts-list" style="display: none; flex-direction: column; gap: 8px;">
+                                                <!-- Alertes remplies dynamiquement -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Journal de bord -->
+                                    <div class="info-group" style="margin-top: 20px;">
+                                        <div class="info-title">📔 Mon Journal</div>
+                                        
+                                        <div id="journal-widget-container" style="margin-top: 12px;">
+                                            <div id="journal-widget-summary">
+                                                <div style="font-size: 13px; color: #666; margin-bottom: 12px;" id="journal-widget-text">
+                                                    Aucune entrée
+                                                </div>
+                                                <div id="journal-widget-last" style="display: none; background: #f5f5f5; padding: 12px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #9B59B6;">
+                                                    <!-- Dernière entrée -->
+                                                </div>
+                                            </div>
                             
                             <button onclick="showJournalScreen()" style="width: 100%; padding: 12px; background: #9B59B6; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
                                 Voir le journal →
@@ -2574,14 +2591,25 @@
                         </div>
                     </div>
                     
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 <!-- ============================================ -->
-                <!-- SECTION 3 : PARAMÈTRES & OUTILS -->
+                <!-- SECTION PRÉFÉRENCES (accordéon gris) -->
                 <!-- ============================================ -->
-                
-                <div style="background: linear-gradient(135deg, #FF9800, #FFA726); padding: 16px; border-radius: 12px; margin-bottom: 20px; margin-top: 24px;">
-                    <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">⚙️ PARAMÈTRES & OUTILS</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">Configuration et calculateurs</div>
-                </div>
+                <div id="section-prefs" class="profil-section" style="margin-top: 24px;">
+                    <div class="profil-accordion">
+                        <div class="profil-accordion-header" style="background: linear-gradient(135deg, #607D8B, #78909C); color: white;" onclick="toggleAccordion('prefs-content')">
+                            <div>
+                                <span style="font-size: 20px; margin-right: 8px;">⚙️</span>
+                                <span style="font-size: 16px; font-weight: 600;">PARAMÈTRES & OUTILS</span>
+                            </div>
+                            <span class="profil-accordion-arrow" id="prefs-content-arrow">▶</span>
+                        </div>
+                        <div class="profil-accordion-content" id="prefs-content">
+                            <div class="profil-accordion-body">
 
                     <!-- Outils -->
                     <div class="info-group">
@@ -2681,6 +2709,11 @@
                         </div>
                     </div>
 
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ============================================ -->
                     <!-- SECTION : HEURES RÉCUP (accordéon) -->
                     <!-- ============================================ -->
@@ -2692,9 +2725,9 @@
                                     <span style="font-size: 20px; margin-right: 8px;">⏱️</span>
                                     <span style="font-size: 16px; font-weight: 600;">HEURES À RÉCUPÉRER</span>
                                 </div>
-                                <span class="profil-accordion-arrow" id="recup-content-arrow">▼</span>
+                                <span class="profil-accordion-arrow" id="recup-content-arrow">▶</span>
                             </div>
-                            <div class="profil-accordion-content open" id="recup-content">
+                            <div class="profil-accordion-content" id="recup-content">
                                 <div class="profil-accordion-body">
 
                                     <div class="info-group">
@@ -2764,18 +2797,22 @@
                         </div>
                     </div>
 
-                    <!-- À propos -->
-                    <div class="info-group">
-                        <div class="info-title">ℹ️ À propos</div>
-                        <div style="font-size: 13px; color: #666; line-height: 1.6;">
-                            <p><strong>Ma Bibliothèque Végétale</strong></p>
-                            <p>Version 12.30 - Recherche + Tâches</p>
-                            <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
-                            <p style="margin-top: 12px;">
-                                <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
-                                    Données fournies par Promesse de Fleurs
-                                </a>
-                            </p>
+                    <!-- ============================================ -->
+                    <!-- SECTION À PROPOS (toujours visible) -->
+                    <!-- ============================================ -->
+                    <div id="section-about" class="profil-section" style="margin-top: 24px;">
+                        <div class="info-group">
+                            <div class="info-title">ℹ️ À propos</div>
+                            <div style="font-size: 13px; color: #666; line-height: 1.6;">
+                                <p><strong>Ma Bibliothèque Végétale</strong></p>
+                                <p>Version 13.6 - Accordéons Profil + Nav Mobile</p>
+                                <p>Gestionnaire de plantes personnel avec rappels d'entretien automatiques</p>
+                                <p style="margin-top: 12px;">
+                                    <a href="https://www.promessedefleurs.com" target="_blank" style="color: #4CAF50;">
+                                        Données fournies par Promesse de Fleurs
+                                    </a>
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -4428,19 +4465,33 @@
         let currentEditingInventoryId = null;
         
         function showInventoryScreen() {
+            console.log('🔍 DEBUG: showInventoryScreen appelée');
+            
             document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-            document.getElementById('inventory-screen').classList.add('active');
+            const invScreen = document.getElementById('inventory-screen');
+            
+            if (!invScreen) {
+                alert('❌ ERREUR: inventory-screen non trouvé !');
+                return;
+            }
+            
+            invScreen.classList.add('active');
             
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            document.getElementById('nav-inventory').classList.add('active');
+            const navItem = document.getElementById('nav-inventory');
+            if (navItem) navItem.classList.add('active');
             
             currentScreen = 'inventory';
             loadInventory();
         }
         
         async function loadInventory() {
+            console.log('🔍 DEBUG: loadInventory appelée');
+            
             try {
                 const response = await fetch(`${API_URL}/inventory`);
+                
+                console.log('📡 Response status:', response.status);
                 
                 // Si erreur API (table n'existe pas), utiliser tableau vide
                 if (!response.ok) {
@@ -4918,29 +4969,46 @@
         let currentWeatherData = null;
         
         function showJournalScreen() {
+            console.log('🔍 DEBUG: showJournalScreen appelée');
+            
             document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-            document.getElementById('journal-screen').classList.add('active');
+            const journalScreen = document.getElementById('journal-screen');
+            
+            if (!journalScreen) {
+                alert('❌ ERREUR: journal-screen non trouvé !');
+                return;
+            }
+            
+            journalScreen.classList.add('active');
             
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            document.getElementById('nav-journal').classList.add('active');
+            const navItem = document.getElementById('nav-journal');
+            if (navItem) navItem.classList.add('active');
             
             currentScreen = 'journal';
             loadJournal();
         }
         
         async function loadJournal() {
+            console.log('🔍 DEBUG: loadJournal appelée');
+            
             try {
                 // Charger les zones d'abord (nécessaire pour affichage)
                 await loadZones();
                 
+                console.log('📡 Chargement journal...');
                 const response = await fetch(`${API_URL}/journal`);
+                console.log('📡 Response status:', response.status);
+                
                 const data = await response.json();
                 journalEntries = data.entries || [];
+                
+                console.log('📔 Entrées journal:', journalEntries.length);
                 
                 displayJournal();
                 updateJournalWidget();
             } catch (error) {
-                console.error('Erreur chargement journal:', error);
+                console.error('❌ Erreur chargement journal:', error);
                 journalEntries = [];
                 displayJournal();
             }
@@ -9942,6 +10010,13 @@
             const swipeDistanceX = touchEndX - touchStartX;
             const swipeDistanceY = Math.abs(touchEndY - touchStartY);
             
+            // Désactiver swipe sur profil-screen (conflit avec menu latéral)
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen && activeScreen.id === 'profil-screen') {
+                console.log('🚫 Swipe désactivé sur profil-screen');
+                return;
+            }
+            
             // Vérifier que c'est un swipe horizontal (et pas vertical)
             if (swipeDistanceY > 100) {
                 console.log('↕️ Scroll vertical détecté, pas de swipe');
@@ -9975,8 +10050,22 @@
         // Event listeners sur phone-container
         const phoneContainer = document.querySelector('.phone-container');
         
+        let swipeEnabled = true; // Variable pour désactiver swipe si on touche bottom-nav
+        
         if (phoneContainer) {
             phoneContainer.addEventListener('touchstart', (e) => {
+                // Vérifier si le touch commence sur le bottom-nav
+                const bottomNav = document.querySelector('.bottom-nav');
+                const target = e.target;
+                
+                // Si on touche le bottom-nav ou un de ses enfants, désactiver le swipe
+                if (bottomNav && (target === bottomNav || bottomNav.contains(target))) {
+                    swipeEnabled = false;
+                    console.log('🚫 Swipe désactivé - touch sur bottom-nav');
+                } else {
+                    swipeEnabled = true;
+                }
+                
                 touchStartX = e.changedTouches[0].screenX;
                 touchStartY = e.changedTouches[0].screenY;
             }, { passive: true });
@@ -9984,7 +10073,11 @@
             phoneContainer.addEventListener('touchend', (e) => {
                 touchEndX = e.changedTouches[0].screenX;
                 touchEndY = e.changedTouches[0].screenY;
-                handleSwipe();
+                
+                // Ne déclencher le swipe que si enabled
+                if (swipeEnabled) {
+                    handleSwipe();
+                }
             }, { passive: true });
             
             console.log('🌿 Swipe navigation activée ! Pages:', navOrder.length);
