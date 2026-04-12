@@ -1362,6 +1362,24 @@
         .accordion-prefs { background: linear-gradient(135deg, #9E9E9E, #BDBDBD); color: white; }
         
         /* Responsive mobile */
+        
+        /* Responsive mobile : cacher menu latéral profil sur petits écrans */
+        @media (max-width: 768px) {
+            #profil-menu {
+                display: none !important;
+            }
+            
+            #profil-content {
+                width: 100% !important;
+                padding: 12px !important;
+            }
+        }
+        
+        @media (display-mode: standalone) {
+            #profil-menu {
+                display: none !important;
+            }
+        }
     </style>
     
     <!-- Chart.js pour les camemberts -->
@@ -2349,7 +2367,41 @@
                 <div class="app-subtitle">Paramètres et statistiques</div>
             </div>
 
-            <div class="main-content">
+            <!-- Layout profil avec menu latéral -->
+            <div style="display: flex; height: calc(100vh - 140px); overflow: hidden;">
+                
+                <!-- MENU LATÉRAL -->
+                <div id="profil-menu" style="width: 200px; background: #f8f9fa; border-right: 2px solid #e0e0e0; overflow-y: auto; flex-shrink: 0;">
+                    <div style="padding: 16px 8px;">
+                        <div class="profil-menu-item active" onclick="scrollToProfilSection('stats')" data-section="stats">
+                            <span style="font-size: 20px;">📊</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Stats</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('meteo')" data-section="meteo">
+                            <span style="font-size: 20px;">🌤️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Météo</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('zones')" data-section="zones">
+                            <span style="font-size: 20px;">🌍</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Zones</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('prefs')" data-section="prefs">
+                            <span style="font-size: 20px;">⚙️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Préfs</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('recup')" data-section="recup">
+                            <span style="font-size: 20px;">⏱️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Récup</span>
+                        </div>
+                        <div class="profil-menu-item" onclick="scrollToProfilSection('about')" data-section="about">
+                            <span style="font-size: 20px;">ℹ️</span>
+                            <span style="margin-left: 8px; font-size: 14px; font-weight: 600;">Infos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENU PRINCIPAL -->
+                <div id="profil-content" style="flex: 1; overflow-y: auto; padding: 20px;">
                     
                     <!-- SECTION STATS -->
                     <div id="section-stats" class="profil-section">
@@ -2748,6 +2800,7 @@
                         </div>
                     </div>
 
+                </div>
             </div>
         </div>
 
@@ -5356,6 +5409,24 @@
         // ============================================
         // NAVIGATION PROFIL + ACCORDÉONS
         // ============================================
+        
+        function scrollToProfilSection(sectionId) {
+            // Mettre à jour menu actif
+            document.querySelectorAll('.profil-menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeItem = document.querySelector(`[data-section="${sectionId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+            
+            // Scroll vers section
+            const section = document.getElementById(`section-${sectionId}`);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
         
         function scrollToProfilSection(sectionId) {
             // Mettre à jour menu actif
@@ -9834,6 +9905,113 @@
             }
         `;
         document.head.appendChild(style);
+    </script>
+    
+    <!-- Swipe Navigation Intelligente -->
+    <script>
+        // Configuration swipe
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let touchStartY = 0;
+        let touchEndY = 0;
+        const minSwipeDistance = 50;
+        
+        // Pages du bottom-nav dans l'ordre
+        const navOrder = [
+            { id: 'nav-profil', func: 'showProfilScreen' },
+            { id: 'nav-search', func: 'showSearchScreen' },
+            { id: 'nav-library', func: 'showLibraryScreen' },
+            { id: 'nav-tasks', func: 'showTasksScreen' },
+            { id: 'nav-inventory', func: 'showInventoryScreen' },
+            { id: 'nav-rappels', func: 'showRappelsScreen' },
+            { id: 'nav-calendrier', func: 'showCalendrierScreen' },
+            { id: 'nav-journal', func: 'showJournalScreen' }
+        ];
+        
+        function getCurrentPageIndex() {
+            // Trouver quel nav-item a la classe active
+            for (let i = 0; i < navOrder.length; i++) {
+                const navItem = document.getElementById(navOrder[i].id);
+                if (navItem && navItem.classList.contains('active')) {
+                    return i;
+                }
+            }
+            return 2; // Par défaut bibliothèque
+        }
+        
+        function navigateToPage(index) {
+            if (index >= 0 && index < navOrder.length) {
+                const funcName = navOrder[index].func;
+                if (typeof window[funcName] === 'function') {
+                    window[funcName]();
+                }
+            }
+        }
+        
+        function handleSwipe() {
+            const swipeDistanceX = touchEndX - touchStartX;
+            const swipeDistanceY = Math.abs(touchEndY - touchStartY);
+            
+            // Désactiver swipe sur profil-screen (conflit avec scroll sections)
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen && activeScreen.id === 'profil-screen') {
+                return;
+            }
+            
+            // Vérifier que c'est un swipe horizontal (et pas vertical)
+            if (swipeDistanceY > 100) {
+                return;
+            }
+            
+            const currentIndex = getCurrentPageIndex();
+            
+            // Swipe vers la gauche = page suivante
+            if (swipeDistanceX < -minSwipeDistance) {
+                if (currentIndex < navOrder.length - 1) {
+                    navigateToPage(currentIndex + 1);
+                }
+            }
+            
+            // Swipe vers la droite = page précédente
+            if (swipeDistanceX > minSwipeDistance) {
+                if (currentIndex > 0) {
+                    navigateToPage(currentIndex - 1);
+                }
+            }
+        }
+        
+        // Event listeners sur phone-container
+        const phoneContainer = document.querySelector('.phone-container');
+        
+        let swipeEnabled = true; // Variable pour désactiver swipe si on touche bottom-nav
+        
+        if (phoneContainer) {
+            phoneContainer.addEventListener('touchstart', (e) => {
+                // Vérifier si le touch commence sur le bottom-nav
+                const bottomNav = document.querySelector('.bottom-nav');
+                const target = e.target;
+                
+                // Si on touche le bottom-nav ou un de ses enfants, désactiver le swipe
+                if (bottomNav && (target === bottomNav || bottomNav.contains(target))) {
+                    swipeEnabled = false;
+                } else {
+                    swipeEnabled = true;
+                }
+                
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+            
+            phoneContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                
+                // Ne déclencher le swipe que si enabled
+                if (swipeEnabled) {
+                    handleSwipe();
+                }
+            }, { passive: true });
+        }
     </script>
     
 </body>
