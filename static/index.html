@@ -5337,6 +5337,7 @@
                             nom: result.data.nom_francais || result.data.nom_complet,
                             nom_francais: result.data.nom_francais,
                             nom_latin: result.data.nom_latin,
+                            image_url: result.data.image_principale || plant.image_url,
                             couleur: result.data.couleur_fleur,
                             type: result.data.type_plante,
                             hauteur: result.data.hauteur_maturite,
@@ -5344,7 +5345,9 @@
                             arrosage: result.data.humidite_sol,
                             exposition: result.data.exposition,
                             rusticite: result.data.rusticite,
-                            description: result.data.description_detaillee || result.data.description_courte
+                            description: result.data.description_detaillee || result.data.description_courte,
+                            // Garder toutes les données de l'API pour l'ajout à la bibliothèque
+                            ...result.data
                         };
                         
                         // Fusionner les détails avec la plante
@@ -5366,6 +5369,13 @@
         }
         
         function fillPreviewDetails(plant) {
+            // Mettre à jour l'image si disponible
+            const imgEl = document.getElementById('preview-plant-image');
+            if (plant.image_url) {
+                imgEl.src = plant.image_url;
+                imgEl.alt = plant.nom_francais || plant.nom || 'Plante';
+            }
+            
             // Badge couleur
             const couleurBadge = document.getElementById('preview-couleur-badge');
             if (plant.couleur) {
@@ -5427,11 +5437,64 @@
                 return;
             }
             
-            // Utiliser la fonction existante addToLibrary
-            await addToLibrary(currentPreviewPlant);
+            // Changer le texte du bouton
+            const btn = document.querySelector('#plant-preview-modal button[onclick="addPlantFromPreview()"]');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<span style="font-size: 20px;">⏳</span> <span>Ajout en cours...</span>';
+                btn.disabled = true;
+            }
             
-            // Fermer la modal
-            closePlantPreview();
+            try {
+                // Construire l'objet à envoyer avec TOUTES les données de currentPreviewPlant
+                const plantToSend = {
+                    nom_francais: currentPreviewPlant.nom_francais || currentPreviewPlant.nom,
+                    nom_latin: currentPreviewPlant.nom_latin || '',
+                    exposition: currentPreviewPlant.exposition || '',
+                    type_plante: currentPreviewPlant.type_plante || currentPreviewPlant.type || 'Plante',
+                    prix: currentPreviewPlant.prix || '',
+                    description: currentPreviewPlant.description || '',
+                    icon: currentPreviewPlant.icon || '🌿',
+                    url: currentPreviewPlant.url || '',
+                    details: currentPreviewPlant,  // Toutes les données de l'API
+                    image_principale: currentPreviewPlant.image_principale || currentPreviewPlant.image_url || ''
+                };
+                
+                const response = await fetch(`${API_URL}/library/get-or-create-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(plantToSend)
+                });
+                
+                if (response.ok) {
+                    // Succès !
+                    if (btn) {
+                        btn.innerHTML = '<span style="font-size: 20px;">✓</span> <span>Ajouté !</span>';
+                    }
+                    
+                    // Recharger les stats
+                    loadStats();
+                    loadRecentPlants();
+                    
+                    // Fermer la modal après 1 seconde
+                    setTimeout(() => {
+                        closePlantPreview();
+                    }, 1000);
+                } else {
+                    throw new Error('Erreur ajout');
+                }
+            } catch (error) {
+                console.error('Erreur ajout plante:', error);
+                alert('Erreur lors de l\'ajout de la plante');
+                
+                // Restaurer le bouton
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
         }
         
         function submitJournalForm(event) {
