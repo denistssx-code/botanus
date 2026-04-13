@@ -3935,6 +3935,7 @@
         function showSearchScreen() {
             showScreen('search');
             updateBottomNav('search');
+            loadRecentPlants();  // Recharger les derniers ajouts
         }
         
         function showLibraryScreen() {
@@ -7242,8 +7243,9 @@
                     return;
                 }
                 
-                // Afficher les 3 dernières plantes
-                library.slice(0, 3).forEach(plant => {
+                // Afficher les 3 dernières plantes (les plus récentes)
+                const recentPlants = library.slice(-3).reverse();
+                recentPlants.forEach(plant => {
                     const plantEl = document.createElement('div');
                     plantEl.className = 'plant-item';
                     plantEl.style.cursor = 'pointer';
