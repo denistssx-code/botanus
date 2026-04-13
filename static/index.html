@@ -9952,12 +9952,6 @@
             const swipeDistanceX = touchEndX - touchStartX;
             const swipeDistanceY = Math.abs(touchEndY - touchStartY);
             
-            // Désactiver swipe sur profil-screen (conflit avec scroll sections)
-            const activeScreen = document.querySelector('.screen.active');
-            if (activeScreen && activeScreen.id === 'profil-screen') {
-                return;
-            }
-            
             // Vérifier que c'est un swipe horizontal (et pas vertical)
             if (swipeDistanceY > 100) {
                 return;
@@ -9987,12 +9981,17 @@
         
         if (phoneContainer) {
             phoneContainer.addEventListener('touchstart', (e) => {
-                // Vérifier si le touch commence sur le bottom-nav
-                const bottomNav = document.querySelector('.bottom-nav');
                 const target = e.target;
+                const bottomNav = document.querySelector('.bottom-nav');
                 
-                // Si on touche le bottom-nav ou un de ses enfants, désactiver le swipe
-                if (bottomNav && (target === bottomNav || bottomNav.contains(target))) {
+                // Désactiver swipe si on touche :
+                // 1. Le bottom-nav
+                // 2. Un bouton de filtre (button avec onclick contenant "filter")
+                const isBottomNav = bottomNav && (target === bottomNav || bottomNav.contains(target));
+                const isFilterButton = target.tagName === 'BUTTON' && target.onclick && target.onclick.toString().includes('filter');
+                const isInsideFilterButton = target.closest('button[onclick*="filter"]');
+                
+                if (isBottomNav || isFilterButton || isInsideFilterButton) {
                     swipeEnabled = false;
                 } else {
                     swipeEnabled = true;
