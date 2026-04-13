@@ -3284,6 +3284,80 @@
             </div>
         </div>
 
+        <!-- Modal Preview Plante (avant ajout) -->
+        <div id="plant-preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto;">
+            <div style="background: white; margin: 20px auto; max-width: 500px; border-radius: 16px; overflow: hidden;">
+                
+                <!-- Image plante -->
+                <div id="preview-image-container" style="width: 100%; height: 250px; background: #f5f5f5; position: relative;">
+                    <img id="preview-plant-image" src="" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+
+                <!-- Contenu -->
+                <div style="padding: 24px;">
+                    
+                    <!-- Header avec bouton fermer -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <h2 id="preview-plant-nom" style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #333;">Nom</h2>
+                            <div id="preview-plant-nom-latin" style="font-size: 14px; color: #999; font-style: italic;">Nom latin</div>
+                        </div>
+                        <button onclick="closePlantPreview()" style="background: none; border: none; font-size: 28px; cursor: pointer; padding: 0; color: #999; line-height: 1;">×</button>
+                    </div>
+
+                    <!-- Badges (couleur, type) -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div id="preview-couleur-badge" style="padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;"></div>
+                        <div id="preview-type-badge" style="padding: 6px 12px; background: #e3f2fd; color: #1976d2; border-radius: 20px; font-size: 13px; font-weight: 600;"></div>
+                    </div>
+
+                    <!-- Dimensions -->
+                    <div id="preview-dimensions" style="display: flex; gap: 16px; margin-bottom: 20px; padding: 16px; background: #f8f9fa; border-radius: 12px;">
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 4px;">📏</div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 2px;">Hauteur</div>
+                            <div id="preview-hauteur" style="font-size: 16px; font-weight: 600; color: #333;">-</div>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 4px;">↔️</div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 2px;">Largeur</div>
+                            <div id="preview-largeur" style="font-size: 16px; font-weight: 600; color: #333;">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Caractéristiques -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <div style="text-align: center; padding: 12px; background: #e3f2fd; border-radius: 10px;">
+                            <div style="font-size: 20px; margin-bottom: 4px;">💧</div>
+                            <div id="preview-arrosage" style="font-size: 12px; font-weight: 600; color: #1976d2;">-</div>
+                        </div>
+                        <div style="text-align: center; padding: 12px; background: #fff3e0; border-radius: 10px;">
+                            <div style="font-size: 20px; margin-bottom: 4px;">🌞</div>
+                            <div id="preview-exposition" style="font-size: 12px; font-weight: 600; color: #f57c00;">-</div>
+                        </div>
+                        <div style="text-align: center; padding: 12px; background: #e8f5e9; border-radius: 10px;">
+                            <div style="font-size: 20px; margin-bottom: 4px;">❄️</div>
+                            <div id="preview-rusticite" style="font-size: 12px; font-weight: 600; color: #388e3c;">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px; color: #333;">📝 Description</div>
+                        <div id="preview-description" style="font-size: 14px; color: #666; line-height: 1.6;">Chargement...</div>
+                    </div>
+
+                    <!-- Bouton ajouter -->
+                    <button onclick="addPlantFromPreview()" style="width: 100%; padding: 16px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 20px;">➕</span>
+                        <span>Ajouter à ma bibliothèque</span>
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
         <!-- Écran Gestion Zones -->
         <div class="screen" id="zones-management-screen">
             <div class="app-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
@@ -5214,6 +5288,100 @@
         function closeJournalModal() {
             document.getElementById('journal-modal').style.display = 'none';
             currentEditingJournalId = null;
+        }
+        
+        // ============================================
+        // MODAL PREVIEW PLANTE
+        // ============================================
+        
+        let currentPreviewPlant = null;
+        
+        async function showPlantPreview(plant) {
+            currentPreviewPlant = plant;
+            
+            // Remplir les infos de base
+            document.getElementById('preview-plant-nom').textContent = plant.nom || 'Nom inconnu';
+            document.getElementById('preview-plant-nom-latin').textContent = plant.nom_latin || '';
+            
+            // Image
+            const imgEl = document.getElementById('preview-plant-image');
+            if (plant.image_url) {
+                imgEl.src = plant.image_url;
+                imgEl.alt = plant.nom;
+            } else {
+                imgEl.src = '';
+                imgEl.alt = 'Pas d\'image';
+            }
+            
+            // Badge couleur
+            const couleurBadge = document.getElementById('preview-couleur-badge');
+            if (plant.couleur) {
+                couleurBadge.textContent = plant.couleur;
+                couleurBadge.style.display = 'block';
+                
+                // Couleur de fond selon la couleur
+                const couleurMap = {
+                    'Rouge': '#ffebee',
+                    'Rose': '#fce4ec',
+                    'Blanc': '#f5f5f5',
+                    'Jaune': '#fff9c4',
+                    'Orange': '#fff3e0',
+                    'Bleu': '#e3f2fd',
+                    'Violet': '#f3e5f5',
+                    'Vert': '#e8f5e9'
+                };
+                couleurBadge.style.background = couleurMap[plant.couleur] || '#f5f5f5';
+                couleurBadge.style.color = '#333';
+            } else {
+                couleurBadge.style.display = 'none';
+            }
+            
+            // Badge type
+            const typeBadge = document.getElementById('preview-type-badge');
+            if (plant.type) {
+                typeBadge.textContent = plant.type;
+                typeBadge.style.display = 'block';
+            } else {
+                typeBadge.style.display = 'none';
+            }
+            
+            // Dimensions
+            document.getElementById('preview-hauteur').textContent = plant.hauteur || '-';
+            document.getElementById('preview-largeur').textContent = plant.largeur || '-';
+            
+            // Caractéristiques
+            document.getElementById('preview-arrosage').textContent = plant.arrosage || '-';
+            document.getElementById('preview-exposition').textContent = plant.exposition || '-';
+            document.getElementById('preview-rusticite').textContent = plant.rusticite || '-';
+            
+            // Description
+            const descEl = document.getElementById('preview-description');
+            if (plant.description) {
+                descEl.textContent = plant.description;
+            } else {
+                descEl.textContent = 'Aucune description disponible.';
+            }
+            
+            // Afficher la modal
+            document.getElementById('plant-preview-modal').style.display = 'block';
+        }
+        
+        function closePlantPreview() {
+            document.getElementById('plant-preview-modal').style.display = 'none';
+            currentPreviewPlant = null;
+        }
+        
+        async function addPlantFromPreview() {
+            if (!currentPreviewPlant) {
+                alert('Aucune plante sélectionnée');
+                return;
+            }
+            
+            // Utiliser la fonction existante addToLibrary
+            await addToLibrary(currentPreviewPlant);
+            
+            // Fermer la modal
+            closePlantPreview();
         }
         
         function submitJournalForm(event) {
@@ -7235,11 +7403,7 @@
             const detailBtn = plantEl.querySelector('.detail-btn');
             detailBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (plant.url) {
-                    window.location.href = `plant-detail.html?url=${encodeURIComponent(plant.url)}`;
-                } else {
-                    alert('URL de la plante non disponible');
-                }
+                showPlantPreview(plant);
             });
             
             // Bouton ajouter (seulement si pas déjà dans la bibliothèque)
