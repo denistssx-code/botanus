@@ -5299,20 +5299,73 @@
         async function showPlantPreview(plant) {
             currentPreviewPlant = plant;
             
-            // Remplir les infos de base
-            document.getElementById('preview-plant-nom').textContent = plant.nom || 'Nom inconnu';
+            // Afficher la modal immédiatement avec données de base
+            document.getElementById('plant-preview-modal').style.display = 'block';
+            
+            // Remplir les infos de base disponibles
+            document.getElementById('preview-plant-nom').textContent = plant.nom_francais || plant.nom || 'Nom inconnu';
             document.getElementById('preview-plant-nom-latin').textContent = plant.nom_latin || '';
             
             // Image
             const imgEl = document.getElementById('preview-plant-image');
             if (plant.image_url) {
                 imgEl.src = plant.image_url;
-                imgEl.alt = plant.nom;
+                imgEl.alt = plant.nom_francais || plant.nom;
             } else {
                 imgEl.src = '';
                 imgEl.alt = 'Pas d\'image';
             }
             
+            // Afficher "Chargement..." pendant qu'on récupère les détails
+            document.getElementById('preview-description').textContent = 'Chargement des détails...';
+            
+            // Si on a déjà toutes les données, les afficher
+            if (plant.description && plant.hauteur && plant.couleur) {
+                fillPreviewDetails(plant);
+                return;
+            }
+            
+            // Sinon, récupérer les détails via l'API
+            if (plant.url) {
+                try {
+                    const response = await fetch(`${API_URL}/plant/detail?url=${encodeURIComponent(plant.url)}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        // Mapper les champs de l'API aux champs de la modal
+                        const details = {
+                            nom: result.data.nom_francais || result.data.nom_complet,
+                            nom_francais: result.data.nom_francais,
+                            nom_latin: result.data.nom_latin,
+                            couleur: result.data.couleur_fleur,
+                            type: result.data.type_plante,
+                            hauteur: result.data.hauteur_maturite,
+                            largeur: result.data.largeur_maturite,
+                            arrosage: result.data.humidite_sol,
+                            exposition: result.data.exposition,
+                            rusticite: result.data.rusticite,
+                            description: result.data.description_detaillee || result.data.description_courte
+                        };
+                        
+                        // Fusionner les détails avec la plante
+                        currentPreviewPlant = { ...plant, ...details };
+                        
+                        // Remplir la modal avec les détails
+                        fillPreviewDetails(currentPreviewPlant);
+                    } else {
+                        throw new Error('Données incomplètes');
+                    }
+                } catch (error) {
+                    console.error('Erreur chargement détails:', error);
+                    document.getElementById('preview-description').textContent = 'Erreur lors du chargement des détails.';
+                }
+            } else {
+                // Pas d'URL = afficher avec les données disponibles
+                fillPreviewDetails(plant);
+            }
+        }
+        
+        function fillPreviewDetails(plant) {
             // Badge couleur
             const couleurBadge = document.getElementById('preview-couleur-badge');
             if (plant.couleur) {
@@ -5361,9 +5414,6 @@
             } else {
                 descEl.textContent = 'Aucune description disponible.';
             }
-            
-            // Afficher la modal
-            document.getElementById('plant-preview-modal').style.display = 'block';
         }
         
         function closePlantPreview() {
