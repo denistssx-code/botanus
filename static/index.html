@@ -2818,6 +2818,9 @@
                     <button onclick="filterInventory('all')" id="filter-inv-all" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
                         Tout
                     </button>
+                    <button onclick="filterInventory('stock-achats')" id="filter-inv-stock-achats" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        📉 Stock & Achats
+                    </button>
                     <button onclick="filterInventory('alerts')" id="filter-inv-alerts" style="padding: 8px 16px; background: white; color: #666; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
                         ⚠️ Alertes
                     </button>
@@ -4574,7 +4577,20 @@
             // Filtrer items
             let filteredItems = inventoryItems;
             
-            if (currentInventoryFilter === 'alerts') {
+            if (currentInventoryFilter === 'stock-achats') {
+                // Filtre combiné : stock bas OU à acheter
+                filteredItems = inventoryItems.filter(item => {
+                    // À acheter
+                    if (item.statut === 'À acheter') return true;
+                    
+                    // Stock bas (quantité <= seuil d'alerte)
+                    if (item.statut === 'Possédé' && item.seuil_alerte > 0 && item.quantite <= item.seuil_alerte) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+            } else if (currentInventoryFilter === 'alerts') {
                 filteredItems = inventoryItems.filter(item => hasAlert(item));
             } else if (currentInventoryFilter === 'À acheter') {
                 filteredItems = inventoryItems.filter(item => item.statut === 'À acheter');
@@ -4762,7 +4778,14 @@
                 btn.style.border = '1px solid #ddd';
             });
             
-            const btnId = filter === 'all' ? 'filter-inv-all' : filter === 'alerts' ? 'filter-inv-alerts' : 'filter-inv-acheter';
+            const btnMap = {
+                'all': 'filter-inv-all',
+                'stock-achats': 'filter-inv-stock-achats',
+                'alerts': 'filter-inv-alerts',
+                'À acheter': 'filter-inv-acheter'
+            };
+            
+            const btnId = btnMap[filter];
             const activeBtn = document.getElementById(btnId);
             if (activeBtn) {
                 activeBtn.style.background = '#667eea';
