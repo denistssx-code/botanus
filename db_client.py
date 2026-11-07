@@ -173,6 +173,22 @@ def _safe(default):
     return deco
 
 
+def _clean(value):
+    """PostgreSQL refuse le caractère NUL (\\u0000) dans le texte et le JSON.
+    Airtable en contient parfois (copier-coller depuis un site) : on l'enlève."""
+    if isinstance(value, str):
+        return value.replace('\x00', '')
+    if isinstance(value, dict):
+        return {_clean(k): _clean(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_clean(v) for v in value]
+    return value
+
+
+def _json(value):
+    return psycopg2.extras.Json(_clean(value))
+
+
 def _num(value):
     """5.0 -> 5 pour que le JSON reste identique à celui d'Airtable."""
     if isinstance(value, float) and value.is_integer():
@@ -231,6 +247,8 @@ class PostgresClient:
         """Exécute une requête. fetch: 'all' | 'one' | None (renvoie rowcount).
         Une connexion morte (base redémarrée, inactivité) est remplacée et la
         requête rejouée une fois."""
+        if isinstance(params, (list, tuple)):
+            params = [_clean(p) if isinstance(p, str) else p for p in params]
         last_error = None
         for _attempt in (1, 2):
             conn = self.pool.getconn()
@@ -298,7 +316,7 @@ class PostgresClient:
         self._query(
             "INSERT INTO airtable_backup (table_name, data) VALUES (%s, %s) "
             "ON CONFLICT (table_name) DO UPDATE SET data = EXCLUDED.data, saved_at = now()",
-            (table_name, psycopg2.extras.Json(records)),
+            (table_name, _json(records)),
         )
 
     def import_rows(self, table: str, rows: List[Dict]) -> int:
@@ -317,7 +335,7 @@ class PostgresClient:
             for col in columns:
                 v = row.get(col)
                 if col in JSON_COLUMNS:
-                    v = psycopg2.extras.Json(v if v is not None else ([] if col != 'fields' else {}))
+                    v = _json(v if v is not None else ([] if col != 'fields' else {}))
                 values.append(v)
             inserted += self._query(sql, values) or 0
         # Remettre les séquences après les ids importés
@@ -334,7 +352,7 @@ class PostgresClient:
         self._query(
             "INSERT INTO settings (user_id, data) VALUES ('default', %s) "
             "ON CONFLICT (user_id) DO NOTHING",
-            (psycopg2.extras.Json(data),),
+            (_json(data),),
         )
 
     # ------------------------------------------------------------------
@@ -381,7 +399,7 @@ class PostgresClient:
         il devient l'id de la ligne : ainsi les ids restent identiques après un redémarrage."""
         fields = self._plant_fields(plant_data)
         values = (plant_data.get('nom_latin', '') or '', plant_data.get('nom_francais', '') or '',
-                  psycopg2.extras.Json(fields))
+                  _json(fields))
         row = None
         if plant_id is not None:
             row = self._query(
@@ -410,7 +428,7 @@ class PostgresClient:
             "nom_latin = COALESCE(NULLIF(%s, ''), nom_latin), "
             "nom_francais = COALESCE(NULLIF(%s, ''), nom_francais), "
             "updated_at = now() WHERE id = %s",
-            (json.dumps(fields), plant_data.get('nom_latin', '') or '',
+            (json.dumps(_clean(fields)), plant_data.get('nom_latin', '') or '',
              plant_data.get('nom_francais', '') or '', _to_int(record_id)),
         )
         return count > 0
@@ -533,8 +551,8 @@ class PostgresClient:
             (task_id, task_data['title'], task_data.get('description', ''),
              task_data.get('category', 'Autre'), task_data.get('status', 'todo'),
              task_data.get('created_at', _today()), task_data.get('completed_at') or None,
-             zone_id, psycopg2.extras.Json(zones),
-             psycopg2.extras.Json(task_data.get('subtasks') or [])),
+             zone_id, _json(zones),
+             _json(task_data.get('subtasks') or [])),
             fetch='one',
         )
         if not row:
@@ -554,11 +572,11 @@ class PostgresClient:
             params.append(task_data['completed_at'] or None)
         if 'subtasks' in task_data:
             sets.append("subtasks = %s")
-            params.append(psycopg2.extras.Json(task_data['subtasks'] or []))
+            params.append(_json(task_data['subtasks'] or []))
         if 'zones' in task_data:
             zones = _int_list(task_data['zones'])
             sets.append("zones = %s")
-            params.append(psycopg2.extras.Json(zones))
+            params.append(_json(zones))
             if 'zone_id' not in task_data:
                 sets.append("zone_id = %s")
                 params.append(zones[0] if zones else None)
@@ -748,7 +766,7 @@ class PostgresClient:
         self._query(
             "INSERT INTO settings (user_id, data) VALUES ('default', %s) "
             "ON CONFLICT (user_id) DO UPDATE SET data = settings.data || EXCLUDED.data",
-            (psycopg2.extras.Json(allowed),),
+            (_json(allowed),),
         )
         return True
 
