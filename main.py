@@ -31,6 +31,23 @@ except ImportError as e:
     AIRTABLE_ENABLED = False
     airtable_client = None
 
+# Choix du stockage : PostgreSQL si DATABASE_URL est définie et joignable, sinon Airtable.
+# db_client expose la même interface qu'airtable_client : le reste du code est inchangé
+# (la variable garde son nom historique `airtable_client` / `AIRTABLE_ENABLED`).
+STORAGE = 'airtable'
+try:
+    from db_client import db_client
+    if db_client.enabled:
+        airtable_client = db_client
+        AIRTABLE_ENABLED = True
+        STORAGE = 'postgres'
+        print("✅ Stockage: PostgreSQL")
+    else:
+        print(f"ℹ️ Stockage: {'Airtable' if AIRTABLE_ENABLED else 'mémoire seule'}")
+except ImportError as e:
+    print(f"ℹ️ PostgreSQL non disponible ({e})")
+    db_client = None
+
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
@@ -921,6 +938,22 @@ def get_next_plant_id():
         return 1
     return max(library_db.keys()) + 1
 
+def sync_plant_to_storage(plant_id):
+    """
+    Enregistre library_db[plant_id] dans le stockage (Postgres ou Airtable) et
+    mémorise l'identifiant de l'enregistrement dans library_db[plant_id]['airtable_id'].
+    Sans cet identifiant, les notes, la quantité, les zones et les tags de la plante
+    n'étaient jamais enregistrés (et donc perdus au redémarrage).
+    """
+    plant = library_db[plant_id]
+    if STORAGE == 'postgres':
+        record_id = airtable_client.upsert_plant(plant, plant_id=plant_id)
+    else:
+        record_id = airtable_client.upsert_plant(plant)
+    if record_id:
+        plant['airtable_id'] = record_id
+    return record_id
+
 def save_library_db():
     """Sauvegarde library_db (no-op pour l'instant, données en mémoire)"""
     # TODO: Implémenter sauvegarde fichier JSON si nécessaire
@@ -1287,11 +1320,11 @@ def add_to_library():
     airtable_record_id = None
     if AIRTABLE_ENABLED and airtable_client:
         try:
-            airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
+            airtable_record_id = sync_plant_to_storage(plant_id)
             if airtable_record_id:
-                print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
+                print(f"✅ Plante synchronisée ({STORAGE}): {airtable_record_id}")
         except Exception as e:
-            print(f"⚠️ Erreur sync Airtable: {e}")
+            print(f"⚠️ Erreur sync {STORAGE}: {e}")
             # Continue quand même (stockage local fonctionne)
     
     return jsonify({
@@ -1341,8 +1374,8 @@ def get_or_create_plant_id():
                     # Synchroniser avec Airtable UNIQUEMENT si les détails ont changé
                     if AIRTABLE_ENABLED and airtable_client:
                         try:
-                            airtable_client.upsert_plant(plant_data)
-                            print(f"✅ Plante mise à jour dans Airtable: {nom_francais}")
+                            sync_plant_to_storage(plant_id)
+                            print(f"✅ Plante mise à jour ({STORAGE}): {nom_francais}")
                         except Exception as e:
                             print(f"⚠️ Erreur sync Airtable: {e}")
                 else:
@@ -1383,11 +1416,11 @@ def get_or_create_plant_id():
     # Synchroniser avec Airtable si activé
     if AIRTABLE_ENABLED and airtable_client:
         try:
-            airtable_record_id = airtable_client.upsert_plant(library_db[plant_id])
-            print(f"✅ Plante synchronisée avec Airtable: {airtable_record_id}")
+            airtable_record_id = sync_plant_to_storage(plant_id)
+            print(f"✅ Plante synchronisée ({STORAGE}): {airtable_record_id}")
         except Exception as e:
-            print(f"⚠️ Erreur sync Airtable: {e}")
-    
+            print(f"⚠️ Erreur sync {STORAGE}: {e}")
+
     # Initialiser notes vides
     notes_db[plant_id] = {
         'notes': '',
@@ -1428,7 +1461,10 @@ def delete_from_library(plant_id):
         if AIRTABLE_ENABLED and airtable_client:
             try:
                 nom_latin = plant_data.get('nom_latin', '').strip()
-                if nom_latin:
+                if plant_data.get('airtable_id'):
+                    # Suppression exacte par identifiant (évite les plantes qui "reviennent")
+                    airtable_client.delete_plant(plant_data['airtable_id'])
+                elif nom_latin:
                     airtable_client.delete_plant_by_latin_name(nom_latin)
                 else:
                     print(f"⚠️ Pas de nom latin pour supprimer dans Airtable")
@@ -2622,6 +2658,10 @@ def load_from_airtable():
                 'airtable_id': task.get('airtable_id', '')
             }
             
+            # Zones multiples (PostgreSQL les conserve ; Airtable ne renvoyait que zone_id)
+            if task.get('zones'):
+                task_data['zones'] = task['zones']
+
             # Charger les subtasks si présentes
             if task.get('subtasks'):
                 try:
@@ -2736,8 +2776,9 @@ def load_from_airtable():
                     errors += 1
                     continue
                 
-                # Utiliser l'index comme ID (séquentiel)
-                plant_id = idx
+                # PostgreSQL : l'id de la base est stable (ne change pas si une plante est
+                # supprimée). Airtable : on garde l'ancien comportement (rang séquentiel).
+                plant_id = plant_fields.get('db_id') or idx
                 
                 # Récupérer l'ID Airtable pour les mises à jour futures
                 airtable_record_id = plant_fields.get('airtable_record_id', '')
@@ -2935,7 +2976,11 @@ def load_from_airtable():
         print("="*60 + "\n")
         
     except Exception as e:
-        print(f"❌ ERREUR CRITIQUE lors du chargement Airtable: {e}")
+        print(f"❌ ERREUR CRITIQUE lors du chargement ({STORAGE}): {e}")
+        if STORAGE == 'postgres':
+            # Ne surtout pas démarrer avec une mémoire vide : les prochains ids
+            # (max+1) pourraient écraser des lignes existantes. Railway relancera le service.
+            raise
         print("⚠️ Démarrage avec base vide")
         print("="*60 + "\n")
 
@@ -3003,9 +3048,28 @@ def add_heure_recup():
         print(f"❌ Erreur ajout heure récup: {e}")
         return jsonify({'error': str(e)}), 500
 
+def bootstrap_postgres_from_airtable():
+    """
+    Premier démarrage sur PostgreSQL : copie une fois les données d'Airtable.
+    Lecture seule côté Airtable, sans rien écraser côté Postgres, et jamais relancée
+    ensuite (drapeau 'airtable_imported_at' dans la table meta).
+    """
+    if STORAGE != 'postgres':
+        return
+    if db_client.get_meta('airtable_imported_at'):
+        return
+    if not (os.environ.get('AIRTABLE_API_KEY') and os.environ.get('AIRTABLE_BASE_ID')):
+        print("ℹ️ Variables Airtable absentes : base PostgreSQL démarrée vide")
+        return
+    from migrate_airtable_to_postgres import run
+    run(db_client)
+
 if __name__ == '__main__':
-    # Charger les données depuis Airtable au démarrage
+    # Migration Airtable -> PostgreSQL (une seule fois), puis chargement en mémoire
+    bootstrap_postgres_from_airtable()
     load_from_airtable()
-    
+
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # debug=True relançait tout le script (chargement des données fait en double) et
+    # expose la console de débogage Werkzeug sur Internet : réservé au poste local.
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG') == '1')
