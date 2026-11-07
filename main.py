@@ -1,5 +1,7 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, make_response
 from flask_cors import CORS
+import base64
+import hashlib
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -50,6 +52,29 @@ except ImportError as e:
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
+
+# Compression gzip/brotli des réponses (HTML, CSS, JS, JSON) : ~5 à 10 fois moins de données
+try:
+    from flask_compress import Compress
+    app.config['COMPRESS_MIN_SIZE'] = 500
+    Compress(app)
+except ImportError:
+    print("ℹ️ flask-compress absent : réponses non compressées")
+
+def compute_asset_version():
+    """Empreinte du contenu des fichiers de l'interface. Change à chaque modification,
+    ce qui permet de garder CSS/JS un an en cache navigateur (?v=...) sans jamais
+    servir une ancienne version."""
+    digest = hashlib.md5()
+    for dirpath, _dirs, files in sorted(os.walk(app.static_folder)):
+        for name in sorted(files):
+            if name.endswith(('.css', '.js', '.svg')) and name != 'service-worker.js':
+                with open(os.path.join(dirpath, name), 'rb') as fh:
+                    digest.update(name.encode())
+                    digest.update(fh.read())
+    return digest.hexdigest()[:10]
+
+ASSET_VERSION = compute_asset_version()
 
 @dataclass
 class PlantInfo:
@@ -971,8 +996,86 @@ def save_tasks_db():
 
 @app.route('/')
 def index():
-    """Page d'accueil"""
-    return send_from_directory('static', 'index.html')
+    """Nouvelle interface (les chemins CSS/JS reçoivent l'empreinte de version)"""
+    with open(os.path.join(app.static_folder, 'index.html'), encoding='utf-8') as fh:
+        html = fh.read().replace('{{V}}', ASSET_VERSION)
+    response = make_response(html)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
+
+@app.route('/classic')
+def classic():
+    """Ancienne interface, conservée en secours"""
+    return send_from_directory('static', 'classic.html')
+
+def _json_of(view_func):
+    """Appelle une route existante et récupère son JSON (évite de dupliquer la logique)."""
+    return json.loads(view_func().get_data(as_text=True))
+
+PLANT_FACT_KEYS = ('periode_floraison', 'periode_recolte', 'periode_taille', 'couleur_fleurs',
+                   'hauteur_maturite', 'largeur_maturite', 'rusticite', 'feuillage', 'famille',
+                   'genre', 'arrosage_frequence', 'sol_type', 'utilisations')
+
+def plant_summary(plant_id, plant):
+    """Version allégée d'une plante pour les listes (la fiche complète se charge à la demande)."""
+    details = plant.get('details') or {}
+    notes = notes_db.get(plant_id, {})
+    photo = notes.get('custom_photo')
+    image = (f"/api/library/plant/{plant_id}/photo?v={len(photo)}" if photo
+             else plant.get('image_principale') or details.get('image_principale') or '')
+    zone_ids = []
+    for z in plant.get('zones') or []:
+        try:
+            zone_ids.append(int(float(z)))
+        except (TypeError, ValueError):
+            pass
+    return {
+        'id': plant_id,
+        'nom_francais': plant.get('nom_francais', ''),
+        'nom_latin': plant.get('nom_latin', ''),
+        'type_plante': plant.get('type_plante') or details.get('type_plante') or 'Plante',
+        'exposition': plant.get('exposition') or details.get('exposition') or '',
+        'prix': plant.get('prix') or details.get('prix') or '',
+        'description': (plant.get('description') or '')[:220],
+        'image': image,
+        'url': plant.get('url', ''),
+        'quantity': notes.get('quantity') or 0,
+        'has_notes': bool((notes.get('notes') or '').strip()),
+        'zones': zone_ids,
+        'tags': notes.get('tags') or [],
+        'facts': {k: details[k] for k in PLANT_FACT_KEYS if details.get(k)},
+    }
+
+@app.route('/api/bootstrap', methods=['GET'])
+def bootstrap():
+    """Tout ce qu'il faut pour afficher l'application, en UNE requête
+    (au lieu de 8 appels successifs au démarrage)."""
+    return jsonify({
+        'plants': [plant_summary(pid, p) for pid, p in library_db.items()],
+        'zones': _json_of(get_zones).get('zones', []),
+        'tags': _json_of(get_tags).get('tags', []),
+        'tasks': _json_of(get_tasks).get('tasks', []),
+        'inventory': _json_of(get_inventory).get('items', []),
+        'journal': _json_of(get_journal).get('entries', []),
+        'heures': _json_of(get_heures_recup).get('heures', []),
+        'settings': _json_of(get_meteo_settings).get('settings', {}),
+        'reminder_states': _json_of(get_reminders_states).get('states', {}),
+        'server_time': datetime.now().isoformat(timespec='seconds'),
+        'storage': STORAGE,
+    })
+
+@app.route('/api/library/plant/<int:plant_id>/photo', methods=['GET'])
+def get_custom_photo(plant_id):
+    """Photo personnalisée servie comme une vraie image (cachable), pas en base64 dans le JSON"""
+    photo = notes_db.get(plant_id, {}).get('custom_photo')
+    if not photo or ',' not in photo:
+        return jsonify({'error': 'Pas de photo'}), 404
+    header, encoded = photo.split(',', 1)
+    mimetype = header[5:].split(';')[0] or 'image/jpeg'
+    response = make_response(base64.b64decode(encoded))
+    response.headers['Content-Type'] = mimetype
+    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
 
 @app.route('/manifest.json')
 def serve_manifest():
@@ -2600,13 +2703,32 @@ def get_weather():
         })
 
 @app.after_request
-def add_no_cache_headers(response):
-    """Ajoute des headers pour éviter le cache navigateur"""
-    # Ne pas cacher les fichiers statiques HTML/JS
-    if request.path.endswith(('.html', '.js')) or request.path.startswith('/api/'):
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, public, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+def add_cache_headers(response):
+    """
+    - API : 'no-cache' = le navigateur revalide à chaque fois, mais grâce à l'ETag la
+      réponse est un 304 minuscule quand rien n'a changé (au lieu de tout retélécharger).
+    - HTML : toujours revalidé (une nouvelle version s'affiche tout de suite).
+    - CSS/JS versionnés (?v=empreinte) : gardés un an, ils changent d'URL à chaque modif.
+    """
+    path = request.path
+    # flask-compress ajoute ':br' / ':gzip' à l'ETag envoyé : on l'enlève au retour
+    # pour que la comparaison avec l'ETag d'origine fonctionne (sinon jamais de 304)
+    inm = request.headers.get('If-None-Match')
+    if inm and ':' in inm:
+        request.environ['HTTP_IF_NONE_MATCH'] = re.sub(r':(br|gzip|zstd|deflate)"', '"', inm)
+    if path.startswith('/api/'):
+        response.headers.setdefault('Cache-Control', 'no-cache')
+        if (request.method == 'GET' and response.status_code == 200
+                and response.mimetype == 'application/json' and not response.direct_passthrough):
+            response.add_etag()
+            response.make_conditional(request)
+    elif path in ('/', '/classic') or path.endswith('.html'):
+        response.headers['Cache-Control'] = 'no-cache'
+        if response.status_code == 200 and not response.direct_passthrough:
+            response.add_etag()
+            response.make_conditional(request)
+    elif path.startswith('/static/fonts/') or (path.startswith('/static/') and request.args.get('v')):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
 def load_from_airtable():
