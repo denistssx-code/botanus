@@ -2,7 +2,7 @@
 import {
   $, html, raw, mount, icon, api, state, notify, load, plantById, zoneById, actions, inputs, changes, toast,
   formDialog, confirmDialog, field, textInput, monthsOf, ribbonRows, monthKey, norm, debounce, resizeImage,
-  emptyState, backButton, thumb, MONTHS, nowMonth,
+  emptyState, backButton, thumb, MONTHS, nowMonth, cleanName,
 } from './core.js';
 
 const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
@@ -129,7 +129,7 @@ function renderPlantDetail() {
   const photo = summary && summary.image;
   const d = p.details || {};
   const model = {
-    nom_francais: p.nom_francais, nom_latin: p.nom_latin, image: photo || d.image_principale || '',
+    nom_francais: cleanName(p.nom_francais), nom_latin: p.nom_latin, image: photo || d.image_principale || '',
     type: p.type_plante || d.type_plante, exposition: p.exposition || d.exposition, prix: p.prix, url: p.url,
     description: p.description || d.description_courte, details: d, zones,
   };
@@ -221,7 +221,7 @@ actions['plant-photo-del'] = async () => {
   await load(); pCur.summary = plantById(pCur.id); renderPlantDetail();
 };
 actions['plant-delete'] = async () => {
-  const name = pCur.r.plant.nom_francais || pCur.r.plant.nom_latin;
+  const name = cleanName(pCur.r.plant.nom_francais) || pCur.r.plant.nom_latin;
   if (!await confirmDialog(`Retirer « ${name} » de votre bibliothèque ?`, 'Retirer')) return;
   await api(`/library/${pCur.id}`, { method: 'DELETE' });
   await load(); toast('Plante retirée'); location.hash = '#/plants';
@@ -282,7 +282,7 @@ function renderResults() {
     const mine = inLibrary(r);
     return html`<button class="result" role="listitem" data-action="search-pick" data-i="${i}" ${raw(sSel === i ? 'aria-current="true"' : '')}>
       <span class="pic" aria-hidden="true">${r.icon || '🌿'}</span>
-      <span><b>${r.nom_francais || r.nom_latin}</b><br><span class="latin small muted">${r.nom_latin}</span>
+      <span><b>${cleanName(r.nom_francais) || r.nom_latin}</b><br><span class="latin small muted">${r.nom_latin}</span>
       ${mine ? html`<br><span class="chip ok small">Dans ma bibliothèque</span>` : r.prix ? html`<br><span class="small muted">${r.prix}</span>` : ''}</span></button>`;
   })}</div>` : emptyState('Aucun résultat', `Rien pour « ${sQuery} ». Essayez le nom courant ou latin.`));
 }
@@ -307,7 +307,7 @@ function renderPreview() {
   const bar = mine ? html`<div class="chips"><a class="btn quiet small" href="#/plants/${mine.id}">Voir dans ma bibliothèque</a></div>`
     : html`<div class="chips"><button class="btn" data-action="search-add">${icon('plus')} Ajouter à ma bibliothèque</button></div>`;
   mount(box, plantSheet({
-    nom_francais: d.nom_francais || r.nom_francais, nom_latin: d.nom_latin || r.nom_latin, image: d.image_principale,
+    nom_francais: cleanName(d.nom_francais || r.nom_francais), nom_latin: d.nom_latin || r.nom_latin, image: d.image_principale,
     type: d.type_plante || r.type_plante, exposition: d.exposition || r.exposition, prix: r.prix, url: r.url,
     description: d.description_courte || r.description, details: d, zones: [],
   }, '', bar));

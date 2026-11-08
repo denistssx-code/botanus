@@ -37,7 +37,7 @@ export const notify = () => subs.forEach((fn) => fn());
 export async function load() {
   const d = await api('/bootstrap');
   Object.assign(state, {
-    plants: d.plants || [], zones: d.zones || [], tags: d.tags || [], tasks: d.tasks || [],
+    plants: (d.plants || []).map((p) => ({ ...p, nom_francais: cleanName(p.nom_francais) })), zones: d.zones || [], tags: d.tags || [], tasks: d.tasks || [],
     inventory: d.inventory || [], journal: d.journal || [], heures: d.heures || [],
     settings: d.settings || {}, reminders: d.reminder_states || {}, loaded: true,
   });
@@ -45,6 +45,16 @@ export async function load() {
 }
 export async function reloadSilently() { try { await load(); } catch (e) { console.warn(e); } }
 
+// Certaines fiches importées répètent le nom deux fois (« Agave montana Agave montana »)
+export function cleanName(s) {
+  const t = String(s || '').trim().replace(/\s+/g, ' ');
+  const w = t.split(' ');
+  if (w.length >= 2 && w.length % 2 === 0) {
+    const a = w.slice(0, w.length / 2).join(' '), b = w.slice(w.length / 2).join(' ');
+    if (a.toLowerCase() === b.toLowerCase()) return a;
+  }
+  return t;
+}
 export const zoneById = (id) => state.zones.find((z) => Number(z.id) === Number(id));
 export const plantById = (id) => state.plants.find((p) => Number(p.id) === Number(id));
 
