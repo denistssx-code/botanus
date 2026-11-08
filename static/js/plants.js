@@ -30,7 +30,9 @@ function plantSheet(m, mine = '', actionsBar = '') {
     { label: 'Récolte', cls: 'rec', months: monthsOf(d.periode_recolte) },
     { label: 'Plantation', cls: 'pla', months: monthsOf(d.meilleure_periode_plantation) },
   ]);
-  const long = d.description_detaillee || m.description || '';
+  // description_courte = présentation de la plante ; description_detaillee = conseils « Plantations et soins »
+  const care = d.description_detaillee || '';
+  const intro = d.description_courte || (m.description && m.description !== care ? m.description : '');
   const gallery = (d.images_galerie || []).filter(safeUrl).slice(0, 6);
   const link = safeUrl(m.url);
   return html`
@@ -54,7 +56,8 @@ function plantSheet(m, mine = '', actionsBar = '') {
 
       ${cal ? html`<section class="section" aria-labelledby="h-cal"><h2 id="h-cal">Calendrier</h2>${cal}</section>` : ''}
       ${mine}
-      ${long ? html`<section class="section" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2><p class="prose">${long}</p></section>` : ''}
+      ${intro ? html`<section class="section" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2><p class="prose">${intro}</p></section>` : ''}
+      ${care ? html`<section class="section" aria-labelledby="h-care"><h2 id="h-care">Plantation et soins</h2><p class="prose">${care}</p></section>` : ''}
       ${GROUPS.map(([title, rows]) => {
         const present = rows.filter(([, k]) => d[k] && String(d[k]).trim());
         if (!present.length) return '';
