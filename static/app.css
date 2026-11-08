@@ -147,7 +147,7 @@ a.item:hover, button.item:hover { background: var(--sunken); }
 .section { display: grid; gap: 12px; padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--line); }
 .section > h2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px 28px; margin: 0; }
-.facts > div { display: grid; gap: 2px; }
+.facts > div { display: grid; gap: 2px; align-content: start; }
 .facts dt { color: var(--muted); font-size: 0.84rem; }
 .facts dd { margin: 0; font-weight: 500; }
 .prose { max-width: 68ch; line-height: 1.65; font-family: var(--serif); font-size: 1.08rem; }
@@ -313,3 +313,13 @@ a.year-row:hover { background: var(--sunken); }
 .gallery .ph .ph-del { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; aspect-ratio: auto; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, #000 60%, transparent); color: #fff; cursor: pointer; overflow: visible; }
 .gallery .ph .ph-del svg { width: 16px; height: 16px; }
 .gallery .ph .ph-del:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* repères cliquables dans la fiche */
+.facets { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 4px 6px; }
+.facet { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 1px 9px; border-radius: 99px; background: var(--sunken); font-size: 0.9rem; overflow-wrap: anywhere; }
+button.facet { cursor: pointer; }
+button.facet:hover { background: color-mix(in srgb, var(--accent) 18%, var(--sunken)); }
+button.facet:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.facet .n { font-size: 0.72rem; color: var(--muted, currentColor); opacity: 0.7; }
+.facet.solo { background: none; padding-left: 0; padding-right: 0; }
+.facet.solo:not(:last-child)::after { content: ","; }

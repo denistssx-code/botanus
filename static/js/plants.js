@@ -23,6 +23,38 @@ const GROUPS = [
   ['Identité', [['Famille', 'famille'], ['Genre', 'genre'], ['Espèce', 'espece'], ['Cultivar', 'cultivar'], ['Origine', 'origine'], ['Autres noms', 'autres_noms']]],
 ];
 
+/* ---- Repères : valeurs partagées par plusieurs plantes, cliquables pour filtrer la bibliothèque ---- */
+const glue = (v) => String(v ?? '').replace(/([a-zà-ÿ])([A-ZÀ-Ý])/g, '$1, $2'); // « SoleilMi-ombre » → « Soleil, Mi-ombre »
+function facetTokens(v) {
+  const out = []; let cur = '', depth = 0;
+  for (const ch of glue(v)) {
+    if (ch === '(') depth++; else if (ch === ')') depth = Math.max(0, depth - 1);
+    if ((ch === ',' || ch === ';') && !depth) { out.push(cur); cur = ''; } else cur += ch;
+  }
+  out.push(cur);
+  return out.map((t) => t.trim()).filter(Boolean);
+}
+const FACET_LABEL_SET = new Set(['hauteur_maturite','largeur_maturite','port','croissance','couleur_fleur','periode_floraison','inflorescence','taille_fleur','persistance_feuillage','couleur_feuillage','exposition','rusticite','zone_usda','type_sol','humidite_sol','ph_sol','difficulte_culture','convient_pour','type_utilisation','climat_preference','periode_taille','frequence_taille','meilleure_periode_plantation','periode_raisonnable_plantation','famille','genre','espece','cultivar','origine','autres_noms']);
+const FACET_LABEL = Object.fromEntries(GROUPS.flatMap(([, rows]) => rows.map(([l, k]) => [k, l])));
+let facetCounts = null, facetCountsFor = null;
+function counts() {
+  if (facetCountsFor !== state.plants) {
+    facetCounts = {};
+    for (const p of state.plants) for (const [k, v] of Object.entries(p.facets || {})) for (const t of new Set(facetTokens(v).map(norm))) (facetCounts[k + '|' + t] ||= new Set()).add(p.id);
+    facetCountsFor = state.plants;
+  }
+  return facetCounts;
+}
+function facetValue(key, value, link) {
+  const toks = facetTokens(value);
+  if (!link) return toks.join(', ');
+  const c = counts();
+  return html`<span class="facets">${toks.map((t) => {
+    const n = (c[key + '|' + norm(t)] || new Set()).size;
+    return n >= 2 ? html`<button type="button" class="facet" data-action="facet-go" data-k="${key}" data-v="${t}" title="${n} plantes : ${t}" aria-label="${t} — voir les ${n} plantes">${t}<span class="n">${n}</span></button>` : html`<span class="facet solo">${t}</span>`;
+  })}</span>`;
+}
+
 function plantSheet(m, mine = '', actionsBar = '') {
   const d = m.details || {};
   const cal = ribbonRows([
@@ -47,7 +79,7 @@ function plantSheet(m, mine = '', actionsBar = '') {
           ${m.nom_francais && m.nom_latin ? html`<p class="latin">${m.nom_latin}</p>` : ''}
           <div class="chips">
             ${m.type ? html`<span class="chip">${m.type}</span>` : ''}
-            ${m.exposition ? html`<span class="chip">${m.exposition}</span>` : ''}
+            ${m.exposition ? html`<span class="chip">${glue(m.exposition).replace(/, /g, ', ')}</span>` : ''}
             ${d.rusticite ? html`<span class="chip">${d.rusticite}</span>` : ''}
             ${m.prix ? html`<span class="chip">${m.prix}</span>` : ''}
             ${(m.zones || []).map((z) => html`<span class="chip ok">${z.icon || ''} ${z.nom}</span>`)}
@@ -66,7 +98,7 @@ function plantSheet(m, mine = '', actionsBar = '') {
       ${GROUPS.map(([title, rows]) => {
         const present = rows.filter(([, k]) => d[k] && String(d[k]).trim());
         if (!present.length) return '';
-        return html`<section class="section"><h2>${title}</h2><dl class="facts">${present.map(([l, k]) => html`<div><dt>${l}</dt><dd>${d[k]}</dd></div>`)}</dl></section>`;
+        return html`<section class="section"><h2>${title}</h2><dl class="facts">${present.map(([l, k]) => html`<div><dt>${l}</dt><dd>${FACET_LABEL_SET.has(k) ? facetValue(k, d[k], m.linkFacets) : d[k]}</dd></div>`)}</dl></section>`;
       })}
       ${d.descriptif_taille_detaille ? html`<section class="section"><h2>Conseils de taille</h2><p class="prose">${d.descriptif_taille_detaille}</p></section>` : ''}
       ${gallery.length ? html`<section class="section"><h2>Photos</h2><div class="gallery">${gallery.map((g) => html`<button type="button" data-action="photo-zoom" data-src="${g}" aria-label="Agrandir la photo"><img src="${g}" alt="" loading="lazy" decoding="async" width="160" height="160"></button>`)}</div></section>` : ''}
@@ -77,19 +109,26 @@ function plantSheet(m, mine = '', actionsBar = '') {
 /* =========================================================
    Bibliothèque
    ========================================================= */
-let pRoot, pFilters = { q: '', zone: '', type: '', sort: 'recent' }, pSel = null, pCur = null;
+let pRoot, pFilters = { q: '', zone: '', type: '', sort: 'recent', facet: null }, pSel = null, pCur = null;
 
 const addedAt = (p) => Date.parse(p.added_at) || 0;
 function plantList() {
   const q = norm(pFilters.q);
   return state.plants.filter((p) => (!q || norm(p.nom_francais + ' ' + p.nom_latin).includes(q))
     && (!pFilters.zone || p.zones.includes(Number(pFilters.zone)))
-    && (!pFilters.type || p.type_plante === pFilters.type))
+    && (!pFilters.type || p.type_plante === pFilters.type)
+    && (!pFilters.facet || facetTokens((p.facets || {})[pFilters.facet.k]).some((t) => norm(t) === norm(pFilters.facet.v))))
     .sort((a, b) => (pFilters.sort === 'recent' ? addedAt(b) - addedAt(a) || b.id - a.id : pFilters.sort === 'oldest' ? addedAt(a) - addedAt(b) || a.id - b.id
       : (a.nom_francais || a.nom_latin).localeCompare(b.nom_francais || b.nom_latin, 'fr')));
 }
 
+function renderFacetBar() {
+  const box = $('#p-facet', pRoot); if (!box) return;
+  const f = pFilters.facet;
+  mount(box, f ? html`<div class="chips"><span class="chip ok">${FACET_LABEL[f.k] || f.k} : ${f.v}</span><button type="button" class="chip" data-action="facet-clear" aria-label="Retirer le filtre">${icon('x')} Retirer le filtre</button></div>` : '');
+}
 function renderPlantList() {
+  renderFacetBar();
   const list = plantList();
   $('#p-count', pRoot).textContent = `${list.length} ${list.length > 1 ? 'plantes' : 'plante'}`;
   mount($('#p-list', pRoot), list.length ? html`<ul class="list">${list.map((p) => html`
@@ -151,7 +190,7 @@ function renderPlantDetail() {
   const model = {
     nom_francais: cleanName(p.nom_francais), nom_latin: p.nom_latin, image: photo || d.image_principale || '',
     type: p.type_plante || d.type_plante, exposition: p.exposition || d.exposition, prix: p.prix, url: p.url,
-    description: d.description_courte || p.description, details: d, zones, refreshable: !!safeUrl(p.url),
+    description: d.description_courte || p.description, details: d, zones, refreshable: !!safeUrl(p.url), linkFacets: true,
   };
   const myTags = new Set((r.tags || []).map((t) => t.id));
   const mine = html`<section class="section" aria-labelledby="h-mine"><h2 id="h-mine">Dans mon jardin</h2>
@@ -185,6 +224,12 @@ const savePlantNotes = async (notes, quantity) => {
   pCur.r.notes = notes; pCur.r.quantity = quantity;
 };
 
+actions['facet-go'] = (el) => {
+  pFilters.facet = { k: el.dataset.k, v: el.dataset.v }; pFilters.q = ''; pFilters.zone = ''; pFilters.type = '';
+  if (matchMedia('(min-width: 720px)').matches) { const q = $('#p-q', pRoot); if (q) q.value = ''; renderPlantList(); }
+  else location.hash = '#/plants';
+};
+actions['facet-clear'] = () => { pFilters.facet = null; renderPlantList(); };
 actions['plant-task-add'] = () => newTaskForPlant(pCur.id, () => renderPlantDetail());
 changes['plant-task-toggle'] = async (el) => {
   await api(`/tasks/${el.dataset.id}`, { method: 'PATCH', body: { status: el.checked ? 'done' : 'todo' } });
@@ -289,6 +334,7 @@ export const plants = {
               <a class="btn small" href="#/search" style="margin-left:auto">${icon('plus')} Ajouter</a>
             </div>
           </div>
+          <div id="p-facet" style="padding:0 16px"></div>
           <div id="p-list"></div>
         </section>
         <section class="pane-detail" id="p-detail" aria-live="polite"></section>

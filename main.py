@@ -516,6 +516,9 @@ class PromesseDeFleursScraper:
                     attr_value = attr_div.find('span', class_='font-bold')
                     if attr_value:
                         value = self.clean_text(attr_value.get_text())
+                        if attr_name == 'exposition':
+                            # plusieurs expositions = plusieurs nœuds collés ("SoleilMi-ombre") : on les sépare
+                            value = self.clean_text(attr_value.get_text(separator=', ', strip=True)).replace(', ,', ',')
                         
                         if attr_name == 'exposition':
                             detail.exposition = value
@@ -1018,6 +1021,13 @@ PLANT_FACT_KEYS = ('periode_floraison', 'periode_recolte', 'periode_taille', 'co
                    'hauteur_maturite', 'largeur_maturite', 'rusticite', 'feuillage', 'famille',
                    'genre', 'arrosage_frequence', 'sol_type', 'utilisations', 'meilleure_periode_plantation')
 
+# Champs de la fiche transformés en « repères » cliquables côté interface (valeurs courtes, partagées entre plantes)
+FACET_KEYS = ('hauteur_maturite', 'largeur_maturite', 'port', 'croissance', 'couleur_fleur', 'periode_floraison',
+              'inflorescence', 'taille_fleur', 'persistance_feuillage', 'couleur_feuillage', 'exposition', 'rusticite',
+              'zone_usda', 'type_sol', 'humidite_sol', 'ph_sol', 'difficulte_culture', 'convient_pour', 'type_utilisation',
+              'climat_preference', 'periode_taille', 'frequence_taille', 'meilleure_periode_plantation',
+              'periode_raisonnable_plantation', 'famille', 'genre', 'espece', 'cultivar', 'origine', 'autres_noms')
+
 def plant_summary(plant_id, plant):
     """Version allégée d'une plante pour les listes (la fiche complète se charge à la demande)."""
     details = plant.get('details') or {}
@@ -1047,6 +1057,8 @@ def plant_summary(plant_id, plant):
         'zones': zone_ids,
         'tags': notes.get('tags') or [],
         'facts': {k: details[k] for k in PLANT_FACT_KEYS if details.get(k)},
+        'facets': {k: str(details[k]) for k in FACET_KEYS if details.get(k)} | (
+            {} if details.get('exposition') or not (plant.get('exposition')) else {'exposition': plant['exposition']}),
     }
 
 @app.route('/api/bootstrap', methods=['GET'])
