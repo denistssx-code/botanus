@@ -81,6 +81,7 @@ export const settings = {
         </section>
       </div>
       <section class="block"><h2>Descriptions des plantes</h2><div id="repair-box"><p class="muted">Vérification…</p></div></section>
+      <section class="block"><h2>Sauvegardes</h2><div id="backup-box"><p class="muted">Vérification…</p></div></section>
       <section class="block"><h2>Heures de récupération <span class="chip ${bal > 0 ? 'ok' : bal < 0 ? 'warn' : ''}">${bal >= 0 ? '+' : '−'}${hh(bal)}</span></h2>
         <div><button class="btn small" data-action="heure-add">${icon('plus')} Ajouter des heures</button></div>
         ${state.heures.length ? html`<ul class="list">${[...state.heures].sort((a, b) => String(b.date).localeCompare(String(a.date))).map((h) => html`<li><div class="item">
@@ -88,7 +89,7 @@ export const settings = {
           <span class="qty">${h.type === 'Supp' ? '+' : '−'}${hh(Number(h.duree))}</span></div></li>`)}</ul>` : emptyState('Aucune heure enregistrée', 'Suivez vos heures supplémentaires et vos récupérations.')}
       </section>
     </div></div>`);
-    refreshRepair();
+    refreshRepair(); refreshBackups();
     const form = $('#geo-form', this.root);
     form.addEventListener('submit', (e) => { e.preventDefault(); searchCity($('#geo-q', this.root).value); });
   },
@@ -155,3 +156,18 @@ actions['repair-start'] = async () => {
   toast('Réparation lancée');
   refreshRepair();
 };
+
+/* ---------- Sauvegardes ---------- */
+async function refreshBackups() {
+  const box = $('#backup-box');
+  if (!box) return;
+  let r;
+  try { r = await api('/backups'); } catch { box.textContent = 'Indisponible pour le moment.'; return; }
+  if (!r.enabled) { mount(box, html`<p class="muted">Les sauvegardes nécessitent la base PostgreSQL.</p>`); return; }
+  const last = r.backups[0];
+  mount(box, html`<p>${last ? html`Dernière sauvegarde : <b>${new Date(last.created_at).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</b>` : 'Aucune sauvegarde pour le moment.'}</p>
+    <p class="small muted">Une copie est faite chaque jour dans la base (${r.backups.length} conservée${r.backups.length > 1 ? 's' : ''}, les 14 dernières). Gardez aussi un fichier chez vous.</p>
+    <div class="chips"><button class="btn quiet" data-action="backup-now">Sauvegarder maintenant</button>
+    <a class="btn" href="/api/export" download>${icon('box')} Télécharger mes données</a></div>`);
+}
+actions['backup-now'] = async () => { await api('/backups', { method: 'POST' }); toast('Sauvegarde créée'); refreshBackups(); };

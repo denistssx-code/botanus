@@ -3234,6 +3234,41 @@ def add_heure_recup():
         print(f"❌ Erreur ajout heure récup: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+# ====== EXPORT & SAUVEGARDES ======
+
+@app.route('/api/export', methods=['GET'])
+def export_data():
+    """Télécharge toutes les données en JSON (copie personnelle de sécurité)."""
+    if STORAGE != 'postgres':
+        return jsonify({'error': 'Export disponible uniquement avec PostgreSQL'}), 400
+    payload = {'exported_at': datetime.now().isoformat(timespec='seconds'), 'data': db_client.export_all()}
+    response = make_response(json.dumps(payload, ensure_ascii=False, default=str))
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=botanus-{datetime.now():%Y-%m-%d}.json'
+    return response
+
+@app.route('/api/backups', methods=['GET', 'POST'])
+def backups():
+    if STORAGE != 'postgres':
+        return jsonify({'enabled': False, 'backups': []})
+    if request.method == 'POST':
+        db_client.create_snapshot()
+    return jsonify({'enabled': True, 'backups': db_client.list_snapshots()})
+
+def backup_loop():
+    """Une sauvegarde automatique par jour (vérifiée toutes les heures)."""
+    time.sleep(60)
+    while True:
+        try:
+            latest = db_client.list_snapshots()[:1]
+            if not latest or (datetime.now(datetime.fromisoformat(latest[0]['created_at']).tzinfo)
+                              - datetime.fromisoformat(latest[0]['created_at'])).total_seconds() > 23 * 3600:
+                db_client.create_snapshot()
+        except Exception as e:
+            print(f"⚠️ Sauvegarde automatique: {e}")
+        time.sleep(3600)
+
 def bootstrap_postgres_from_airtable():
     """
     Premier démarrage sur PostgreSQL : copie une fois les données d'Airtable.
@@ -3255,6 +3290,7 @@ if __name__ == '__main__':
     bootstrap_postgres_from_airtable()
     if STORAGE == 'postgres':
         db_client.backfill_added_at()
+        threading.Thread(target=backup_loop, daemon=True).start()
     load_from_airtable()
 
     port = int(os.environ.get('PORT', 5000))

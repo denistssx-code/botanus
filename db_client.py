@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS airtable_backup (
     saved_at   timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS snapshots (
+    id         serial PRIMARY KEY,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    data       jsonb NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS zones (
     id          integer PRIMARY KEY,
     nom         text NOT NULL,
@@ -458,6 +464,40 @@ class PostgresClient:
         return self._query(
             "DELETE FROM plants WHERE lower(nom_latin) = lower(%s)", (nom_latin,)
         ) > 0
+
+    # ------------------------------------------------------------------
+    # EXPORT & SAUVEGARDES
+    # ------------------------------------------------------------------
+
+    EXPORT_TABLES = ('plants', 'tasks', 'zones', 'tags', 'inventory', 'journal',
+                     'reminders', 'heures_recup', 'settings')
+
+    def export_all(self) -> Dict:
+        """Toutes les données utilisateur, en un seul dictionnaire (pour téléchargement ou sauvegarde)."""
+        out = {}
+        for table in self.EXPORT_TABLES:
+            row = self._query(f"SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) AS d FROM {table} t", fetch='one')
+            out[table] = row['d'] if row else []
+        return out
+
+    def create_snapshot(self, keep: int = 14) -> Optional[int]:
+        """Copie complète des données dans la table snapshots ; garde les `keep` plus récentes."""
+        if not self.enabled:
+            return None
+        row = self._query("INSERT INTO snapshots (data) VALUES (%s) RETURNING id", (_json(self.export_all()),), fetch='one')
+        self._query("DELETE FROM snapshots WHERE id NOT IN (SELECT id FROM snapshots ORDER BY id DESC LIMIT %s)", (keep,))
+        print(f"💾 Sauvegarde #{row['id']} créée")
+        return row['id']
+
+    def list_snapshots(self) -> List[Dict]:
+        if not self.enabled:
+            return []
+        rows = self._query("SELECT id, created_at, pg_column_size(data) AS size FROM snapshots ORDER BY id DESC", fetch='all')
+        return [{'id': r['id'], 'created_at': r['created_at'].isoformat(timespec='seconds'), 'size': r['size']} for r in rows]
+
+    def get_snapshot(self, snapshot_id: int) -> Optional[Dict]:
+        row = self._query("SELECT data FROM snapshots WHERE id = %s", (int(snapshot_id),), fetch='one')
+        return row['data'] if row else None
 
     def backfill_added_at(self) -> int:
         """Une seule fois : retrouve la vraie date d'ajout de chaque plante importée d'Airtable
