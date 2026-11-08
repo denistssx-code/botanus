@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     zones        jsonb NOT NULL DEFAULT '[]'::jsonb,
     subtasks     jsonb NOT NULL DEFAULT '[]'::jsonb
 );
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS plants jsonb NOT NULL DEFAULT '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS tasks_status_idx ON tasks (status);
 
 CREATE TABLE IF NOT EXISTS inventory (
@@ -150,7 +151,7 @@ IMPORT_COLUMNS = {
     'tags': ['id', 'name', 'color', 'created_at'],
     'plants': ['id', 'nom_latin', 'nom_francais', 'fields'],
     'tasks': ['id', 'title', 'description', 'category', 'status', 'created_at',
-              'completed_at', 'zone_id', 'zones', 'subtasks'],
+              'completed_at', 'zone_id', 'zones', 'subtasks', 'plants'],
     'inventory': ['id', 'nom', 'categorie', 'statut', 'etat', 'quantite', 'unite',
                   'seuil_alerte', 'prix_estime', 'date_expiration',
                   'dernier_entretien', 'notes', 'created_at'],
@@ -159,7 +160,7 @@ IMPORT_COLUMNS = {
     'reminders': ['plant_id', 'reminder_type', 'month', 'is_checked', 'checked_date'],
     'heures_recup': ['id', 'date', 'type', 'duree', 'note', 'statut'],
 }
-JSON_COLUMNS = {'fields', 'zones', 'subtasks'}
+JSON_COLUMNS = {'fields', 'zones', 'subtasks', 'plants'}
 
 
 def _safe(default):
@@ -598,7 +599,8 @@ class PostgresClient:
             'category': r['category'], 'status': r['status'],
             'created_at': r['created_at'], 'completed_at': r['completed_at'] or '',
             'subtasks': json.dumps(r['subtasks'] or []),
-            'zone_id': r['zone_id'], 'zones': r['zones'] or [], 'airtable_id': str(r['id']),
+            'zone_id': r['zone_id'], 'zones': r['zones'] or [], 'plants': r.get('plants') or [],
+            'airtable_id': str(r['id']),
         } for r in rows]
 
     @_safe(None)
@@ -608,14 +610,15 @@ class PostgresClient:
         zone_id = _to_int(task_data.get('zone_id')) or (zones[0] if zones else None)
         row = self._query(
             "INSERT INTO tasks (id, title, description, category, status, created_at, "
-            "completed_at, zone_id, zones, subtasks) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "completed_at, zone_id, zones, subtasks, plants) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (id) DO NOTHING RETURNING id",
             (task_id, task_data['title'], task_data.get('description', ''),
              task_data.get('category', 'Autre'), task_data.get('status', 'todo'),
              task_data.get('created_at', _today()), task_data.get('completed_at') or None,
              zone_id, _json(zones),
-             _json(task_data.get('subtasks') or [])),
+             _json(task_data.get('subtasks') or []),
+             _json(_int_list(task_data.get('plants')))),
             fetch='one',
         )
         if not row:
@@ -636,6 +639,9 @@ class PostgresClient:
         if 'subtasks' in task_data:
             sets.append("subtasks = %s")
             params.append(_json(task_data['subtasks'] or []))
+        if 'plants' in task_data:
+            sets.append("plants = %s")
+            params.append(_json(_int_list(task_data['plants'])))
         if 'zones' in task_data:
             zones = _int_list(task_data['zones'])
             sets.append("zones = %s")

@@ -1,7 +1,7 @@
 // Tâches, inventaire, journal : trois vues liste + détail construites par la même fabrique.
 import {
   $, html, raw, mount, icon, api, state, load, zoneById, actions, changes, inputs, toast, formDialog, confirmDialog,
-  field, textInput, selectInput, zoneChecks, zonesFromForm, fmtDate, todayISO, norm, debounce, emptyState, backButton, esc,
+  field, textInput, selectInput, zoneChecks, zonesFromForm, plantChecks, plantsFromForm, plantById, cleanName, fmtDate, todayISO, norm, debounce, emptyState, backButton, esc,
 } from './core.js';
 
 let current = null; // section affichée (pour les filtres génériques)
@@ -66,6 +66,8 @@ actions['v-add'] = () => current.add();
 const seg = (key, value, options) => html`<div class="seg" role="group">${options.map(([v, l]) => html`<button data-action="v-seg" data-k="${key}" data-v="${v}" aria-pressed="${value === v}">${l}</button>`)}</div>`;
 const matches = (q, ...texts) => !q || norm(texts.join(' ')).includes(norm(q));
 const zoneChips = (ids) => (ids || []).map(zoneById).filter(Boolean).map((z) => html`<span class="chip ok">${z.icon || ''} ${z.nom}</span>`);
+const plantName = (p) => cleanName(p.nom_francais) || p.nom_latin;
+const plantChips = (ids) => (ids || []).map(plantById).filter(Boolean).map((p) => html`<a class="chip ok" href="#/plants/${p.id}">🌿 ${plantName(p)}</a>`);
 const actionBar = (editAct, delAct) => html`<div class="chips" style="margin-top:6px"><button class="btn quiet small" data-action="${editAct}">${icon('edit')} Modifier</button><button class="btn danger small" data-action="${delAct}">${icon('trash')} Supprimer</button></div>`;
 const goList = (key) => { location.hash = `#/${key}`; };
 
@@ -98,7 +100,7 @@ export const tasks = makeSection({
     <h1>${t.title}</h1>
     <div class="chips" style="margin-top:10px">${t.category ? html`<span class="chip">${t.category}</span>` : ''}
       <span class="chip ${taskDone(t) ? 'ok' : 'warn'}">${taskDone(t) ? `Terminée ${t.completed_at ? 'le ' + fmtDate(t.completed_at) : ''}` : 'À faire'}</span>
-      ${zoneChips(t.zones)}</div>
+      ${zoneChips(t.zones)}${plantChips(t.plants)}</div>
     ${t.description ? html`<p class="prose" style="margin-top:18px">${t.description}</p>` : ''}
     <section class="section"><h2>Étapes <span class="muted small">${subProgress(t)}</span></h2>
       <ul class="list">${(t.subtasks || []).map((s, i) => html`<li class="${s.completed ? 'done' : ''}"><label class="item" style="min-height:48px"><input class="check" type="checkbox" data-change="subtask-toggle" data-id="${t.id}" data-i="${i}" ${raw(s.completed ? 'checked' : '')}><span class="item-main"><span class="item-title" style="white-space:normal">${s.text}</span></span></label></li>`)}</ul>
@@ -122,16 +124,22 @@ document.addEventListener('submit', (e) => {
   const text = new FormData(form).get('text').trim();
   if (text) patchTask(t.id, { subtasks: [...(t.subtasks || []), { text, completed: false }] }).catch((err) => toast(err.message, 'error'));
 });
-const taskForm = (t) => html`${field('Titre', textInput('title', t?.title || '', 'required'))}
+const taskForm = (t, presetPlants = []) => html`${field('Titre', textInput('title', t?.title || '', 'required'))}
   <div class="row2">${field('Catégorie', selectInput('category', [...new Set([...TASK_CATS, t?.category].filter(Boolean))], t?.category || 'Jardin'))}</div>
   ${field('Description', html`<textarea class="textarea" name="description">${t?.description || ''}</textarea>`)}
-  <div class="field"><span>Zones</span>${zoneChecks(t?.zones || [])}</div>`;
+  <div class="field"><span>Zones</span>${zoneChecks(t?.zones || [])}</div>
+  <div class="field"><span>Plantes concernées</span>${plantChecks(t?.plants || presetPlants)}</div>`;
 tasks.add = () => formDialog({ title: 'Nouvelle tâche', body: taskForm(null), submit: 'Créer', onSubmit: async (v, form) => {
-  const r = await api('/tasks', { method: 'POST', body: { title: v.title, category: v.category, description: v.description, zones: zonesFromForm(form) } });
+  const r = await api('/tasks', { method: 'POST', body: { title: v.title, category: v.category, description: v.description, zones: zonesFromForm(form), plants: plantsFromForm(form) } });
   await load(); location.hash = '#/tasks/' + r.task.id;
 } });
+// Depuis la fiche d'une plante : tâche déjà liée à la plante, on reste sur la fiche.
+export const newTaskForPlant = (plantId, done) => formDialog({ title: 'Nouvelle tâche', body: taskForm(null, [plantId]), submit: 'Créer', onSubmit: async (v, form) => {
+  await api('/tasks', { method: 'POST', body: { title: v.title, category: v.category, description: v.description, zones: zonesFromForm(form), plants: plantsFromForm(form) } });
+  await load(); if (done) done();
+} });
 actions['task-edit'] = () => { const t = curTask(); formDialog({ title: 'Modifier la tâche', body: taskForm(t), onSubmit: async (v, form) => {
-  await patchTask(t.id, { title: v.title, category: v.category, description: v.description, zones: zonesFromForm(form) });
+  await patchTask(t.id, { title: v.title, category: v.category, description: v.description, zones: zonesFromForm(form), plants: plantsFromForm(form) });
 } }); };
 actions['task-del'] = async () => {
   const t = curTask();

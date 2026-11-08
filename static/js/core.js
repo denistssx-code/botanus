@@ -152,6 +152,20 @@ export const zoneChecks = (selected = []) => html`<fieldset style="border:0;padd
   <div class="chips">${state.zones.map((z) => html`
     <label class="chip" style="cursor:pointer"><input type="checkbox" name="zone" value="${z.id}" ${raw(selected.map(Number).includes(Number(z.id)) ? 'checked' : '')}>
     ${z.icon || ''} ${z.nom}</label>`)}</div></fieldset>`;
+/* sélecteur de plantes (liste filtrable de cases à cocher) */
+export const plantChecks = (selected = []) => {
+  const sel = selected.map(Number);
+  const list = [...state.plants].sort((a, b) => (cleanName(a.nom_francais) || a.nom_latin).localeCompare(cleanName(b.nom_francais) || b.nom_latin, 'fr'));
+  if (!list.length) return html`<p class="muted small">Aucune plante dans la bibliothèque.</p>`;
+  return html`<fieldset class="plant-pick"><legend class="visually-hidden">Plantes</legend>
+    <input class="input" type="search" data-input="plant-pick-filter" placeholder="Filtrer les plantes" aria-label="Filtrer les plantes">
+    <div class="plant-pick-list">${list.map((p) => html`<label data-n="${norm(cleanName(p.nom_francais) + ' ' + p.nom_latin)}"><input type="checkbox" name="plant" value="${p.id}" ${raw(sel.includes(Number(p.id)) ? 'checked' : '')}> ${cleanName(p.nom_francais) || p.nom_latin}</label>`)}</div></fieldset>`;
+};
+export const plantsFromForm = (form) => [...form.querySelectorAll('input[name=plant]:checked')].map((i) => Number(i.value));
+inputs['plant-pick-filter'] = (el) => {
+  const q = norm(el.value);
+  el.closest('.plant-pick').querySelectorAll('.plant-pick-list label').forEach((l) => { l.hidden = !!q && !l.dataset.n.includes(q); });
+};
 export const zonesFromForm = (form) => [...form.querySelectorAll('input[name=zone]:checked')].map((i) => Number(i.value));
 
 /* ---------- dates & mois ---------- */

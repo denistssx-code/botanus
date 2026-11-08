@@ -4,6 +4,7 @@ import {
   formDialog, confirmDialog, field, textInput, monthsOf, ribbonRows, monthKey, norm, debounce, resizeImage,
   emptyState, backButton, thumb, MONTHS, nowMonth, cleanName,
 } from './core.js';
+import { newTaskForPlant, taskDone } from './work.js';
 
 const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 
@@ -130,6 +131,16 @@ function remindersBlock(c) {
   })}</div>`;
 }
 
+function tasksBlock(c) {
+  const list = state.tasks.filter((t) => (t.plants || []).map(Number).includes(c.id)).sort((a, b) => Number(taskDone(a)) - Number(taskDone(b)) || b.id - a.id);
+  return html`<div style="display:grid;gap:8px"><h3>Tâches</h3>
+    ${list.length ? html`<ul class="list">${list.map((t) => html`<li class="${taskDone(t) ? 'done' : ''}"><div class="item">
+      <input class="check" type="checkbox" data-change="plant-task-toggle" data-id="${t.id}" ${raw(taskDone(t) ? 'checked' : '')} aria-label="Terminer « ${t.title} »">
+      <a class="item-main" href="#/tasks/${t.id}"><span class="item-title">${t.title}</span><span class="item-sub">${t.category || ''}</span></a></div></li>`)}</ul>`
+      : html`<p class="muted small">Aucune tâche liée à cette plante.</p>`}
+    <div><button class="btn quiet small" data-action="plant-task-add">${icon('plus')} Nouvelle tâche pour cette plante</button></div></div>`;
+}
+
 function renderPlantDetail() {
   const c = pCur; if (!c) return;
   const { r, summary } = c;
@@ -156,6 +167,7 @@ function renderPlantDetail() {
       <input type="file" id="p-file" accept="image/*" hidden>
     </div>
     ${remindersBlock(c)}
+    ${tasksBlock(c)}
     <div class="chips" role="group" aria-label="Repères">${state.tags.map((t) => html`
       <button class="chip" aria-pressed="${myTags.has(t.id)}" data-action="plant-tag" data-id="${t.id}"><span aria-hidden="true" style="width:10px;height:10px;border-radius:50%;background:${t.color}"></span>${t.name}</button>`)}
       <button class="chip" data-action="tag-new">${icon('plus')} Nouveau repère</button></div>
@@ -173,6 +185,11 @@ const savePlantNotes = async (notes, quantity) => {
   pCur.r.notes = notes; pCur.r.quantity = quantity;
 };
 
+actions['plant-task-add'] = () => newTaskForPlant(pCur.id, () => renderPlantDetail());
+changes['plant-task-toggle'] = async (el) => {
+  await api(`/tasks/${el.dataset.id}`, { method: 'PATCH', body: { status: el.checked ? 'done' : 'todo' } });
+  await load(); renderPlantDetail();
+};
 actions['plant-qty'] = async (el) => {
   const next = Math.max(0, (pCur.r.quantity || 0) + Number(el.dataset.delta));
   await savePlantNotes(pCur.r.notes || '', next);

@@ -2004,7 +2004,8 @@ def create_task():
         'status': 'todo',
         'created_at': datetime.now().strftime('%Y-%m-%d'),
         'subtasks': data.get('subtasks', []),  # Liste de {text: str, completed: bool}
-        'zones': data.get('zones', [])  # Liste de zone_ids (multi-zones)
+        'zones': data.get('zones', []),  # Liste de zone_ids (multi-zones)
+        'plants': [int(p) for p in data.get('plants', []) if str(p).lstrip('-').isdigit()]  # plantes liées
     }
     
     tasks_db[task_id] = task_data
@@ -2075,6 +2076,9 @@ def update_task(task_id):
     # Mise à jour zones si fournies (multi-zones)
     if 'zones' in data:
         tasks_db[task_id]['zones'] = data['zones']
+    if 'plants' in data:
+        data['plants'] = [int(p) for p in (data['plants'] or []) if str(p).lstrip('-').isdigit()]
+        tasks_db[task_id]['plants'] = data['plants']
     
     # Sauvegarder tasks_db
     save_tasks_db()
@@ -2846,6 +2850,7 @@ def load_from_airtable():
             # Zones multiples (PostgreSQL les conserve ; Airtable ne renvoyait que zone_id)
             if task.get('zones'):
                 task_data['zones'] = task['zones']
+            task_data['plants'] = task.get('plants') or []
 
             # Charger les subtasks si présentes
             if task.get('subtasks'):
