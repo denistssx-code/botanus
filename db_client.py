@@ -459,11 +459,31 @@ class PostgresClient:
             "DELETE FROM plants WHERE lower(nom_latin) = lower(%s)", (nom_latin,)
         ) > 0
 
+    def backfill_added_at(self) -> int:
+        """Une seule fois : retrouve la vraie date d'ajout de chaque plante importée d'Airtable
+        (createdTime, conservé dans la copie brute) pour pouvoir trier par ordre d'ajout."""
+        if not self.enabled or self.get_meta('plants_added_at_backfilled'):
+            return 0
+        done = 0
+        for row in self._query("SELECT table_name, data FROM airtable_backup", fetch='all') or []:
+            recs = row['data'] if isinstance(row['data'], list) else json.loads(row['data'])
+            if not recs or not any(k in (recs[0].get('fields') or {}) for k in ('nom_latin', 'nom_francais')):
+                continue  # pas la table des plantes
+            for idx, rec in enumerate(recs, start=1):  # même numérotation que la migration
+                created = rec.get('createdTime')
+                if created:
+                    done += self._query(
+                        "UPDATE plants SET fields = fields || jsonb_build_object('added_at', %s::text) "
+                        "WHERE id = %s AND NOT (fields ? 'added_at')", (created, idx))
+        self.set_meta('plants_added_at_backfilled', str(done))
+        print(f"✅ Dates d'ajout retrouvées pour {done} plantes")
+        return done
+
     def get_all_plants(self, view: Optional[str] = None) -> List[Dict]:
         if not self.enabled:
             return []
         rows = self._query(
-            "SELECT id, nom_latin, nom_francais, fields FROM plants ORDER BY id", fetch='all'
+            "SELECT id, nom_latin, nom_francais, fields, created_at FROM plants ORDER BY id", fetch='all'
         )
         plants = []
         for row in rows:
@@ -472,6 +492,9 @@ class PostgresClient:
             fields['nom_francais'] = row['nom_francais']
             fields['airtable_record_id'] = str(row['id'])
             fields['db_id'] = row['id']  # main.py s'en sert comme plant_id stable
+            # date d'ajout réelle (importée d'Airtable) ou, pour les plantes récentes, date de création en base
+            if not fields.get('added_at') and row.get('created_at'):
+                fields['added_at'] = row['created_at'].isoformat()
             plants.append(fields)
         print(f"✅ {len(plants)} plantes chargées depuis PostgreSQL")
         return plants

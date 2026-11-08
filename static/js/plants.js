@@ -78,12 +78,13 @@ function plantSheet(m, mine = '', actionsBar = '') {
    ========================================================= */
 let pRoot, pFilters = { q: '', zone: '', type: '', sort: 'recent' }, pSel = null, pCur = null;
 
+const addedAt = (p) => Date.parse(p.added_at) || 0;
 function plantList() {
   const q = norm(pFilters.q);
   return state.plants.filter((p) => (!q || norm(p.nom_francais + ' ' + p.nom_latin).includes(q))
     && (!pFilters.zone || p.zones.includes(Number(pFilters.zone)))
     && (!pFilters.type || p.type_plante === pFilters.type))
-    .sort((a, b) => (pFilters.sort === 'recent' ? b.id - a.id : pFilters.sort === 'oldest' ? a.id - b.id
+    .sort((a, b) => (pFilters.sort === 'recent' ? addedAt(b) - addedAt(a) || b.id - a.id : pFilters.sort === 'oldest' ? addedAt(a) - addedAt(b) || a.id - b.id
       : (a.nom_francais || a.nom_latin).localeCompare(b.nom_francais || b.nom_latin, 'fr')));
 }
 

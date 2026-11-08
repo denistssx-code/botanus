@@ -1031,6 +1031,7 @@ def plant_summary(plant_id, plant):
             pass
     return {
         'id': plant_id,
+        'added_at': plant.get('added_at') or '',
         'nom_francais': plant.get('nom_francais', ''),
         'nom_latin': plant.get('nom_latin', ''),
         'type_plante': plant.get('type_plante') or details.get('type_plante') or 'Plante',
@@ -1507,6 +1508,7 @@ def get_or_create_plant_id():
         'description': data.get('description', ''),
         'icon': data.get('icon', '🌿'),
         'url': data.get('url', ''),
+        'added_at': datetime.now().isoformat(),
         
         # Données détaillées (si disponibles)
         'details': data.get('details', {}),
@@ -2922,6 +2924,7 @@ def load_from_airtable():
                     'icon': '🌿',  # Icône par défaut
                     'url': plant_fields.get('url_source', ''),
                     'image_principale': plant_fields.get('image_principale', ''),
+                    'added_at': plant_fields.get('added_at', ''),
                     
                     # Zones (depuis le champ formule zone_ids)
                     'zones': parse_zone_ids(plant_fields.get('zone_ids', '')),
@@ -3191,6 +3194,8 @@ def bootstrap_postgres_from_airtable():
 if __name__ == '__main__':
     # Migration Airtable -> PostgreSQL (une seule fois), puis chargement en mémoire
     bootstrap_postgres_from_airtable()
+    if STORAGE == 'postgres':
+        db_client.backfill_added_at()
     load_from_airtable()
 
     port = int(os.environ.get('PORT', 5000))
