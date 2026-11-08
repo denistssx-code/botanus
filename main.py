@@ -1472,6 +1472,8 @@ def get_or_create_plant_id():
                 # Vérifier si les détails ont changé
                 if plant_data.get('details') != data['details']:
                     plant_data['details'] = data['details']
+                    if data.get('description'):
+                        plant_data['description'] = data['description']
                     print(f"✅ Plante existe - Détails mis à jour pour ID {plant_id}")
                     
                     # Synchroniser avec Airtable UNIQUEMENT si les détails ont changé

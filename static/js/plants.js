@@ -32,7 +32,9 @@ function plantSheet(m, mine = '', actionsBar = '') {
   ]);
   // description_courte = présentation de la plante ; description_detaillee = conseils « Plantations et soins »
   const care = d.description_detaillee || '';
-  const intro = d.description_courte || (m.description && m.description !== care ? m.description : '');
+  const same = (a, b) => { if (!a || !b) return false; const n = Math.min(a.trim().length, b.trim().length, 60); return n >= 20 && a.trim().slice(0, n) === b.trim().slice(0, n); };
+  let intro = d.description_courte || m.description || '';
+  if (same(intro, care)) intro = ''; // l'ancienne version avait enregistré le texte d'entretien comme présentation
   const gallery = (d.images_galerie || []).filter(safeUrl).slice(0, 6);
   const link = safeUrl(m.url);
   return html`
@@ -57,6 +59,8 @@ function plantSheet(m, mine = '', actionsBar = '') {
       ${cal ? html`<section class="section" aria-labelledby="h-cal"><h2 id="h-cal">Calendrier</h2>${cal}</section>` : ''}
       ${mine}
       ${intro ? html`<section class="section" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2><p class="prose">${intro}</p></section>` : ''}
+      ${!intro && m.refreshable ? html`<section class="section"><h2>Description</h2><p class="muted">La présentation de cette plante n'a pas été enregistrée correctement.</p>
+        <div><button class="btn quiet small" data-action="plant-refresh">Récupérer la description depuis Promesse de Fleurs</button></div></section>` : ''}
       ${care ? html`<section class="section" aria-labelledby="h-care"><h2 id="h-care">Plantation et soins</h2><p class="prose">${care}</p></section>` : ''}
       ${GROUPS.map(([title, rows]) => {
         const present = rows.filter(([, k]) => d[k] && String(d[k]).trim());
@@ -134,7 +138,7 @@ function renderPlantDetail() {
   const model = {
     nom_francais: cleanName(p.nom_francais), nom_latin: p.nom_latin, image: photo || d.image_principale || '',
     type: p.type_plante || d.type_plante, exposition: p.exposition || d.exposition, prix: p.prix, url: p.url,
-    description: p.description || d.description_courte, details: d, zones,
+    description: d.description_courte || p.description, details: d, zones, refreshable: !!safeUrl(p.url),
   };
   const myTags = new Set((r.tags || []).map((t) => t.id));
   const mine = html`<section class="section" aria-labelledby="h-mine"><h2 id="h-mine">Dans mon jardin</h2>
@@ -204,6 +208,19 @@ actions['tag-new'] = () => formDialog({
     await load(); if (pCur) renderPlantDetail();
   },
 });
+actions['plant-refresh'] = async (el) => {
+  const p = pCur.r.plant;
+  el.disabled = true; el.textContent = 'Récupération…';
+  try {
+    const res = await api(`/plant/detail?url=${encodeURIComponent(p.url)}`);
+    const fresh = Object.fromEntries(Object.entries(res.data || {}).filter(([, v]) => v && (typeof v !== 'object' || Object.keys(v).length)));
+    if (!fresh.description_courte) throw new Error('Aucune description trouvée sur la page');
+    const details = { ...(p.details || {}), ...fresh };
+    await api('/library/get-or-create-id', { method: 'POST', body: { nom_francais: p.nom_francais, nom_latin: p.nom_latin, details, description: fresh.description_courte } });
+    toast('Description récupérée');
+    await loadPlant(pCur.id);
+  } catch (e) { el.disabled = false; el.textContent = 'Récupérer la description depuis Promesse de Fleurs'; throw e; }
+};
 actions['plant-photo'] = () => $('#p-file').click();
 changes['reminder'] = async (el) => {
   const key = monthKey(), type = el.dataset.type;
