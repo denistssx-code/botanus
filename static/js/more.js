@@ -1,37 +1,59 @@
 // Zones, réglages (météo, heures de récupération, apparence) et menu « Plus » du mobile.
 import {
   $, html, raw, mount, icon, api, state, load, actions, toast, formDialog, confirmDialog, field, textInput, selectInput,
-  fmtDate, todayISO, emptyState, debounce, inputs,
+  fmtDate, todayISO, emptyState, debounce, inputs, backButton, thumb, cleanName,
 } from './core.js';
 
 /* ---------- Zones ---------- */
 const ZONE_ICONS = ['🌳', '🥕', '🌹', '🍇', '🫒', '🌿', '🪴', '🏊', '🏡', '🌸', '🍅', '🧱'];
 
+const zPlants = (z) => state.plants.filter((p) => p.zones.includes(Number(z.id)))
+  .sort((a, b) => (cleanName(a.nom_francais) || a.nom_latin).localeCompare(cleanName(b.nom_francais) || b.nom_latin, 'fr'));
+const zTasks = (z) => state.tasks.filter((t) => t.status !== 'done' && (t.zones || []).map(Number).includes(Number(z.id)));
+const zoneAll = new Set(); // zones dont toute la liste de plantes est dépliée
+const Z_MAX = 18;
+const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+
+// Liste des zones à gauche (compacte), détail à droite : reste lisible même avec beaucoup de zones et de plantes.
 export const zones = {
   title: 'Zones',
-  render(root) {
-    this.root = root; this.update();
-  },
-  route() {},
-  update() {
+  sel: null,
+  render(root, params) { this.root = root; this.sel = params.id ?? null; this.draw(true); },
+  route(params) { this.sel = params.id ?? null; this.draw(true); },
+  update() { this.draw(false); },
+  draw(fresh) {
     if (!this.root) return;
-    mount(this.root, html`<div class="page-scroll"><div class="page">
-      <div class="page-head"><div><h1>Zones</h1><p class="muted">Les espaces de votre propriété.</p></div>
-        <button class="btn" data-action="zone-add">${icon('plus')} Nouvelle zone</button></div>
-      ${state.zones.length ? html`<div class="cols" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${state.zones.map((z) => {
-        const ps = state.plants.filter((p) => p.zones.includes(Number(z.id)));
-        const ts = state.tasks.filter((t) => t.status !== 'done' && (t.zones || []).map(Number).includes(Number(z.id)));
-        return html`<section class="block" style="border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)">
-          <h2 style="border:0;padding:0"><span>${z.icon || '🗺️'} ${z.nom}</span>
-            <button class="icon-btn" data-action="zone-edit" data-id="${z.id}" aria-label="Modifier ${z.nom}">${icon('edit')}</button></h2>
-          ${z.description ? html`<p class="muted small">${z.description}</p>` : ''}
-          <p class="small">${ps.length} plante${ps.length > 1 ? 's' : ''} · ${ts.length} tâche${ts.length > 1 ? 's' : ''} à faire</p>
-          <div class="chips">${ps.slice(0, 8).map((p) => html`<a class="chip" href="#/plants/${p.id}" style="text-decoration:none">${p.nom_francais || p.nom_latin}</a>`)}${ps.length > 8 ? html`<span class="chip">+${ps.length - 8}</span>` : ''}</div>
-        </section>`;
-      })}</div>` : emptyState('Aucune zone', 'Créez des zones (potager, haie, terrasse…) pour y ranger plantes et tâches.')}
-    </div></div>`);
+    if (this.sel == null && state.zones.length && matchMedia('(min-width: 720px)').matches) { location.replace(`#/zones/${state.zones[0].id}`); return; }
+    const z = this.sel == null ? null : state.zones.find((x) => Number(x.id) === Number(this.sel));
+    mount(this.root, html`<div class="view" id="z-view" data-open="${z ? 'detail' : 'list'}">
+      <section class="pane-list" aria-label="Zones">
+        <div class="pane-head">
+          <div class="pane-title"><h1>Zones</h1><span class="muted small">${plural(state.zones.length, 'zone', 'zones')}</span></div>
+          <div><button class="btn small" data-action="zone-add">${icon('plus')} Nouvelle zone</button></div>
+        </div>
+        ${state.zones.length ? html`<ul class="list">${state.zones.map((x) => html`<li><a class="item" href="#/zones/${x.id}" ${raw(z && Number(z.id) === Number(x.id) ? 'aria-current="true"' : '')}>
+          <span class="thumb" aria-hidden="true">${x.icon || '🗺️'}</span>
+          <span class="item-main"><span class="item-title">${x.nom}</span><span class="item-sub">${plural(zPlants(x).length, 'plante', 'plantes')} · ${plural(zTasks(x).length, 'tâche', 'tâches')}</span></span></a></li>`)}</ul>`
+          : emptyState('Aucune zone', 'Créez des zones (potager, haie, terrasse…) pour y ranger plantes et tâches.')}
+      </section>
+      <section class="pane-detail" aria-live="polite">${z ? this.detail(z) : emptyState('Choisissez une zone', 'Ses plantes et ses tâches s\'affichent ici.')}</section>
+    </div>`);
+  },
+  detail(z) {
+    const ps = zPlants(z), ts = zTasks(z);
+    return html`${backButton('Retour')}
+      <header class="page-head"><div><h1>${z.icon || '🗺️'} ${z.nom}</h1>${z.description ? html`<p class="muted">${z.description}</p>` : ''}</div>
+        <button class="btn quiet small" data-action="zone-edit" data-id="${z.id}">${icon('edit')} Modifier</button></header>
+      <section class="section"><h2>Plantes <span class="muted small">${ps.length}</span></h2>
+        ${ps.length ? html`<div class="pchips pchips-tight">${(zoneAll.has(z.id) ? ps : ps.slice(0, Z_MAX)).map((p) => html`<a class="pchip" href="#/plants/${p.id}" title="${cleanName(p.nom_francais) || p.nom_latin}">${thumb(p.image)}<span>${cleanName(p.nom_francais) || p.nom_latin}</span></a>`)}</div>
+          ${ps.length > Z_MAX ? html`<div><button class="btn quiet small" data-action="zone-all" data-id="${z.id}">${zoneAll.has(z.id) ? 'Réduire la liste' : `Afficher les ${ps.length - Z_MAX} autres`}</button></div>` : ''}`
+          : html`<p class="muted small">Aucune plante dans cette zone. Rattachez-en depuis leur fiche (« Choisir les zones »).</p>`}</section>
+      <section class="section"><h2>Tâches à faire <span class="muted small">${ts.length}</span></h2>
+        ${ts.length ? html`<ul class="list">${ts.map((t) => html`<li><a class="item" href="#/tasks/${t.id}"><span class="item-main"><span class="item-title">${t.title}</span><span class="item-sub">${t.category || ''}</span></span></a></li>`)}</ul>`
+          : html`<p class="muted small">Rien à faire ici.</p>`}</section>`;
   },
 };
+actions['zone-all'] = (el) => { const id = Number(el.dataset.id); zoneAll.has(id) ? zoneAll.delete(id) : zoneAll.add(id); zones.draw(false); };
 const zoneForm = (z) => html`${field('Nom', textInput('nom', z?.nom || '', 'required'))}
   <fieldset style="border:0;padding:0;margin:0"><legend class="field"><span>Icône</span></legend><div class="chips">${ZONE_ICONS.map((i) => html`<label class="chip" style="cursor:pointer;min-height:40px;font-size:1.3rem"><input type="radio" name="icon" value="${i}" class="visually-hidden" ${raw((z?.icon || '🌳') === i ? 'checked' : '')}>${i}</label>`)}</div></fieldset>
   ${field('Description', textInput('description', z?.description || ''))}`;
