@@ -10,6 +10,8 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import re
+import threading
+import time
 
 # Imports des modules d'agrégation de données
 try:
@@ -1014,7 +1016,7 @@ def _json_of(view_func):
 
 PLANT_FACT_KEYS = ('periode_floraison', 'periode_recolte', 'periode_taille', 'couleur_fleurs',
                    'hauteur_maturite', 'largeur_maturite', 'rusticite', 'feuillage', 'famille',
-                   'genre', 'arrosage_frequence', 'sol_type', 'utilisations')
+                   'genre', 'arrosage_frequence', 'sol_type', 'utilisations', 'meilleure_periode_plantation')
 
 def plant_summary(plant_id, plant):
     """Version allégée d'une plante pour les listes (la fiche complète se charge à la demande)."""
@@ -1539,6 +1541,63 @@ def get_or_create_plant_id():
         'plant_id': plant_id,
         'exists': False
     })
+
+
+# ====== RÉPARATION DES DESCRIPTIONS (en arrière-plan) ======
+
+repair_state = {'running': False, 'total': 0, 'done': 0, 'fixed': 0, 'failed': 0, 'current': '', 'finished_at': None}
+
+def _same_start(a, b):
+    a, b = (a or '').strip(), (b or '').strip()
+    n = min(len(a), len(b), 60)
+    return n >= 20 and a[:n] == b[:n]
+
+def plant_needs_description_repair(plant):
+    """Vrai si la « présentation » enregistrée est en fait le texte d'entretien (ancienne version)."""
+    details = plant.get('details') or {}
+    care = details.get('description_detaillee') or ''
+    intro = details.get('description_courte') or plant.get('description') or ''
+    return bool(plant.get('url')) and (not intro or _same_start(intro, care))
+
+def _repair_worker(plant_ids):
+    for plant_id in plant_ids:
+        plant = library_db.get(plant_id)
+        if not plant:
+            repair_state['done'] += 1
+            continue
+        repair_state['current'] = plant.get('nom_francais', '')
+        try:
+            detail = scraper.fetch_plant_detail(plant['url'])
+            fresh = {k: v for k, v in (asdict(detail) if detail else {}).items()
+                     if v and (not isinstance(v, (dict, list)) or len(v))}
+            if fresh.get('description_courte'):
+                plant['details'] = {**(plant.get('details') or {}), **fresh}
+                plant['description'] = fresh['description_courte']
+                if AIRTABLE_ENABLED and airtable_client:
+                    sync_plant_to_storage(plant_id)
+                repair_state['fixed'] += 1
+            else:
+                repair_state['failed'] += 1
+        except Exception as e:
+            print(f"⚠️ Réparation description {plant.get('nom_francais')}: {e}")
+            repair_state['failed'] += 1
+        repair_state['done'] += 1
+        time.sleep(1.5)  # on ménage le site source
+    repair_state['running'] = False
+    repair_state['current'] = ''
+    repair_state['finished_at'] = datetime.now().isoformat(timespec='seconds')
+
+@app.route('/api/library/repair-descriptions', methods=['GET', 'POST'])
+def repair_descriptions():
+    """GET : avancement. POST : lance la réparation de toutes les fiches concernées."""
+    if request.method == 'POST' and not repair_state['running']:
+        ids = [pid for pid, p in library_db.items() if plant_needs_description_repair(p)]
+        repair_state.update({'running': bool(ids), 'total': len(ids), 'done': 0, 'fixed': 0,
+                             'failed': 0, 'current': '', 'finished_at': None})
+        if ids:
+            threading.Thread(target=_repair_worker, args=(ids,), daemon=True).start()
+    pending = sum(1 for p in library_db.values() if plant_needs_description_repair(p))
+    return jsonify({**repair_state, 'pending': pending})
 
 @app.route('/api/library/<int:plant_id>', methods=['DELETE'])
 def delete_from_library(plant_id):

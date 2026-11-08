@@ -80,6 +80,7 @@ export const settings = {
           <p style="margin-top:12px"><a href="/classic">Ouvrir l'ancienne interface</a></p>
         </section>
       </div>
+      <section class="block"><h2>Descriptions des plantes</h2><div id="repair-box"><p class="muted">Vérification…</p></div></section>
       <section class="block"><h2>Heures de récupération <span class="chip ${bal > 0 ? 'ok' : bal < 0 ? 'warn' : ''}">${bal >= 0 ? '+' : '−'}${hh(bal)}</span></h2>
         <div><button class="btn small" data-action="heure-add">${icon('plus')} Ajouter des heures</button></div>
         ${state.heures.length ? html`<ul class="list">${[...state.heures].sort((a, b) => String(b.date).localeCompare(String(a.date))).map((h) => html`<li><div class="item">
@@ -87,6 +88,7 @@ export const settings = {
           <span class="qty">${h.type === 'Supp' ? '+' : '−'}${hh(Number(h.duree))}</span></div></li>`)}</ul>` : emptyState('Aucune heure enregistrée', 'Suivez vos heures supplémentaires et vos récupérations.')}
       </section>
     </div></div>`);
+    refreshRepair();
     const form = $('#geo-form', this.root);
     form.addEventListener('submit', (e) => { e.preventDefault(); searchCity($('#geo-q', this.root).value); });
   },
@@ -120,9 +122,36 @@ export const more = {
   render(root) {
     mount(root, html`<div class="page-scroll"><div class="page"><div class="page-head"><h1>Plus</h1></div>
       <ul class="list" style="border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden">
-        ${[['search', 'Rechercher une plante', '#/search'], ['box', 'Inventaire', '#/inventory'], ['map', 'Zones', '#/zones'], ['gear', 'Réglages et heures de récup', '#/settings']].map(([i, l, h]) => html`
+        ${[['cal', 'Calendrier du jardin', '#/calendar'], ['search', 'Rechercher une plante', '#/search'], ['box', 'Inventaire', '#/inventory'], ['map', 'Zones', '#/zones'], ['gear', 'Réglages et heures de récup', '#/settings']].map(([i, l, h]) => html`
           <li><a class="item" href="${h}">${icon(i)}<span class="item-main"><span class="item-title">${l}</span></span></a></li>`)}
       </ul></div></div>`);
   },
   route() {},
+};
+
+/* ---------- Réparation des descriptions ---------- */
+let repairTimer = null, lastFinish = null;
+async function refreshRepair() {
+  const box = $('#repair-box');
+  if (!box) { clearTimeout(repairTimer); return; }
+  let r;
+  try { r = await api('/library/repair-descriptions'); } catch { box.textContent = 'Indisponible pour le moment.'; return; }
+  if (r.running) {
+    mount(box, html`<p>Réparation en cours : <b>${r.done}</b> / ${r.total}${r.current ? html` · ${r.current}` : ''}</p>
+      <progress max="${r.total}" value="${r.done}" style="width:100%"></progress>
+      <p class="small muted">Vous pouvez quitter cette page, la réparation continue sur le serveur.</p>`);
+    clearTimeout(repairTimer); repairTimer = setTimeout(refreshRepair, 3000);
+    return;
+  }
+  const finished = r.finished_at ? html`<p class="chip ok">Terminé : ${r.fixed} fiche${r.fixed > 1 ? 's' : ''} réparée${r.fixed > 1 ? 's' : ''}${r.failed ? `, ${r.failed} échec${r.failed > 1 ? 's' : ''}` : ''}</p>` : '';
+  if (r.finished_at && r.finished_at !== lastFinish) { lastFinish = r.finished_at; await load(); return; }
+  mount(box, html`${finished}${r.pending
+    ? html`<p>${r.pending} fiche${r.pending > 1 ? 's affichent' : ' affiche'} le texte d'entretien à la place de la présentation.</p>
+      <div><button class="btn" data-action="repair-start">Récupérer les descriptions depuis Promesse de Fleurs</button></div>`
+    : html`<p class="muted">Toutes les descriptions sont en place.</p>`}`);
+}
+actions['repair-start'] = async () => {
+  await api('/library/repair-descriptions', { method: 'POST' });
+  toast('Réparation lancée');
+  refreshRepair();
 };

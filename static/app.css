@@ -287,3 +287,17 @@ dialog.lightbox { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 10
 dialog.lightbox[open] { display: grid; place-items: center; }
 dialog.lightbox img { width: 100vw; height: 100dvh; object-fit: contain; cursor: zoom-out; }
 dialog.lightbox .icon-btn { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; color: #fff; background: rgb(255 255 255 / .16); z-index: 2; }
+
+/* ---------- calendrier ---------- */
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; background: var(--sunken); vertical-align: -1px; }
+.dot.flo { background: var(--accent); } .dot.tai { background: var(--warn); } .dot.rec { background: var(--ok); } .dot.pla { background: var(--sky); }
+.year { display: grid; gap: 3px; overflow-x: auto; }
+.year-row { display: grid; grid-template-columns: minmax(130px, 220px) repeat(12, minmax(22px, 1fr)); gap: 3px; align-items: center; text-decoration: none; color: inherit; min-height: 28px; border-radius: 6px; }
+a.year-row:hover { background: var(--sunken); }
+.year-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; padding-right: 8px; }
+.year-row i { height: 16px; border-radius: 4px; background: var(--sunken); display: block; }
+.year-row i.on.flo { background: var(--accent); } .year-row i.on.tai { background: var(--warn); } .year-row i.on.rec { background: var(--ok); } .year-row i.on.pla { background: var(--sky); }
+.year-row i.now { outline: 1.5px solid var(--ink); outline-offset: 1px; }
+.year-head { position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.year-head b { font: 500 0.74rem var(--sans); text-align: center; color: var(--muted); }
+.year-head b.now { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
