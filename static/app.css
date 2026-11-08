@@ -277,3 +277,13 @@ div.item { cursor: default; }
   .stats a:nth-child(2n) { border-right: 0; }
   .stats a:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
+
+/* ---------- photo agrandie ---------- */
+.sheet-photo button, .gallery button { all: unset; display: block; width: 100%; height: 100%; cursor: zoom-in; border-radius: inherit; }
+.sheet-photo button:focus-visible, .gallery button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.gallery button { aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
+.gallery button img { height: 100%; }
+dialog.lightbox { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: 0; border-radius: 0; background: rgb(8 12 10 / .94); }
+dialog.lightbox[open] { display: grid; place-items: center; }
+dialog.lightbox img { width: 100vw; height: 100dvh; object-fit: contain; cursor: zoom-out; }
+dialog.lightbox .icon-btn { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; color: #fff; background: rgb(255 255 255 / .16); z-index: 2; }

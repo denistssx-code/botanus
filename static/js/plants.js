@@ -53,7 +53,7 @@ function plantSheet(m, mine = '', actionsBar = '') {
           </div>
           ${actionsBar}
         </div>
-        <div class="sheet-photo">${m.image ? html`<img src="${m.image}" alt="${m.nom_francais || m.nom_latin}" fetchpriority="high" decoding="async">` : '🌿'}</div>
+        <div class="sheet-photo">${m.image ? html`<button type="button" data-action="photo-zoom" data-src="${m.image}" aria-label="Agrandir la photo"><img src="${m.image}" alt="${m.nom_francais || m.nom_latin}" fetchpriority="high" decoding="async"></button>` : '🌿'}</div>
       </header>
 
       ${cal ? html`<section class="section" aria-labelledby="h-cal"><h2 id="h-cal">Calendrier</h2>${cal}</section>` : ''}
@@ -68,7 +68,7 @@ function plantSheet(m, mine = '', actionsBar = '') {
         return html`<section class="section"><h2>${title}</h2><dl class="facts">${present.map(([l, k]) => html`<div><dt>${l}</dt><dd>${d[k]}</dd></div>`)}</dl></section>`;
       })}
       ${d.descriptif_taille_detaille ? html`<section class="section"><h2>Conseils de taille</h2><p class="prose">${d.descriptif_taille_detaille}</p></section>` : ''}
-      ${gallery.length ? html`<section class="section"><h2>Photos</h2><div class="gallery">${gallery.map((g) => html`<img src="${g}" alt="" loading="lazy" decoding="async" width="160" height="160">`)}</div></section>` : ''}
+      ${gallery.length ? html`<section class="section"><h2>Photos</h2><div class="gallery">${gallery.map((g) => html`<button type="button" data-action="photo-zoom" data-src="${g}" aria-label="Agrandir la photo"><img src="${g}" alt="" loading="lazy" decoding="async" width="160" height="160"></button>`)}</div></section>` : ''}
       ${link ? html`<p class="small muted" style="margin-top:28px">Source : <a href="${link}" target="_blank" rel="noopener">Promesse de Fleurs</a></p>` : ''}
     </article>`;
 }
@@ -223,6 +223,11 @@ actions['plant-refresh'] = async (el) => {
     await loadPlant(pCur.id);
   } catch (e) { el.disabled = false; el.textContent = 'Récupérer la description depuis Promesse de Fleurs'; throw e; }
 };
+actions['photo-zoom'] = (el) => {
+  const d = $('#zoom'); $('img', d).src = el.dataset.src; d.showModal();
+};
+actions['zoom-close'] = () => $('#zoom').close();
+document.addEventListener('click', (e) => { const d = $('#zoom'); if (d.open && e.target.closest('#zoom')) d.close(); });
 actions['plant-photo'] = () => $('#p-file').click();
 changes['reminder'] = async (el) => {
   const key = monthKey(), type = el.dataset.type;
