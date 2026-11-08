@@ -323,3 +323,18 @@ button.facet:focus-visible { outline: 3px solid var(--accent); outline-offset: 2
 .facet .n { font-size: 0.72rem; color: var(--muted, currentColor); opacity: 0.7; }
 .facet.solo { background: none; padding-left: 0; padding-right: 0; }
 .facet.solo:not(:last-child)::after { content: ","; }
+
+/* calendrier par mois : pastilles compactes au lieu de longues listes */
+.calm { display: grid; gap: 18px; }
+.calk { display: grid; gap: 10px; }
+.calk-head { all: unset; box-sizing: border-box; display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); cursor: pointer; font: 600 1.15rem var(--serif, inherit); }
+.calk-head > span:first-child { margin-right: auto; }
+.calk-head:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.calk-caret { width: 1.2em; text-align: center; color: var(--muted); }
+.pchips { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 12px; }
+.pchip { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 3px 6px; border-radius: 10px; color: inherit; text-decoration: none; min-width: 0; }
+.pchip:hover { background: var(--sunken); }
+.pchip .thumb { width: 34px; height: 34px; border-radius: 8px; font-size: 1.1rem; }
+.pchip > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.93rem; font-weight: 500; }
+@media (max-width: 719px) { .pchips { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 8px; } }
+.calk-none { cursor: default; border-bottom: 1px solid var(--line); font-weight: 500; opacity: 0.8; }

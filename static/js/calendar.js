@@ -14,12 +14,17 @@ let root, month = nowMonth(), mode = 'month', kind = 'periode_floraison';
 const periods = (p, key) => monthsOf((p.facts || {})[key]);
 const name = (p) => p.nom_francais || p.nom_latin;
 
+const folded = new Set(); // sections repliées (par type de période)
+
 function monthView() {
-  return html`<div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${KINDS.map(([key, label, cls]) => {
+  return html`<div class="calm">${KINDS.map(([key, label, cls]) => {
     const list = state.plants.filter((p) => periods(p, key).has(month)).sort((a, b) => name(a).localeCompare(name(b), 'fr'));
-    return html`<section class="block"><h2><span><i class="dot ${cls}"></i> ${label}</span><span class="muted small">${list.length}</span></h2>
-      ${list.length ? html`<ul class="list">${list.map((p) => html`<li><a class="item" href="#/plants/${p.id}" style="min-height:56px">${thumb(p.image)}<span class="item-main"><span class="item-title">${name(p)}</span><span class="item-sub">${p.facts[key]}</span></span></a></li>`)}</ul>`
-        : html`<p class="muted small" style="padding:8px 0">Rien ce mois-ci.</p>`}</section>`;
+    const open = !folded.has(key);
+    return html`<section class="calk" aria-label="${label}">
+      ${list.length ? html`<button type="button" class="calk-head" data-action="cal-fold" data-k="${key}" aria-expanded="${open}">
+        <span><i class="dot ${cls}"></i> ${label}</span><span class="muted small">${list.length}</span><span class="calk-caret" aria-hidden="true">${open ? '−' : '+'}</span></button>
+      ${open ? html`<div class="pchips">${list.map((p) => html`<a class="pchip" href="#/plants/${p.id}" title="${name(p)} — ${p.facts[key]}">${thumb(p.image)}<span>${name(p)}</span></a>`)}</div>` : ''}`
+        : html`<div class="calk-head calk-none"><span><i class="dot ${cls}"></i> ${label}</span><span class="muted small">rien ce mois-ci</span></div>`}</section>`;
   })}</div>`;
 }
 
@@ -52,6 +57,7 @@ function draw() {
 
 actions['cal-mode'] = (el) => { mode = el.dataset.v; draw(); };
 actions['cal-month'] = (el) => { month = Number(el.dataset.m); draw(); };
+actions['cal-fold'] = (el) => { const k = el.dataset.k; folded.has(k) ? folded.delete(k) : folded.add(k); draw(); };
 actions['cal-kind'] = (el) => { kind = el.dataset.k; draw(); };
 
 export const calendar = {
