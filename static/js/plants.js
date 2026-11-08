@@ -76,14 +76,15 @@ function plantSheet(m, mine = '', actionsBar = '') {
 /* =========================================================
    Bibliothèque
    ========================================================= */
-let pRoot, pFilters = { q: '', zone: '', type: '' }, pSel = null, pCur = null;
+let pRoot, pFilters = { q: '', zone: '', type: '', sort: 'recent' }, pSel = null, pCur = null;
 
 function plantList() {
   const q = norm(pFilters.q);
   return state.plants.filter((p) => (!q || norm(p.nom_francais + ' ' + p.nom_latin).includes(q))
     && (!pFilters.zone || p.zones.includes(Number(pFilters.zone)))
     && (!pFilters.type || p.type_plante === pFilters.type))
-    .sort((a, b) => (a.nom_francais || a.nom_latin).localeCompare(b.nom_francais || b.nom_latin, 'fr'));
+    .sort((a, b) => (pFilters.sort === 'recent' ? b.id - a.id : pFilters.sort === 'oldest' ? a.id - b.id
+      : (a.nom_francais || a.nom_latin).localeCompare(b.nom_francais || b.nom_latin, 'fr')));
 }
 
 function renderPlantList() {
@@ -261,6 +262,7 @@ export const plants = {
             <div class="filters">
               <select class="select" data-change="plant-zone" aria-label="Zone"><option value="">Toutes les zones</option>${state.zones.map((z) => html`<option value="${z.id}" ${raw(String(z.id) === String(pFilters.zone) ? 'selected' : '')}>${z.icon || ''} ${z.nom}</option>`)}</select>
               <select class="select" data-change="plant-type" aria-label="Type"><option value="">Tous les types</option>${types.map((t) => html`<option ${raw(t === pFilters.type ? 'selected' : '')}>${t}</option>`)}</select>
+              <select class="select" data-change="plant-sort" aria-label="Trier par">${[['recent', 'Derniers ajoutés'], ['oldest', 'Premiers ajoutés'], ['name', 'Nom A → Z']].map(([v, l]) => html`<option value="${v}" ${raw(pFilters.sort === v ? 'selected' : '')}>${l}</option>`)}</select>
               <a class="btn small" href="#/search" style="margin-left:auto">${icon('plus')} Ajouter</a>
             </div>
           </div>
@@ -282,6 +284,7 @@ export const plants = {
 };
 inputs['plant-q'] = debounce((el) => { pFilters.q = el.value; renderPlantList(); }, 120);
 changes['plant-zone'] = (el) => { pFilters.zone = el.value; renderPlantList(); };
+changes['plant-sort'] = (el) => { pFilters.sort = el.value; renderPlantList(); };
 changes['plant-type'] = (el) => { pFilters.type = el.value; renderPlantList(); };
 
 /* =========================================================
