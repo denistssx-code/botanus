@@ -114,6 +114,15 @@ CREATE TABLE IF NOT EXISTS journal (
 );
 CREATE INDEX IF NOT EXISTS journal_date_idx ON journal (date DESC);
 
+-- Photos des notes du journal (data URL JPEG redimensionnée). Hors export/sauvegardes JSON (trop lourdes).
+CREATE TABLE IF NOT EXISTS journal_photos (
+    id         serial PRIMARY KEY,
+    entry_id   integer NOT NULL,
+    data       text NOT NULL,
+    created_at text NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS journal_photos_entry_idx ON journal_photos (entry_id);
+
 CREATE TABLE IF NOT EXISTS reminders (
     plant_id      integer NOT NULL,
     reminder_type text NOT NULL,
@@ -742,7 +751,34 @@ class PostgresClient:
 
     @_safe(False)
     def delete_journal_entry(self, entry_id: int) -> bool:
+        self._query("DELETE FROM journal_photos WHERE entry_id = %s", (int(entry_id),))
         return self._query("DELETE FROM journal WHERE id = %s", (int(entry_id),)) > 0
+
+    # Photos du journal
+    def journal_photo_ids(self) -> Dict[int, List[int]]:
+        """{entry_id: [photo_id, ...]} sans charger les images."""
+        if not self.enabled:
+            return {}
+        out: Dict[int, List[int]] = {}
+        for r in self._query("SELECT id, entry_id FROM journal_photos ORDER BY id", fetch='all'):
+            out.setdefault(r['entry_id'], []).append(r['id'])
+        return out
+
+    @_safe(None)
+    def add_journal_photo(self, entry_id: int, data: str) -> Optional[int]:
+        row = self._query("INSERT INTO journal_photos (entry_id, data, created_at) VALUES (%s,%s,%s) RETURNING id",
+                          (int(entry_id), data, _today()), fetch='one')
+        return row['id'] if row else None
+
+    def get_journal_photo(self, photo_id: int) -> Optional[str]:
+        if not self.enabled:
+            return None
+        row = self._query("SELECT data FROM journal_photos WHERE id = %s", (int(photo_id),), fetch='one')
+        return row['data'] if row else None
+
+    @_safe(False)
+    def delete_journal_photo(self, photo_id: int) -> bool:
+        return self._query("DELETE FROM journal_photos WHERE id = %s", (int(photo_id),)) > 0
 
     # ------------------------------------------------------------------
     # RAPPELS

@@ -2228,7 +2228,7 @@ def delete_inventory_item(item_id):
 def get_journal():
     """Récupère toutes les entrées du journal"""
     entries = [
-        {'id': entry_id, **entry_data}
+        {'id': entry_id, **entry_data, 'photos': journal_photos_index.get(entry_id, [])}
         for entry_id, entry_data in journal_db.items()
     ]
     # Trier par date décroissante (plus récent en premier)
@@ -2301,9 +2301,56 @@ def delete_journal_entry(entry_id):
             airtable_client.delete_journal_entry(entry_id)
         
         del journal_db[entry_id]
+        for pid in journal_photos_index.pop(entry_id, []):
+            journal_photos_mem.pop(pid, None)
         return jsonify({'success': True})
     
     return jsonify({'error': 'Entrée non trouvée'}), 404
+
+# ----- Photos du journal (stockées en base, servies comme de vraies images cachables) -----
+journal_photos_index = {}   # {entry_id: [photo_id]}
+journal_photos_mem = {}     # {photo_id: data URL} — uniquement sans PostgreSQL
+MAX_JOURNAL_PHOTO = 4_000_000  # caractères (≈3 Mo) après redimensionnement côté navigateur
+
+@app.route('/api/journal/<int:entry_id>/photos', methods=['POST'])
+def add_journal_photo(entry_id):
+    if entry_id not in journal_db:
+        return jsonify({'error': 'Entrée non trouvée'}), 404
+    photo = (request.json or {}).get('photo', '')
+    if not photo.startswith('data:image/') or ',' not in photo:
+        return jsonify({'error': 'Format photo invalide'}), 400
+    if len(photo) > MAX_JOURNAL_PHOTO:
+        return jsonify({'error': 'Photo trop lourde'}), 413
+    if STORAGE == 'postgres':
+        photo_id = db_client.add_journal_photo(entry_id, photo)
+        if not photo_id:
+            return jsonify({'error': "Photo non enregistrée"}), 500
+    else:
+        photo_id = max(journal_photos_mem, default=0) + 1
+        journal_photos_mem[photo_id] = photo
+    journal_photos_index.setdefault(entry_id, []).append(photo_id)
+    return jsonify({'success': True, 'photo_id': photo_id, 'photos': journal_photos_index[entry_id]})
+
+@app.route('/api/journal/photo/<int:photo_id>', methods=['GET'])
+def get_journal_photo(photo_id):
+    photo = db_client.get_journal_photo(photo_id) if STORAGE == 'postgres' else journal_photos_mem.get(photo_id)
+    if not photo or ',' not in photo:
+        return jsonify({'error': 'Pas de photo'}), 404
+    header, encoded = photo.split(',', 1)
+    response = make_response(base64.b64decode(encoded))
+    response.headers['Content-Type'] = header[5:].split(';')[0] or 'image/jpeg'
+    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
+
+@app.route('/api/journal/photo/<int:photo_id>', methods=['DELETE'])
+def delete_journal_photo(photo_id):
+    if STORAGE == 'postgres':
+        db_client.delete_journal_photo(photo_id)
+    journal_photos_mem.pop(photo_id, None)
+    for ids in journal_photos_index.values():
+        if photo_id in ids:
+            ids.remove(photo_id)
+    return jsonify({'success': True})
 
 # ========== ROUTES RAPPELS ==========
 
@@ -2914,6 +2961,9 @@ def load_from_airtable():
                 'created_at': entry.get('created_at', '')
             }
         
+        if STORAGE == 'postgres':
+            journal_photos_index.clear()
+            journal_photos_index.update(db_client.journal_photo_ids())
         print(f"✅ {len(journal_db)} entrées journal chargées")
         
         # ====== CHARGER LES ZONES ======

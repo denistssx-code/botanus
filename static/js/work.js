@@ -1,7 +1,7 @@
 // Tâches, inventaire, journal : trois vues liste + détail construites par la même fabrique.
 import {
   $, html, raw, mount, icon, api, state, load, zoneById, actions, changes, inputs, toast, formDialog, confirmDialog,
-  field, textInput, selectInput, zoneChecks, zonesFromForm, plantChecks, plantsFromForm, plantById, cleanName, fmtDate, todayISO, norm, debounce, emptyState, backButton, esc,
+  field, textInput, selectInput, zoneChecks, resizeImage, zonesFromForm, plantChecks, plantsFromForm, plantById, cleanName, fmtDate, todayISO, norm, debounce, emptyState, backButton, esc,
 } from './core.js';
 
 let current = null; // section affichée (pour les filtres génériques)
@@ -235,13 +235,19 @@ export const journal = makeSection({
     const days = [...new Set(list.map((e) => e.date))];
     return html`${days.map((day) => html`<h2 class="group-title">${fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2>
       <ul class="list">${list.filter((e) => e.date === day).map((e) => html`<li><a class="item" href="#/journal/${e.id}" ${raw(Number(sel) === Number(e.id) ? 'aria-current="true"' : '')}>
-        <span class="item-main"><span class="item-title">${e.titre || e.categorie}</span><span class="item-sub">${[e.heure, e.categorie, e.emplacement].filter(Boolean).join(' · ')}</span></span></a></li>`)}</ul>`)}`;
+        <span class="item-main"><span class="item-title">${e.titre || e.categorie}</span><span class="item-sub">${[e.heure, e.categorie, e.emplacement, (e.photos || []).length && `📷 ${e.photos.length}`].filter(Boolean).join(' · ')}</span></span></a></li>`)}</ul>`)}`;
   },
   detail: (e) => html`
     <p class="muted">${fmtDate(e.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${e.heure ? ' · ' + e.heure : ''}</p>
     <h1>${e.titre || e.categorie}</h1>
     <div class="chips" style="margin-top:10px"><span class="chip">${e.categorie}</span>${e.emplacement ? html`<span class="chip">${e.emplacement}</span>` : ''}${e.zone_id ? zoneChips([e.zone_id]) : ''}${e.meteo ? html`<span class="chip">${e.meteo}</span>` : ''}</div>
     ${e.notes ? html`<p class="prose" style="margin-top:20px;white-space:pre-wrap">${e.notes}</p>` : ''}
+    <section class="section" aria-labelledby="h-jph"><h2 id="h-jph">Photos <span class="muted small">${(e.photos || []).length || ''}</span></h2>
+      ${(e.photos || []).length ? html`<div class="gallery">${e.photos.map((id) => html`<div class="ph">
+        <button type="button" data-action="photo-zoom" data-src="/api/journal/photo/${id}" aria-label="Agrandir la photo"><img src="/api/journal/photo/${id}" alt="" loading="lazy" decoding="async" width="160" height="160"></button>
+        <button type="button" class="ph-del" data-action="jphoto-del" data-id="${id}" aria-label="Supprimer la photo">${icon('x')}</button></div>`)}</div>` : ''}
+      <div><button class="btn quiet small" data-action="jphoto-add">${icon('camera')} Ajouter des photos</button><input type="file" id="j-file" accept="image/*" multiple hidden></div>
+    </section>
     ${actionBar('j-edit', 'j-del')}`,
 });
 const curEntry = () => journal.selected();
@@ -250,11 +256,35 @@ const jForm = (e) => html`${field('Titre', textInput('titre', e?.titre || '', 'r
   <div class="row2">${field('Catégorie', selectInput('categorie', J_CATS, e?.categorie || 'Observation'))}
   ${field('Zone', selectInput('zone_id', [['', 'Aucune'], ...state.zones.map((z) => [z.id, `${z.icon || ''} ${z.nom}`])], e?.zone_id ?? ''))}</div>
   ${field('Lieu précis', textInput('emplacement', e?.emplacement || ''))}
-  ${field('Notes', html`<textarea class="textarea" name="notes" rows="5">${e?.notes || ''}</textarea>`)}`;
-const jBody = (v) => ({ ...v, zone_id: v.zone_id === '' ? null : Number(v.zone_id) });
-journal.add = () => formDialog({ title: 'Nouvelle note', body: jForm(null), submit: 'Ajouter', onSubmit: async (v) => {
-  const r = await api('/journal', { method: 'POST', body: jBody(v) }); await load(); location.hash = '#/journal/' + r.entry.id;
+  ${field('Notes', html`<textarea class="textarea" name="notes" rows="5">${e?.notes || ''}</textarea>`)}
+  ${e ? '' : field('Photos', raw('<input class="input" type="file" name="photos" accept="image/*" multiple>'))}`;
+const jBody = ({ photos, ...v }) => ({ ...v, zone_id: v.zone_id === '' ? null : Number(v.zone_id) });
+journal.add = () => formDialog({ title: 'Nouvelle note', body: jForm(null), submit: 'Ajouter', onSubmit: async (v, form) => {
+  const r = await api('/journal', { method: 'POST', body: jBody(v) });
+  const files = [...(form.querySelector('input[name=photos]')?.files || [])];
+  let failed = 0;
+  for (const f of files) { try { await uploadJournalPhoto(r.entry.id, f); } catch { failed++; } }
+  await load(); location.hash = '#/journal/' + r.entry.id;
+  if (failed) toast(`${failed} photo${failed > 1 ? 's' : ''} non enregistrée${failed > 1 ? 's' : ''}`, 'error');
 } });
+const uploadJournalPhoto = async (entryId, file) => {
+  const photo = await resizeImage(file, 1400, 0.8);
+  await api(`/journal/${entryId}/photos`, { method: 'POST', body: { photo } });
+};
+actions['jphoto-add'] = () => $('#j-file').click();
+document.addEventListener('change', async (ev) => {
+  if (ev.target.id !== 'j-file' || !ev.target.files.length) return;
+  const e = curEntry(); if (!e) return;
+  const files = [...ev.target.files]; ev.target.value = '';
+  let failed = 0;
+  for (const f of files) { try { await uploadJournalPhoto(e.id, f); } catch (err) { failed++; } }
+  await load();
+  toast(failed ? `${failed} photo(s) non enregistrée(s)` : (files.length > 1 ? 'Photos enregistrées' : 'Photo enregistrée'), failed ? 'error' : undefined);
+});
+actions['jphoto-del'] = async (el) => {
+  if (!await confirmDialog('Supprimer cette photo ?')) return;
+  await api(`/journal/photo/${el.dataset.id}`, { method: 'DELETE' }); await load();
+};
 actions['j-edit'] = () => { const e = curEntry(); formDialog({ title: 'Modifier la note', body: jForm(e), onSubmit: async (v) => {
   await api(`/journal/${e.id}`, { method: 'PATCH', body: jBody(v) }); await load();
 } }); };
