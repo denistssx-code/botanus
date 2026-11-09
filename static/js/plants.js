@@ -2,7 +2,7 @@
 import {
   $, html, raw, mount, icon, api, state, notify, load, plantById, zoneById, actions, inputs, changes, toast,
   formDialog, confirmDialog, field, textInput, monthsOf, ribbonRows, monthKey, norm, debounce, resizeImage,
-  emptyState, backButton, thumb, MONTHS, nowMonth, cleanName,
+  emptyState, backButton, thumb, MONTHS, nowMonth, cleanName, esc,
 } from './core.js';
 import { newTaskForPlant, taskDone } from './work.js';
 
@@ -55,6 +55,53 @@ function facetValue(key, value, link) {
   })}</span>`;
 }
 
+/* ---- Navigation par ancres : raccourcis vers les sections + repère de la section visible en faisant défiler ---- */
+const NAV_LABEL = { 'Dans mon jardin': 'Mon jardin', 'Plantation et soins': 'Soins', 'Conseils de taille': 'Taille' };
+let navAbort = null;
+const scrollParent = (el) => {
+  for (let n = el.parentElement; n; n = n.parentElement) {
+    const o = getComputedStyle(n).overflowY;
+    if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+  }
+  return window;
+};
+function enhanceSheet(container) {
+  if (navAbort) navAbort.abort();
+  const article = container.querySelector('article[aria-labelledby="sheet-title"]');
+  const nav = article && article.querySelector('.sheet-nav');
+  if (!nav) return;
+  const secs = [...article.querySelectorAll(':scope > section.section')].map((el, i) => {
+    const t = (el.querySelector('h2')?.firstChild?.textContent || el.querySelector('h2')?.textContent || '').trim();
+    el.id = el.id || `sec-${i}`;
+    return t ? { el, label: NAV_LABEL[t] || t } : null;
+  }).filter(Boolean);
+  if (secs.length < 3) return;
+  nav.hidden = false;
+  nav.innerHTML = secs.map((s2, i) => `<button type="button" data-action="sheet-jump" data-i="${i}">${esc(s2.label)}</button>`).join('');
+  const btns = [...nav.querySelectorAll('button')];
+  navAbort = new AbortController();
+  const sc = scrollParent(nav);
+  let current = -1;
+  const spy = () => {
+    const top = sc === window ? 0 : sc.getBoundingClientRect().top;
+    const line = top + nav.offsetHeight + 24;
+    let idx = 0;
+    secs.forEach((s2, i) => { if (s2.el.getBoundingClientRect().top <= line) idx = i; });
+    const atEnd = sc === window ? innerHeight + scrollY >= document.documentElement.scrollHeight - 4 : sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 4;
+    if (atEnd) idx = secs.length - 1;
+    if (idx === current) return;
+    current = idx;
+    btns.forEach((b, i) => { if (i === idx) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+    const b = btns[idx]; nav.scrollTo({ left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2, behavior: 'auto' });
+  };
+  sc.addEventListener('scroll', spy, { passive: true, signal: navAbort.signal });
+  nav._secs = secs; spy();
+}
+actions['sheet-jump'] = (el) => {
+  const nav = el.closest('.sheet-nav'); const t = nav._secs[Number(el.dataset.i)];
+  if (t) t.el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+};
+
 function plantSheet(m, mine = '', actionsBar = '') {
   const d = m.details || {};
   const cal = ribbonRows([
@@ -89,6 +136,7 @@ function plantSheet(m, mine = '', actionsBar = '') {
         <div class="sheet-photo">${m.image ? html`<button type="button" data-action="photo-zoom" data-src="${m.image}" aria-label="Agrandir la photo"><img src="${m.image}" alt="${m.nom_francais || m.nom_latin}" fetchpriority="high" decoding="async"></button>` : '🌿'}</div>
       </header>
 
+      <nav class="sheet-nav" aria-label="Sections de la fiche" hidden></nav>
       ${cal ? html`<section class="section" aria-labelledby="h-cal"><h2 id="h-cal">Calendrier</h2>${cal}</section>` : ''}
       ${mine}
       ${intro ? html`<section class="section" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2><p class="prose">${intro}</p></section>` : ''}
@@ -215,6 +263,7 @@ function renderPlantDetail() {
   </section>`;
   const bar = html`<div class="chips"><button class="btn danger small" data-action="plant-delete">${icon('trash')} Retirer de ma bibliothèque</button></div>`;
   mount($('#p-detail', pRoot), plantSheet(model, mine, bar));
+  enhanceSheet($('#p-detail', pRoot));
 }
 
 const savePlantNotes = async (notes, quantity) => {
@@ -403,6 +452,7 @@ function renderPreview() {
     type: d.type_plante || r.type_plante, exposition: d.exposition || r.exposition, prix: r.prix, url: r.url,
     description: d.description_courte || r.description, details: d, zones: [],
   }, '', bar));
+  enhanceSheet(box);
 }
 
 actions['search-go'] = (el) => runSearch(el.dataset.q);
