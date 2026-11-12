@@ -104,6 +104,8 @@ export const settings = {
         </section>
       </div>
       <section class="block"><h2>Descriptions des plantes</h2><div id="repair-box"><p class="muted">Vérification…</p></div></section>
+      <section class="block"><h2>Accès</h2><p class="muted small">Le site est protégé par un mot de passe. Votre appareil le retient 30 jours.</p>
+        <div><button class="btn quiet" data-action="logout">Se déconnecter</button></div></section>
       <section class="block"><h2>Sauvegardes</h2><div id="backup-box"><p class="muted">Vérification…</p></div></section>
       <section class="block"><h2>Heures de récupération <span class="chip ${bal > 0 ? 'ok' : bal < 0 ? 'warn' : ''}">${bal >= 0 ? '+' : '−'}${hh(bal)}</span></h2>
         <div><button class="btn small" data-action="heure-add">${icon('plus')} Ajouter des heures</button></div>
@@ -193,4 +195,5 @@ async function refreshBackups() {
     <div class="chips"><button class="btn quiet" data-action="backup-now">Sauvegarder maintenant</button>
     <a class="btn" href="/api/export" download>${icon('box')} Télécharger mes données</a></div>`);
 }
+actions['logout'] = async () => { await api('/logout', { method: 'POST' }); location.reload(); };
 actions['backup-now'] = async () => { await api('/backups', { method: 'POST' }); toast('Sauvegarde créée'); refreshBackups(); };

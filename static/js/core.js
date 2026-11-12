@@ -21,6 +21,7 @@ export async function api(path, { method = 'GET', body } = {}) {
   const res = await fetch('/api' + path, init);
   let data = null;
   try { data = await res.json(); } catch { /* corps vide */ }
+  if (res.status === 401 && data && data.login) { location.reload(); throw new Error('Connexion requise'); } // session expirée : retour à l'écran d'accès
   if (!res.ok) throw new Error((data && data.error) || `Erreur ${res.status}`);
   return data;
 }

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Botanus · accès réservé</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<style>
+@font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-style: normal; font-display: swap; src: url("/static/fonts/instrument-sans-wght.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader"; font-weight: 200 800; font-style: normal; font-display: swap; src: url("/static/fonts/newsreader-wght.woff2") format("woff2"); }
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#eef0eb, #111614);
+  --panel: light-dark(#fafaf7, #181f1c);
+  --ink: light-dark(#1b251f, #e8ede6);
+  --muted: light-dark(#5a675e, #9aa89f);
+  --edge: light-dark(#76817a, #7d8a82);
+  --accent: light-dark(#5a4a9b, #b3a7e6);
+  --accent-ink: light-dark(#ffffff, #1a1530);
+  --accent-soft: light-dark(#e6e2f3, #2a2547);
+  --bad: light-dark(#a8323f, #ee8791);
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink); font: 400 15px/1.5 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 24px 72px; }
+main { width: min(360px, 100%); display: flex; flex-direction: column; align-items: center; }
+.logo { width: 96px; height: 96px; border-radius: 50%; background: var(--accent-soft); display: grid; place-items: center; }
+.logo svg { width: 56px; height: 56px; }
+h1 { margin: 26px 0 0; font: 400 clamp(52px, 14vw, 76px)/1 "Newsreader", Georgia, serif; letter-spacing: -0.02em; }
+.sub { margin: 12px 0 0; font-size: 17px; color: var(--muted); text-align: center; }
+form { margin-top: 48px; width: 100%; display: grid; gap: 16px; }
+label { font-weight: 600; font-size: 14px; }
+.field { display: flex; background: var(--panel); border: 1.5px solid var(--edge); border-radius: 12px; margin-top: -8px; }
+.field.bad { border: 2px solid var(--bad); }
+input { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 16px; padding: 0 16px; min-height: 52px; border-radius: 12px; }
+.eye { flex: none; width: 52px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; border-radius: 12px; cursor: pointer; }
+.eye svg { width: 22px; height: 22px; }
+.go { min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 600 16px "Instrument Sans", system-ui, sans-serif; cursor: pointer; }
+.go:disabled { opacity: .6; cursor: progress; }
+.err { margin: -8px 0 0; font-size: 14px; font-weight: 500; color: var(--bad); min-height: 0; }
+.err:empty { display: none; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.field:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.field input:focus-visible { outline: none; }
+.foot { position: fixed; left: 0; right: 0; bottom: 28px; margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Logo Botanus"><path d="M16 29V13"/><path d="M16 17c-4 0-7-3-7-7 4 0 7 3 7 7Z"/><path d="M16 13c0-4 3-7 7-7 0 4-3 7-7 7Z"/><path d="M16 22c3 0 6-2 6-5-3 0-6 2-6 5Z"/></svg>
+  </div>
+  <h1>Botanus</h1>
+  <p class="sub">Aménagement Clos Saint-Michel</p>
+  <form id="f" novalidate>
+    <label for="pwd">Mot de passe</label>
+    <div class="field" id="field">
+      <input id="pwd" name="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Saisissez le mot de passe" required autofocus aria-describedby="err">
+      <button class="eye" id="eye" type="button" aria-label="Afficher le mot de passe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <p class="err" id="err" role="alert"></p>
+    <button class="go" id="go" type="submit">Entrer</button>
+  </form>
+</main>
+<p class="foot">Accès réservé à Denis</p>
+<script>
+(function () {
+  var f = document.getElementById('f'), pwd = document.getElementById('pwd'), err = document.getElementById('err'),
+      field = document.getElementById('field'), go = document.getElementById('go'), eye = document.getElementById('eye');
+  eye.addEventListener('click', function () {
+    var show = pwd.type === 'password';
+    pwd.type = show ? 'text' : 'password';
+    eye.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  });
+  function fail(msg) { err.textContent = msg; field.classList.add('bad'); pwd.setAttribute('aria-invalid', 'true'); pwd.focus(); pwd.select(); }
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!pwd.value.trim()) return fail('Saisissez le mot de passe.');
+    go.disabled = true; err.textContent = ''; field.classList.remove('bad'); pwd.removeAttribute('aria-invalid');
+    fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwd.value }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok) { location.reload(); return; }
+        go.disabled = false; fail(res.d.error || 'Connexion impossible.');
+      })
+      .catch(function () { go.disabled = false; fail('Connexion impossible. Vérifiez le réseau.'); });
+  });
+})();
+</script>
+</body>
+</html>

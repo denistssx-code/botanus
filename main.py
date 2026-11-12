@@ -2828,6 +2828,97 @@ def get_weather():
             'demo': True
         })
 
+# ====== ACCÈS PAR MOT DE PASSE ======
+# Active seulement si la variable BOTANUS_PASSWORD est définie (sinon le site reste ouvert, pratique en local).
+import hmac
+import unicodedata
+
+ACCESS_PASSWORD = os.environ.get('BOTANUS_PASSWORD', '').strip()
+AUTH_COOKIE = 'botanus_auth'
+AUTH_DAYS = 30
+LOGIN_MAX_FAILS = 5
+LOGIN_WINDOW = 15 * 60
+_login_failures = {}   # ip -> [horodatages des échecs]
+_AUTH_OPEN_PREFIXES = ('/static/fonts/', '/static/icon.svg', '/api/login')
+_AUTH_OPEN_PATHS = {'/manifest.json', '/service-worker.js'}
+
+def _norm_password(value):
+    """Sans accents, sans majuscules, sans espaces autour : « acca  Sellowiana » passe."""
+    text = unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode()
+    return ' '.join(text.lower().split())
+
+def _auth_key():
+    return hashlib.sha256(('botanus-session|' + ACCESS_PASSWORD).encode('utf-8')).digest()
+
+def _make_auth_token():
+    exp = str(int(time.time()) + AUTH_DAYS * 86400)
+    sig = hmac.new(_auth_key(), exp.encode(), hashlib.sha256).hexdigest()
+    return f'{exp}.{sig}'
+
+def _valid_auth_token(token):
+    try:
+        exp, sig = (token or '').split('.', 1)
+        good = hmac.new(_auth_key(), exp.encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(sig, good) and int(exp) > time.time()
+    except (ValueError, AttributeError):
+        return False
+
+def _client_ip():
+    # dernier maillon de X-Forwarded-For = ajouté par le proxy de Railway (le premier peut être falsifié)
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    return (forwarded.split(',')[-1].strip() if forwarded else '') or request.remote_addr or '?'
+
+def _login_page():
+    with open(os.path.join(app.static_folder, 'login.html'), encoding='utf-8') as fh:
+        response = make_response(fh.read())
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+@app.before_request
+def require_login():
+    if not ACCESS_PASSWORD or request.method == 'OPTIONS':
+        return None
+    path = request.path
+    if path in _AUTH_OPEN_PATHS or path.startswith(_AUTH_OPEN_PREFIXES):
+        return None
+    if _valid_auth_token(request.cookies.get(AUTH_COOKIE)):
+        return None
+    if path.startswith('/api/'):
+        return jsonify({'error': 'Connexion requise', 'login': True}), 401
+    return _login_page()
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    if not ACCESS_PASSWORD:
+        return jsonify({'success': True})
+    ip = _client_ip()
+    now = time.time()
+    fails = [t for t in _login_failures.get(ip, []) if now - t < LOGIN_WINDOW]
+    if len(fails) >= LOGIN_MAX_FAILS:
+        wait = int((fails[0] + LOGIN_WINDOW - now) // 60) + 1
+        return jsonify({'error': f'Trop d\'essais. Réessayez dans {wait} min.'}), 429
+    given = _norm_password((request.get_json(silent=True) or {}).get('password', ''))
+    if given and hmac.compare_digest(given.encode(), _norm_password(ACCESS_PASSWORD).encode()):
+        _login_failures.pop(ip, None)
+        response = jsonify({'success': True})
+        response.set_cookie(AUTH_COOKIE, _make_auth_token(), max_age=AUTH_DAYS * 86400, httponly=True,
+                            samesite='Lax', secure=(request.is_secure or request.headers.get('X-Forwarded-Proto') == 'https'))
+        return response
+    fails.append(now)
+    _login_failures[ip] = fails
+    time.sleep(0.6)  # freine les essais en rafale
+    return jsonify({'error': 'Mot de passe incorrect. Essayez encore.'}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    response = jsonify({'success': True})
+    response.delete_cookie(AUTH_COOKIE)
+    return response
+
+if not ACCESS_PASSWORD:
+    print("ℹ️ Pas de BOTANUS_PASSWORD : accès libre")
+
 @app.after_request
 def add_cache_headers(response):
     """
