@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, make_response
+from flask import Flask, jsonify, request, send_from_directory, make_response, redirect
 from flask_cors import CORS
 import base64
 import hashlib
@@ -2840,7 +2840,13 @@ LOGIN_MAX_FAILS = 5
 LOGIN_WINDOW = 15 * 60
 _login_failures = {}   # ip -> [horodatages des échecs]
 _AUTH_OPEN_PREFIXES = ('/static/fonts/', '/static/icon.svg', '/api/login')
-_AUTH_OPEN_PATHS = {'/manifest.json', '/service-worker.js'}
+_AUTH_OPEN_PATHS = {'/manifest.json', '/service-worker.js', '/carte'}
+CARTE_URL = 'https://carte-production-d21f7bb7.up.railway.app/lecture'
+
+@app.route('/carte')
+def carte_raccourci():
+    """Raccourci vers la carte (autre site) : botanus…/carte."""
+    return redirect(CARTE_URL, code=302)
 
 def _norm_password(value):
     """Sans accents, sans majuscules, sans espaces autour : « acca  Sellowiana » passe."""
