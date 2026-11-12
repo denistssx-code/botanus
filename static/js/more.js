@@ -91,6 +91,8 @@ export const settings = {
     const s = state.settings, theme = applyTheme(), bal = balance();
     mount(this.root, html`<div class="page-scroll"><div class="page">
       <div class="page-head"><h1>Réglages</h1></div>
+      <section class="block"><h2>Carte</h2><p class="muted small">Ouvre la carte de la propriété dans un nouvel onglet.</p>
+        <div><a class="btn" href="/carte" target="_blank" rel="noopener">${icon('map')} Ouvrir la carte</a></div></section>
       <div class="cols">
         <section class="block"><h2>Météo</h2>
           <p>Ville suivie : <b>${s.meteo_ville || 'Malaucène'}</b></p>
