@@ -359,3 +359,55 @@ dialog > form > .dlg-head, dialog > form > .dlg-foot { flex: none; }
 .sheet-nav button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 article[aria-labelledby="sheet-title"] > section.section { scroll-margin-top: 64px; }
 @media (min-width: 720px) { .pane-detail .sheet-nav { top: -28px; padding-top: 36px; margin-top: -18px; } }
+
+/* ---------- impression d'une sélection de plantes ---------- */
+.pr-tools { display: grid; gap: 16px; margin-bottom: 22px; }
+.pr-opts { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 14px 20px; align-items: end; }
+.pr-checks { border: 0; margin: 0; padding: 0; display: flex; gap: 8px 18px; flex-wrap: wrap; min-height: 44px; align-items: center; }
+.pr-checks label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; min-height: 36px; }
+.pr-picker { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.pr-picker > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 10px; }
+.pr-picker-body { padding: 0 16px 16px; display: grid; gap: 10px; }
+.pr-picker-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pr-picker-bar .input { flex: 1 1 200px; }
+.pr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 14px; max-height: 300px; overflow: auto; }
+.pr-list label { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; min-width: 0; }
+.pr-list label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 719px) { .pr-opts { grid-template-columns: minmax(0, 1fr); } }
+
+.pr-doc { background: #fff; color: #1b1f1d; border: 1px solid var(--line); border-radius: 6px; padding: 24px 28px; box-shadow: 0 2px 10px rgb(0 0 0 / .08); }
+.pd-head { border-bottom: 2px solid #1b1f1d; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.pd-head h1 { font-size: 1.7rem; margin: 0; color: #1b1f1d; }
+.pd-head p { margin: 0; color: #55605a; font-size: 0.9rem; }
+.pd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+.pcard { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #d9ded9; break-inside: avoid; page-break-inside: avoid; min-width: 0; }
+.pc-photo { flex: none; width: 27mm; height: 27mm; border-radius: 4px; overflow: hidden; background: #eceee9; display: grid; place-items: center; font-size: 1.6rem; }
+.pc-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pc-main { min-width: 0; flex: 1; }
+.pc-main h3 { font: 600 1.02rem var(--serif); margin: 0; color: #1b1f1d; overflow-wrap: anywhere; }
+.pc-qty { font: 500 0.8rem var(--sans); color: #55605a; }
+.pc-latin { margin: 0 0 4px; font-style: italic; color: #55605a; font-size: 0.84rem; overflow-wrap: anywhere; }
+.pc-facts { display: grid; grid-template-columns: 1fr; gap: 1px; margin: 4px 0 6px; font-size: 0.8rem; }
+.pc-facts div { display: flex; gap: 6px; min-width: 0; }
+.pc-facts dt { flex: none; color: #55605a; min-width: 5.2em; }
+.pc-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.pc-cal { border-collapse: collapse; font-size: 0.62rem; width: 100%; table-layout: fixed; margin-top: 4px; }
+.pc-cal th { font-weight: 500; color: #55605a; text-align: center; padding: 0 0 1px; }
+.pc-cal th[scope=row] { text-align: left; width: 21%; white-space: nowrap; overflow: hidden; padding-right: 3px; }
+.pc-cal td { height: 7px; border: 1px solid #e0e4df; }
+.pc-cal td.on { -webkit-print-color-adjust: exact; print-color-adjust: exact; border-color: transparent; }
+.pc-cal td.flo { background: #7a68c2; } .pc-cal td.tai { background: #b8812a; } .pc-cal td.rec { background: #5d7a2a; } .pc-cal td.pla { background: #3d7090; }
+@media (max-width: 719px) { .pd-grid { grid-template-columns: minmax(0, 1fr); } .pr-doc { padding: 16px; } }
+
+@page { size: A4; margin: 12mm; }
+@media print {
+  .noprint { display: none !important; }
+  body { background: #fff !important; }
+  .app { display: block !important; min-height: 0 !important; }
+  .rail, .tabbar, .skip, #toasts { display: none !important; }
+  .stage { display: block; }
+  .page-scroll { height: auto !important; overflow: visible !important; }
+  .print-page { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  .pr-doc { border: 0; box-shadow: none; padding: 0; border-radius: 0; }
+  .pd-head { break-after: avoid; }
+}

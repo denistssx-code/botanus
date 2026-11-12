@@ -24,7 +24,7 @@ const GROUPS = [
 ];
 
 /* ---- Repères : valeurs partagées par plusieurs plantes, cliquables pour filtrer la bibliothèque ---- */
-const glue = (v) => String(v ?? '').replace(/([a-zà-ÿ])([A-ZÀ-Ý])/g, '$1, $2'); // « SoleilMi-ombre » → « Soleil, Mi-ombre »
+export const glue = (v) => String(v ?? '').replace(/([a-zà-ÿ])([A-ZÀ-Ý])/g, '$1, $2'); // « SoleilMi-ombre » → « Soleil, Mi-ombre »
 function facetTokens(v) {
   const out = []; let cur = '', depth = 0;
   for (const ch of glue(v)) {
@@ -278,6 +278,7 @@ actions['facet-go'] = (el) => {
   if (matchMedia('(min-width: 720px)').matches) { const q = $('#p-q', pRoot); if (q) q.value = ''; renderPlantList(); }
   else location.hash = '#/plants';
 };
+actions['plants-print'] = () => { location.hash = `#/print?ids=${plantList().map((p) => p.id).join(',')}&t=${encodeURIComponent(pFilters.facet ? `${FACET_LABEL[pFilters.facet.k] || ''} : ${pFilters.facet.v}` : 'Ma sélection')}`; };
 actions['facet-clear'] = () => { pFilters.facet = null; renderPlantList(); };
 actions['plant-task-add'] = () => newTaskForPlant(pCur.id, () => renderPlantDetail());
 changes['plant-task-toggle'] = async (el) => {
@@ -381,6 +382,7 @@ export const plants = {
               <select class="select" data-change="plant-type" aria-label="Type"><option value="">Tous les types</option>${types.map((t) => html`<option ${raw(t === pFilters.type ? 'selected' : '')}>${t}</option>`)}</select>
               <select class="select" data-change="plant-sort" aria-label="Trier par">${[['recent', 'Derniers ajoutés'], ['oldest', 'Premiers ajoutés'], ['name', 'Nom A → Z']].map(([v, l]) => html`<option value="${v}" ${raw(pFilters.sort === v ? 'selected' : '')}>${l}</option>`)}</select>
               <a class="btn small" href="#/search" style="margin-left:auto">${icon('plus')} Ajouter</a>
+              <button type="button" class="btn quiet small" data-action="plants-print" title="Imprimer les plantes de cette liste">${icon('print')} Imprimer</button>
             </div>
           </div>
           <div id="p-facet" style="padding:0 16px"></div>

@@ -5,15 +5,16 @@ import { plants, search } from './plants.js';
 import { tasks, inventory, journal } from './work.js';
 import { zones, settings, more, applyTheme } from './more.js';
 import { calendar } from './calendar.js';
+import { printView } from './print.js';
 
 applyTheme();
-const VIEWS = { today, plants, calendar, search, tasks, inventory, journal, zones, settings, more };
+const VIEWS = { today, plants, calendar, search, tasks, inventory, journal, zones, settings, more, print: printView };
 const NAV = [
   ['today', "Aujourd'hui", 'sun'], ['plants', 'Plantes', 'leaf'], ['calendar', 'Calendrier', 'cal'], ['search', 'Recherche', 'search'], ['tasks', 'Tâches', 'check'],
   ['inventory', 'Inventaire', 'box'], ['journal', 'Journal', 'book'], ['zones', 'Zones', 'map'], ['settings', 'Réglages', 'gear'],
 ];
 const TABS = [['today', "Aujourd'hui", 'sun'], ['plants', 'Plantes', 'leaf'], ['tasks', 'Tâches', 'check'], ['journal', 'Journal', 'book'], ['more', 'Plus', 'more']];
-const MORE_GROUP = new Set(['calendar', 'search', 'inventory', 'zones', 'settings', 'more']);
+const MORE_GROUP = new Set(['calendar', 'search', 'inventory', 'zones', 'settings', 'more', 'print']);
 
 let mounted = null, mountedName = null;
 

@@ -43,7 +43,8 @@ export const zones = {
     const ps = zPlants(z), ts = zTasks(z);
     return html`${backButton('Retour')}
       <header class="page-head"><div><h1>${z.icon || '🗺️'} ${z.nom}</h1>${z.description ? html`<p class="muted">${z.description}</p>` : ''}</div>
-        <button class="btn quiet small" data-action="zone-edit" data-id="${z.id}">${icon('edit')} Modifier</button></header>
+        <div class="chips"><a class="btn quiet small" href="#/print?zone=${z.id}">${icon('print')} Imprimer</a>
+          <button class="btn quiet small" data-action="zone-edit" data-id="${z.id}">${icon('edit')} Modifier</button></div></header>
       <section class="section"><h2>Plantes <span class="muted small">${ps.length}</span></h2>
         ${ps.length ? html`<div class="pchips pchips-tight">${(zoneAll.has(z.id) ? ps : ps.slice(0, Z_MAX)).map((p) => html`<a class="pchip" href="#/plants/${p.id}" title="${cleanName(p.nom_francais) || p.nom_latin}">${thumb(p.image)}<span>${cleanName(p.nom_francais) || p.nom_latin}</span></a>`)}</div>
           ${ps.length > Z_MAX ? html`<div><button class="btn quiet small" data-action="zone-all" data-id="${z.id}">${zoneAll.has(z.id) ? 'Réduire la liste' : `Afficher les ${ps.length - Z_MAX} autres`}</button></div>` : ''}`
